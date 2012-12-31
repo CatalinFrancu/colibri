@@ -1,0 +1,210 @@
+# depslib dependency file v1.0
+1356696154 source:/home/cata/projects/colibri2/colibri2.cpp
+	<stdio.h>
+	"bitmanip.h"
+
+1356704486 source:/home/cata/projects/colibri2/bitmanip.cpp
+	<stddef.h>
+	"bitmanip.h"
+
+1356773143 /home/cata/projects/colibri2/bitmanip.h
+	"defines.h"
+
+1225373262 source:/home/cata/projects/colibri2/UnitTest++/src/AssertException.cpp
+	"AssertException.h"
+	<cstring>
+
+1174314856 /home/cata/projects/colibri2/UnitTest++/src/AssertException.h
+	<exception>
+
+1225373262 source:/home/cata/projects/colibri2/UnitTest++/src/Checks.cpp
+	"Checks.h"
+	<cstring>
+
+1225373262 /home/cata/projects/colibri2/UnitTest++/src/Checks.h
+	"Config.h"
+	"TestResults.h"
+	"MemoryOutStream.h"
+
+1225373916 /home/cata/projects/colibri2/UnitTest++/src/Config.h
+
+1174314856 /home/cata/projects/colibri2/UnitTest++/src/TestResults.h
+
+1174314856 /home/cata/projects/colibri2/UnitTest++/src/MemoryOutStream.h
+	"Config.h"
+	<sstream>
+	<cstddef>
+
+1225287488 source:/home/cata/projects/colibri2/UnitTest++/src/CurrentTest.cpp
+	"CurrentTest.h"
+	<cstddef>
+
+1225287488 /home/cata/projects/colibri2/UnitTest++/src/CurrentTest.h
+
+1225383016 source:/home/cata/projects/colibri2/UnitTest++/src/DeferredTestReporter.cpp
+	"DeferredTestReporter.h"
+	"TestDetails.h"
+	"Config.h"
+
+1174314856 /home/cata/projects/colibri2/UnitTest++/src/DeferredTestReporter.h
+	"TestReporter.h"
+	"DeferredTestResult.h"
+	<vector>
+
+1174314856 /home/cata/projects/colibri2/UnitTest++/src/TestReporter.h
+
+1176651266 /home/cata/projects/colibri2/UnitTest++/src/DeferredTestResult.h
+	<string>
+	<vector>
+
+1174314856 /home/cata/projects/colibri2/UnitTest++/src/TestDetails.h
+
+1225383016 source:/home/cata/projects/colibri2/UnitTest++/src/DeferredTestResult.cpp
+	"DeferredTestResult.h"
+	"Config.h"
+
+1225373262 source:/home/cata/projects/colibri2/UnitTest++/src/MemoryOutStream.cpp
+	"MemoryOutStream.h"
+	<cstring>
+	<cstdio>
+
+1224683802 source:/home/cata/projects/colibri2/UnitTest++/src/Posix/SignalTranslator.cpp
+	"SignalTranslator.h"
+
+1224683802 /home/cata/projects/colibri2/UnitTest++/src/Posix/SignalTranslator.h
+	<setjmp.h>
+	<signal.h>
+
+1174314856 source:/home/cata/projects/colibri2/UnitTest++/src/Posix/TimeHelpers.cpp
+	"TimeHelpers.h"
+	<unistd.h>
+
+1174314856 /home/cata/projects/colibri2/UnitTest++/src/Posix/TimeHelpers.h
+	<sys/time.h>
+
+1224683802 source:/home/cata/projects/colibri2/UnitTest++/src/ReportAssert.cpp
+	"AssertException.h"
+
+1225287488 source:/home/cata/projects/colibri2/UnitTest++/src/Test.cpp
+	"Config.h"
+	"Test.h"
+	"TestList.h"
+	"TestResults.h"
+	"AssertException.h"
+	"MemoryOutStream.h"
+	"ExecuteTest.h"
+	"Posix/SignalTranslator.h"
+
+1225287488 /home/cata/projects/colibri2/UnitTest++/src/Test.h
+	"TestDetails.h"
+
+1180467758 /home/cata/projects/colibri2/UnitTest++/src/TestList.h
+
+1225287488 /home/cata/projects/colibri2/UnitTest++/src/ExecuteTest.h
+	"TestDetails.h"
+	"MemoryOutStream.h"
+	"AssertException.h"
+	"CurrentTest.h"
+	"Posix/SignalTranslator.h"
+
+1174314856 source:/home/cata/projects/colibri2/UnitTest++/src/TestDetails.cpp
+	"TestDetails.h"
+
+1180467758 source:/home/cata/projects/colibri2/UnitTest++/src/TestList.cpp
+	"TestList.h"
+	"Test.h"
+	<cassert>
+
+1174314856 source:/home/cata/projects/colibri2/UnitTest++/src/TestReporter.cpp
+	"TestReporter.h"
+
+1225373262 source:/home/cata/projects/colibri2/UnitTest++/src/TestReporterStdout.cpp
+	"TestReporterStdout.h"
+	<cstdio>
+	"TestDetails.h"
+
+1174314856 /home/cata/projects/colibri2/UnitTest++/src/TestReporterStdout.h
+	"TestReporter.h"
+
+1174314856 source:/home/cata/projects/colibri2/UnitTest++/src/TestResults.cpp
+	"TestResults.h"
+	"TestReporter.h"
+	"TestDetails.h"
+
+1225373262 source:/home/cata/projects/colibri2/UnitTest++/src/TestRunner.cpp
+	"TestRunner.h"
+	"TestResults.h"
+	"TestReporter.h"
+	"TestReporterStdout.h"
+	"TimeHelpers.h"
+	"MemoryOutStream.h"
+	<cstring>
+
+1225287488 /home/cata/projects/colibri2/UnitTest++/src/TestRunner.h
+	"Test.h"
+	"TestList.h"
+	"CurrentTest.h"
+
+1174314856 /home/cata/projects/colibri2/UnitTest++/src/TimeHelpers.h
+	"Config.h"
+	"Posix/TimeHelpers.h"
+	"Win32/TimeHelpers.h"
+
+1356694404 /home/cata/projects/colibri2/UnitTest++/src/Win32/TimeHelpers.h
+	"../Config.h"
+
+1225287488 source:/home/cata/projects/colibri2/UnitTest++/src/TimeConstraint.cpp
+	"TimeConstraint.h"
+	"TestResults.h"
+	"MemoryOutStream.h"
+	"CurrentTest.h"
+
+1225287488 /home/cata/projects/colibri2/UnitTest++/src/TimeConstraint.h
+	"TimeHelpers.h"
+
+1356955997 source:/home/cata/projects/colibri2/test.cpp
+	<boost/test/included/unit_test.hpp>
+	"bitmanip.h"
+	"movegen.h"
+	"precomp.h"
+
+1356945076 source:/home/cata/projects/colibri2/board.cpp
+	<assert.h>
+	<sstream>
+	<stdio.h>
+	<stdlib.h>
+	<string>
+	<string.h>
+	"board.h"
+	"precomp.h"
+
+1356941732 /home/cata/projects/colibri2/board.h
+	<string>
+	"bitmanip.h"
+
+1356957843 source:/home/cata/projects/colibri2/precomp.cpp
+	<stdio.h>
+	"precomp.h"
+
+1356957579 /home/cata/projects/colibri2/precomp.h
+	"bitmanip.h"
+	"board.h"
+
+1356946689 /home/cata/projects/colibri2/defines.h
+
+1356902582 source:/home/cata/projects/colibri2/movegen.cpp
+	<iostream>
+	"bitmanip.h"
+	"movegen.h"
+	"precomp.h"
+
+1356773443 /home/cata/projects/colibri2/movegen.h
+	"defines.h"
+
+1356946657 source:/home/cata/projects/colibri2/tools/egtbEstimator.cpp
+	<stdio.h>
+	<stdlib.h>
+	"../bitmanip.h"
+	"../defines.h"
+	"../precomp.h"
+
