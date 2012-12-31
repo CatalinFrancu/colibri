@@ -7,8 +7,8 @@
 		<Option compiler="gcc" />
 		<Build>
 			<Target title="Release">
-				<Option output="bin/Release/colibri" prefix_auto="1" extension_auto="1" />
-				<Option object_output="obj/Release/" />
+				<Option output="../bin/Release/colibri" prefix_auto="1" extension_auto="1" />
+				<Option object_output="../obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
@@ -19,14 +19,14 @@
 				</Linker>
 			</Target>
 			<Target title="Testing">
-				<Option output="bin/Testing/test" prefix_auto="1" extension_auto="1" />
-				<Option object_output="obj/Testing/" />
+				<Option output="../bin/Testing/test" prefix_auto="1" extension_auto="1" />
+				<Option object_output="../obj/Testing/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
 			</Target>
 			<Target title="EgtbEstimator">
-				<Option output="bin/EgtbEstimator/egtbEstimator" prefix_auto="1" extension_auto="1" />
-				<Option object_output="obj/EgtbEstimator" />
+				<Option output="../bin/EgtbEstimator/egtbEstimator" prefix_auto="1" extension_auto="1" />
+				<Option object_output="../obj/EgtbEstimator" />
 				<Option type="1" />
 				<Option compiler="gcc" />
 			</Target>
@@ -35,22 +35,22 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
-		<Unit filename="bitmanip.cpp" />
-		<Unit filename="bitmanip.h" />
-		<Unit filename="board.cpp" />
-		<Unit filename="board.h" />
-		<Unit filename="colibri.cpp">
+		<Unit filename="../bitmanip.cpp" />
+		<Unit filename="../bitmanip.h" />
+		<Unit filename="../board.cpp" />
+		<Unit filename="../board.h" />
+		<Unit filename="../colibri.cpp">
 			<Option target="Release" />
 		</Unit>
-		<Unit filename="defines.h" />
-		<Unit filename="movegen.cpp" />
-		<Unit filename="movegen.h" />
-		<Unit filename="precomp.cpp" />
-		<Unit filename="precomp.h" />
-		<Unit filename="test.cpp">
+		<Unit filename="../defines.h" />
+		<Unit filename="../movegen.cpp" />
+		<Unit filename="../movegen.h" />
+		<Unit filename="../precomp.cpp" />
+		<Unit filename="../precomp.h" />
+		<Unit filename="../test.cpp">
 			<Option target="Testing" />
 		</Unit>
-		<Unit filename="tools/egtbEstimator.cpp">
+		<Unit filename="../tools/egtbEstimator.cpp">
 			<Option target="EgtbEstimator" />
 		</Unit>
 		<Extensions>
