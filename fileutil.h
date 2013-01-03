@@ -7,8 +7,10 @@ void createFile(const char *fileName, int size, char c);
 /* Returns the size of the specified file, in bytes */
 unsigned getFileSize(const char *fileName);
 
-/* Overwrites the byte at position with the value c. Assumes f is opened for r+ */
+/* Reads the char at position. Assumes f is opened for r+ */
+char readChar(FILE *f, int position);
+
+/* Overwrites the char at position with the value c. Assumes f is opened for r+ */
 void writeChar(FILE *f, int position, char c);
 
 #endif
-

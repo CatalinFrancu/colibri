@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -183,12 +184,18 @@ void decodeEgtbBoard(PieceSet *ps, int nps, Board *b, unsigned code) {
   }
 }
 
-void evaluatePlacement(PieceSet *ps, int nps, Board *b, int side, Move *m, FILE *tmpTable, FILE *tmpBoards) {
-  b->side = side;
-  Board b2;
-  int numMoves = getAllMoves(b, m, true);
+/* Computes a score for a board and its set of forward moves by looking at all the resulting boards.
+ * - If I can move into any lost position (for the opponent), then I win. Look for he shortest win.
+ * - If all positions I can move into are won (for the opponent), then I lost. Look for the longest loss.
+ * - If there are no moves, the position is won / lost now depending on the number of pieces.
+ * - Otherwise the position is a DRAW with the current information
+ *
+ * fTable - if this is NULL, then we are at the first step of collecting wins/losses in 0/1 for our table.
+ *   If this is not null, then we have computed some partial information that we can query.
+ *   fTable != NULL also implies that none of the moves are captures (because we are now doing retrograde analysis).
+ */
+int forwardStep(Board *b, Move *m, int numMoves, PieceSet *ps, int nps, FILE *fTable) {
   int score;
-
   if (!numMoves) {
     // Compute score from White's point of view, then negate it if needed
     int delta = popCount(b->bb[BB_BALL]) - popCount(b->bb[BB_WALL]);
@@ -197,14 +204,19 @@ void evaluatePlacement(PieceSet *ps, int nps, Board *b, int side, Move *m, FILE 
       score = -score;
     }
   } else {
-    // If I can move into any lost position (for the opponent), then I win. Look for he shortest win.
-    // If all positions I can move into are won (for the opponent), then I lost. Look for the longest loss.
-    // If there are no moves, the position is won / lost now.
+    Board b2;
     int shortestWin = INFTY, longestLoss = 0;
     for (int i = 0; i < numMoves; i++) {
       memcpy(&b2, b, sizeof(Board));
       makeMove(&b2, m[i]);
-      int childScore = evalBoard(&b2);
+      canonicalizeBoard(ps, nps, &b2);
+      int childScore;
+      if (fTable) {
+        int index = getEgtbIndex(ps, nps, &b2);
+        childScore = readChar(fTable, index);
+      } else {
+        childScore = evalBoard(&b2);
+      }
       if (childScore == EGTB_DRAW) {
         longestLoss = INFTY; // Can hold out forever
       } else if (childScore < 0 && -childScore < shortestWin) {
@@ -216,13 +228,21 @@ void evaluatePlacement(PieceSet *ps, int nps, Board *b, int side, Move *m, FILE 
     // At this point shortestWin / longestLoss already account for my move, because EGTB values are shifted by 1
     score = (shortestWin < INFTY) ? shortestWin : ((longestLoss == INFTY) ? EGTB_DRAW : -longestLoss);
   }
+  return score;
+}
+
+void evaluatePlacement(PieceSet *ps, int nps, Board *b, int side, Move *m, FILE *tmpTable, FILE *tmpBoards) {
+  b->side = side;
+  int numMoves = getAllMoves(b, m, FORWARD);
+  int score = forwardStep(b, m, numMoves, ps, nps, NULL);
 
   if (score != EGTB_DRAW) {
     unsigned code = encodeEgtbBoard(ps, nps, b);
     fwrite(&code, sizeof(unsigned), 1, tmpBoards);
     // It is safe to pass b to getEgtbIndex because we generated it in canonical fashion
     int index = getEgtbIndex(ps, nps, b);
-    writeChar(tmpTable, index, score);
+    int fileScore = (score > 0) ? (score + 1) : (score - 1);
+    writeChar(tmpTable, index, fileScore);
   }
 }
 
@@ -273,11 +293,36 @@ void iterateEgtb(PieceSet *ps, int nps, int level, Board *b, Move *m, FILE *tmpT
   }
 }
 
-void retrograde(PieceSet *ps, int nps, Board *b, FILE *tmpTable, FILE *tmpBoards) {
-  Move m[200];
-  int numMoves = getAllMoves(b, m, false);
-  for (int i = 0; i < numMoves; i++) {
-    // Make backward move etc.
+void retrograde(PieceSet *ps, int nps, Board *b, int targetScore, FILE *tmpTable, FILE *tmpBoards, Move *mf, Move *mb) {
+  int nb = getAllMoves(b, mb, BACKWARD);
+  for (int i = 0; i < nb; i++) {
+    // Make backward move
+    Board br = *b; // Retro-board
+    makeBackwardMove(&br, mb[i]);
+
+    // First make sure that one of the forward moves is symmetric to mb[i]. See the comments for getAllMoves() for details.
+    int nf = getAllMoves(&br, mf, FORWARD);
+    int sym = 0;
+    while ((sym < nf) && ((mf[sym].piece != mb[i].piece) || (mf[sym].from != mb[i].to) || (mf[sym].to != mb[i].from))) {
+      sym++;
+    }
+    if (sym < nf) {
+      // Canonicalize the board and therefore recompute the forward move list
+      canonicalizeBoard(ps, nps, &br);
+      nf = getAllMoves(&br, mf, FORWARD);
+
+      // Don't look at this position if we've already scored it
+      int index = getEgtbIndex(ps, nps, &br);
+      if (readChar(tmpTable, index) == EGTB_DRAW) {
+        int score = forwardStep(&br, mf, nf, ps, nps, tmpTable);
+        if ((score != EGTB_DRAW) && (abs(score) <= targetScore)) {
+          unsigned code = encodeEgtbBoard(ps, nps, &br);
+          fwrite(&code, sizeof(unsigned), 1, tmpBoards);
+          int fileScore = (score > 0) ? (score + 1) : (score - 1);
+          writeChar(tmpTable, index, fileScore);
+        }
+      }
+    }
   }
 }
 
@@ -302,7 +347,8 @@ void generateEgtb(const char *combo) {
   fclose(fBoards1);
   printf("Discovered %lu boards with wins and losses in 0 or 1 half-moves\n", getFileSize(tmpBoardName1) / sizeof(unsigned));
 
-  int targetScore = 0;
+  int targetScore = 1;
+  Move mf[200], mb[200]; // Storage space for forward and backward moves
   while (getFileSize(tmpBoardName1)) {
     targetScore++;
     fBoards1 = fopen(tmpBoardName1, "r");
@@ -311,7 +357,7 @@ void generateEgtb(const char *combo) {
 
     while (fread(&code, sizeof(unsigned), 1, fBoards1)) {
       decodeEgtbBoard(ps, numPieceSets, &b, code);
-      retrograde(ps, numPieceSets, &b, fTable, fBoards2);
+      retrograde(ps, numPieceSets, &b, targetScore, fTable, fBoards2, mf, mb);
     }
 
     fclose(fBoards1);
@@ -324,4 +370,10 @@ void generateEgtb(const char *combo) {
   // Done! Move the generated file in the EGTB folder and delete the temp files
   fclose(fTable);
   unlink(tmpBoardName1);
+  string destName = string(EGTB_PATH) + "/" + combo + ".egt";
+  printf("Moving [%s] to [%s]\n", tmpTableName, destName.c_str());
+  if (rename(tmpTableName, destName.c_str()) == -1) {
+    int errsv = errno;
+    printf("errno: %d\n", errsv);
+  }
 }

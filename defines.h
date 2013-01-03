@@ -1,5 +1,6 @@
 #ifndef __DEFINES_H__
 #define __DEFINES_H__
+using namespace std;
 
 /* Sides */
 #define WHITE false
@@ -74,6 +75,14 @@
 /* EGTB scores are shifted by 1, e.g. -1 means "lost now", +1 means "won now", -7 means "losing in 6 half-moves */
 #define EGTB_DRAW 0
 
+/* Directions of move generation. BACKWARD is used for retrograde analysis during EGTB generation */
+#define FORWARD true
+#define BACKWARD false
+
+/* TODO: add a config file */
+#define EGTB_PATH "/home/cata/public_html/colibri/egtb"
+#define QUERY_SERVER_PORT 2359
+
 /* The square between 0 and 63 corresponding to a rank and file between 0 and 7 */
 #define SQUARE(rank, file) (((rank) << 3) + (file))
 
@@ -94,6 +103,10 @@
 
 /* Return a 2-character string naming the given square */
 #define SQUARE_NAME(sq) (FILE_NAME(sq) + RANK_NAME(sq))
+
+/* Print a message and die */
+#define DIE(msg) { fprintf(stderr, "%s\n", msg); exit(1); }
+
 
 typedef unsigned long long u64;
 typedef unsigned char byte;
