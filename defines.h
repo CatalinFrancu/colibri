@@ -104,10 +104,6 @@ using namespace std;
 /* Return a 2-character string naming the given square */
 #define SQUARE_NAME(sq) (FILE_NAME(sq) + RANK_NAME(sq))
 
-/* Print a message and die */
-#define DIE(msg) { fprintf(stderr, "%s\n", msg); exit(1); }
-
-
 typedef unsigned long long u64;
 typedef unsigned char byte;
 

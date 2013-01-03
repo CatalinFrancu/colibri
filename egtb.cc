@@ -377,3 +377,79 @@ void generateEgtb(const char *combo) {
     printf("errno: %d\n", errsv);
   }
 }
+
+int egtbLookup(Board *b) {
+  int wp = popCount(b->bb[BB_WALL]), bp = popCount(b->bb[BB_BALL]);
+  if (!wp || !bp) {
+    return INFTY; // You're looking in the wrong place, buddy -- evalBoard() should catch this
+  }
+  if (wp + bp > EGTB_MEN) {
+    return INFTY;
+  }
+
+  // See if we need to change sides
+  int change = false;
+  if (wp < bp) {
+    change = true;
+  } else if (wp == bp) {
+    int p = KING + 1, whiteGroup, blackGroup;
+    do {
+      p--;
+      whiteGroup = popCount(b->bb[BB_WALL + p]);
+      blackGroup = popCount(b->bb[BB_BALL + p]);
+    } while ((p > PAWN) && (whiteGroup == blackGroup));
+    change = (whiteGroup < blackGroup);
+  }
+  if (change) {
+    changeSides(b);
+  }
+
+  char combo[EGTB_MEN + 2];
+  int len = 0;
+
+  // Construct the combo name
+  for (int p = KING; p >= PAWN; p--) {
+    for (int q = popCount(b->bb[BB_WALL + p]); q; q--) {
+      combo[len++] = PIECE_INITIALS[p];
+    }
+  }
+  combo[len++] = 'v';
+  for (int p = KING; p >= PAWN; p--) {
+    for (int q = popCount(b->bb[BB_BALL + p]); q; q--) {
+      combo[len++] = PIECE_INITIALS[p];
+    }
+  }
+  combo[len] = '\0';
+
+  string fileName = string(EGTB_PATH) + "/" + combo + ".egt";
+  FILE *f = fopen(fileName.c_str(), "r");
+  if (!f) {
+    return INFTY;
+  }
+  PieceSet ps[EGTB_MEN];
+  int nps = comboToPieceSets(combo, ps);
+  canonicalizeBoard(ps, nps, b);
+  int index = getEgtbIndex(ps, nps, b);
+  int score = readChar(f, index);
+  fclose(f);
+  return score;
+}
+
+int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int *numMoves) {
+  Board bcopy = *b;
+  int result = egtbLookup(&bcopy);
+  if (result == INFTY) {
+    *numMoves = 0;
+  } else {
+    Move m[200];
+    *numMoves = getAllMoves(b, m, FORWARD);
+    getAlgebraicNotation(b, m, *numMoves, moveNames);
+    for (int i = 0; i < *numMoves; i++) {
+      Board b2 = *b;
+      makeMove(&b2, m[i]);
+      fens[i] = boardToFen(&b2);
+      scores[i] = egtbLookup(&b2);
+    }
+  }
+  return result;
+}

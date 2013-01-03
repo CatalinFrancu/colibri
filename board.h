@@ -16,11 +16,17 @@ int getPieceCount(Board *b);
 /* Rotate the board as specified. Does not change the side to move. */
 void rotateBoard(Board *b, int orientation);
 
+/* Changes sides by flipping the board N-S and changing the color of all the pieces */
+void changeSides(Board *b);
+
 /* Rotate the board as needed to bring it into canonical orientation */
 void canonicalizeBoard(PieceSet *ps, int nps, Board *b);
 
 /* Construct a board from a FEN notation */
 Board fenToBoard(const char *fen);
+
+/* Get the FEN notation for a board */
+string boardToFen(Board *b);
 
 /* Get the algebraic notation for every move on this board. This is best done for all the moves at once, because there can be ambiguities.
   m is the array of all moves possible on the given board. */

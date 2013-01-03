@@ -52,6 +52,16 @@ void rotateBoard(Board *b, int orientation) {
   }
 }
 
+void changeSides(Board *b) {
+  rotateBoard(b, ORI_FLIP_NS);
+  for (int p = 0; p <= KING; p++) {
+    u64 tmp = b->bb[BB_WALL + p];
+    b->bb[BB_WALL + p] = b->bb[BB_BALL + p];
+    b->bb[BB_BALL + p] = tmp;
+  }
+  b->side = WHITE + BLACK - b->side;
+}
+
 void canonicalizeBoard(PieceSet *ps, int nps, Board *b) {
   int base = (ps[0].side == WHITE) ? BB_WALL : BB_BALL;
   u64 mask = b->bb[base + ps[0].piece];
@@ -134,6 +144,48 @@ Board fenToBoard(const char *fen) {
 
   // ins >> b.halfMove; // Ignore this
   return b;
+}
+
+string boardToFen(Board *b) {
+  stringstream result;
+  for (int i = 56; i >= 0; i -= 8) {
+    int numEmpty = 0;
+    for (int sq = i; sq < i + 8; sq++) {
+      u64 mask = 1ull << sq;
+      if (b->bb[BB_EMPTY] & mask) {
+        numEmpty++;
+      } else {
+        if (numEmpty) {
+          result << numEmpty;
+        }
+        numEmpty = 0;
+        int p = PAWN;
+        while (!((b->bb[BB_WALL + p] ^ b->bb[BB_BALL + p]) & mask)) {
+          p++;
+        }
+        char pieceName = PIECE_INITIALS[p];
+        if (b->bb[BB_BALL] & mask) {
+          pieceName += 'a' - 'A';
+        }
+        result << pieceName;
+      }
+    }
+    if (numEmpty) {
+      result << numEmpty;
+    }
+    if (i) {
+      result << "/";
+    }
+  }
+  result << " " << ((b->side == WHITE) ? 'w' : 'b') << " - "; // No castling
+  if (b->bb[BB_EP]) {
+    int epSq = ctz(b->bb[BB_EP]);
+    result << SQUARE_NAME(epSq);
+  } else {
+    result << "-";
+  }
+  result << " 0 0"; // Nothing for the halfmove clock / move number
+  return result.str();
 }
 
 void getAlgebraicNotation(Board *b, Move *m, int numMoves, string *san) {
