@@ -4,6 +4,18 @@
 #include "bitmanip.h"
 using namespace std;
 
+/* Prints a board */
+void printBoard(Board *b);
+
+/* Construct an empty board */
+void emptyBoard(Board *b);
+
+/* Returns the number of pieces on the board */
+int getPieceCount(Board *b);
+
+/* Rotate the board as specified. Does not change the side to move. */
+void rotateBoard(Board *b, int orientation);
+
 /* Construct a board from a FEN notation */
 Board fenToBoard(const char *fen);
 
@@ -13,5 +25,10 @@ void getAlgebraicNotation(Board *b, Move *m, int numMoves, string *san);
 
 /* Make move m on the board b, modifying b. */
 void makeMove(Board* b, Move m);
+
+/* Statically evaluates a board:
+ * - if one side has no pieces left, it wins
+ * - otherwise this is a draw from the static eval's point of view. */
+int evalBoard(Board *b);
 
 #endif

@@ -1,7 +1,9 @@
 #include <stdio.h>
-#include "bitmanip.h"
+#include "egtb.h"
+#include "precomp.h"
 
 int main() {
-  printf("%llX\n", reverseBytes(0x1011121314151617));
+  precomputeAll();
+  generateEgtb("KvR");
   return 0;
 }

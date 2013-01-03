@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <stdio.h>
 #include "bitmanip.h"
 
 byte popCount(u64 x) {
@@ -54,4 +55,15 @@ u64 rotate(u64 x, int orientation) {
     case ORI_FLIP_ANTIDIAG: return flipDiagA8H1(x);
     default: return x;
   }
+}
+
+void printBitboard(const char *msg, u64 x) {
+  printf("%s: h8 ", msg);
+  for (int i = 63; i >= 0; i--) {
+    printf("%d", (x & (1ull << i)) ? 1 : 0);
+    if (i && (i % 8 == 0)) {
+      printf(" | ");
+    }
+  }
+  printf(" a1\n");
 }
