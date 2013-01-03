@@ -46,11 +46,13 @@
 /* Masks for some ranks and files of interest */
 #define FILE_A 0x0101010101010101ull
 #define FILE_H 0x8080808080808080ull
+#define RANK_1 0x00000000000000ffull
 #define RANK_3 0x0000000000ff0000ull
 #define RANK_6 0x0000ff0000000000ull
+#define RANK_8 0xff00000000000000ull
 
-/* Maximum number of pieces in the endgame tables */
-#define EGTB_MEN 5
+/* For assorted purposes */
+#define INFTY 1000000000
 
 /* If a bitboard is mutiplied by FILE_MAGIC, all the bits on the 'a' file will end up on the 8-th rank. */
 #define FILE_MAGIC 0x8040201008040201ull
@@ -65,6 +67,12 @@
 #define GET_BIT_AND_CLEAR(x, square)            \
   square = ctz(x);      \
   x &= x - 1;
+
+/* Maximum number of pieces in the endgame tables */
+#define EGTB_MEN 5
+
+/* EGTB scores are shifted by 1, e.g. -1 means "lost now", +1 means "won now", -7 means "losing in 6 half-moves */
+#define EGTB_DRAW 0
 
 /* The square between 0 and 63 corresponding to a rank and file between 0 and 7 */
 #define SQUARE(rank, file) (((rank) << 3) + (file))
@@ -103,6 +111,13 @@ typedef struct Mmove {
   byte to;        /* Destination square */
   byte promotion; /* Promotion, if any */
 } Move;
+
+/* For EGTB, use PieceSet's in the order in which they are placed on the board */
+typedef struct PieceSet {
+  bool side;
+  byte piece;
+  byte count;
+} PieceSet;
 
 /* Piece names for move notation */
 const char PIECE_INITIALS[8] = " PNBRQK";

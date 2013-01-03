@@ -43,6 +43,10 @@
 			<Option target="Release" />
 		</Unit>
 		<Unit filename="../defines.h" />
+		<Unit filename="../egtb.cc" />
+		<Unit filename="../egtb.h" />
+		<Unit filename="../fileutil.cpp" />
+		<Unit filename="../fileutil.h" />
 		<Unit filename="../movegen.cpp" />
 		<Unit filename="../movegen.h" />
 		<Unit filename="../precomp.cpp" />

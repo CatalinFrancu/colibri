@@ -1,11 +1,12 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "precomp.h"
 
 int choose[65][EGTB_MEN];
-int* canonical64[EGTB_MEN / 2];
-int numCanonical64[EGTB_MEN / 2];
-int* canonical48[EGTB_MEN / 2];
-int numCanonical48[EGTB_MEN / 2];
+int* canonical64[EGTB_MEN / 2 + 1];
+int numCanonical64[EGTB_MEN / 2 + 1];
+int* canonical48[EGTB_MEN];
+int numCanonical48[EGTB_MEN];
 u64 kingAttacks[64];
 u64 knightAttacks[64];
 byte isoMove[8][64];
@@ -40,16 +41,20 @@ int rankCombination(u64 mask, u64 occupied) {
 }
 
 /* This implementation is O(64). */
-u64 unrankCombination(int rank, int k) {
+u64 unrankCombination(int rank, int k, u64 occupied) {
   u64 result = 0ull;
-  int n = 64;
+  int free = 64 - popCount(occupied); /* Number of free bits between positions 0 and bit inclusively */
+  int bit = 63;
   while (k) {
-    n--;
-    if (rank >= choose[n][k]) {
-      result |= 1ull << n;
-      rank -= choose[n][k];
-      k--;
+    if ((1ull << bit) & ~occupied) {
+      if (rank >= choose[free - 1][k]) {
+        result |= 1ull << bit;
+        rank -= choose[free - 1][k];
+        k--;
+      }
+      free--;
     }
+    bit--;
   }
   return result;
 }
@@ -59,9 +64,9 @@ void precomputeCanonical64() {
     int uniqueCounter = 0;
     canonical64[k] = new int[choose[64][k]];
     for (int comboNumber = 0; comboNumber < choose[64][k]; comboNumber++) {
-      u64 combo = unrankCombination(comboNumber, k);
+      u64 combo = unrankCombination(comboNumber, k, 0);
       int minNumber = comboNumber;
-      int minTransform;
+      int minTransform = -1;
       for (int tr = 1; tr <= 7; tr++) {
         int newNumber = rankCombination(rotate(combo, tr), 0);
         if (newNumber < minNumber) {
@@ -80,11 +85,11 @@ void precomputeCanonical64() {
 }
 
 void precomputeCanonical48() {
-  for (int k = 1; k <= EGTB_MEN / 2; k++) {
+  for (int k = 1; k < EGTB_MEN; k++) {
     int uniqueCounter = 0;
     canonical48[k] = new int[choose[48][k]];
     for (int comboNumber = 0; comboNumber < choose[48][k]; comboNumber++) {
-      u64 combo = unrankCombination(comboNumber, k);
+      u64 combo = unrankCombination(comboNumber, k, 0);
       int mirrorNumber = rankCombination(rotate(combo, ORI_FLIP_EW), 0);
       if (mirrorNumber < comboNumber) {
         canonical48[k][comboNumber] = -ORI_FLIP_EW;

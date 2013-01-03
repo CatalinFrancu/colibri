@@ -8,6 +8,51 @@
 #include "precomp.h"
 using namespace std;
 
+void printBoard(Board *b) {
+  for (int row = 7; row >= 0; row--) {
+    printf("  +---+---+---+---+---+---+---+---+\n");
+    printf("%d |", row + 1);
+    for (int col = 0; col < 8; col++) {
+      char pieceName = ' ';
+      u64 mask = 1ull << (8 * row + col);
+      if ((b->bb[BB_WALL] ^ b->bb[BB_BALL]) & mask) {
+        int p = PAWN;
+        while (!((b->bb[BB_WALL + p] ^ b->bb[BB_BALL + p]) & mask)) {
+          p++;
+        }
+        pieceName = PIECE_INITIALS[p];
+        if (b->bb[BB_BALL] & mask) {
+          pieceName += 'a' - 'A';
+        }
+      }
+      printf(" %c |", pieceName);
+    }
+    printf("\n");
+  }
+  printf("  +---+---+---+---+---+---+---+---+\n   ");
+  for (int col = 0; col < 8; col++) {
+    printf(" %c  ", col + 'a');
+  }
+  int epSq = ctz(b->bb[BB_EP]);
+  string epSqName = b->bb[BB_EP] ? SQUARE_NAME(epSq) : "none";
+  printf("\nTo move: %s          En passant square: %s\n\n", (b->side == WHITE) ? "White" : "Black", epSqName.c_str());
+}
+
+void emptyBoard(Board *b) {
+  memset(b, 0, sizeof(Board));
+  b->bb[BB_EMPTY] = 0xffffffffffffffffull;
+}
+
+int getPieceCount(Board *b) {
+  return popCount(b->bb[BB_WALL] ^ b->bb[BB_BALL]);
+}
+
+void rotateBoard(Board *b, int orientation) {
+  for (int i = 0; i < BB_COUNT; i++) {
+    b->bb[i] = rotate(b->bb[i], orientation);
+  }
+}
+
 Board fenToBoard(const char *fen) {
   istringstream ins;
   ins.str(fen);
@@ -164,4 +209,14 @@ void makeMove(Board* b, Move m) {
   } else {
     makeMoveForSide(b, m, BB_BALL, BB_WALL);
   }
+}
+
+int evalBoard(Board *b) {
+  if (!b->bb[BB_WALL]) {
+    return (b->side == WHITE) ? 1 : -1; // Won/lost now
+  }
+  if (!b->bb[BB_BALL]) {
+    return (b->side == WHITE) ? -1 : 1; // Lost/won now
+  }
+  return EGTB_DRAW;
 }

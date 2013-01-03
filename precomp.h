@@ -28,19 +28,20 @@ extern u64 antidiagonal[64];
  * If the placement with index i is canonical, then canonical64[k][i] holds its counter, otherwise it holds -1 times
  * the transformation that should be applied to this placement to obtain the canonical one.
  * For example, there are 10 canonical 1-piece placements and 278 canonical 2-piece placements. */
-extern int* canonical64[EGTB_MEN / 2];
-extern int numCanonical64[EGTB_MEN / 2];
+extern int* canonical64[EGTB_MEN / 2 + 1];
+extern int numCanonical64[EGTB_MEN / 2 + 1];
 
-/* Same, but assuming the set to be placed consists of pawns (so only 48 of the squares are legal) */
-extern int* canonical48[EGTB_MEN / 2];
-extern int numCanonical48[EGTB_MEN / 2];
+/* Same, but assuming the set to be placed consists of pawns (so only 48 of the squares are legal).
+ * Here we need up to EGTB-1 pieces, for combinations like KvPPPP */
+extern int* canonical48[EGTB_MEN];
+extern int numCanonical48[EGTB_MEN];
 
 /* given a mask with k bits set and an occupancy mask with o bits occupied, returns the rank of the
  * mask, i.e. a number between 0 and choose[64 - o][k] - 1 */
 int rankCombination(u64 mask, u64 occupied);
 
 /* given the rank of a combination of 64 choose k, construct the corresponding set (mask) */
-u64 unrankCombination(int rank, int k);
+u64 unrankCombination(int rank, int k, u64 occupied);
 
 void precomputeAll();
 

@@ -50,6 +50,7 @@ int nonPawnPlacements[EGTB_MEN];
 // - bit 2 = 0: store choices as 63,62,61,60-choose-k (save space)
 // - bit 2 = 1: store choices as 64-choose-l (save time)
 u64 estimatedSizes[8];
+u64 maxSizes[8];
 
 int genPawnPlacements(int n, int last, u64 x) {
   if (!n) {
@@ -94,7 +95,7 @@ void countNonPawnPlacements() {
   }
 }
 
-u64 estimateSizeStrat(int *wc, int *bc, int sortPawns, int largestGroup, int shrinkBase) {
+u64 estimateSizeStrat(int *wc, int *bc, int strat, int sortPawns, int largestGroup, int shrinkBase) {
   u64 result;
   if (wc[P_PAWN] || bc[P_PAWN]) {
     int wp = wc[P_PAWN], bp = bc[P_PAWN];
@@ -157,20 +158,24 @@ u64 estimateSizeStrat(int *wc, int *bc, int sortPawns, int largestGroup, int shr
       }
     }
   }
-  // printf("wp: %d bp: %d sortPawns: %d largestGroup: %d shrinkBase: %d result: %lld\n",
-  //        wc[P_PAWN], bc[P_PAWN], sortPawns, largestGroup, shrinkBase, result);
+  result *= 2; // Double the result for White to move / Black to move
+  if (result > maxSizes[strat]) {
+    maxSizes[strat] = result;
+  }
+//  printf("wp: %d bp: %d sortPawns: %d largestGroup: %d shrinkBase: %d result: %lld\n",
+//         wc[P_PAWN], bc[P_PAWN], sortPawns, largestGroup, shrinkBase, result);
   return result;
 }
 
 void estimateSize(int *whiteCount, int *blackCount) {
-  estimatedSizes[0] += estimateSizeStrat(whiteCount, blackCount, true, true, true);
-  estimatedSizes[1] += estimateSizeStrat(whiteCount, blackCount, false, true, true);
-  estimatedSizes[2] += estimateSizeStrat(whiteCount, blackCount, true, false, true);
-  estimatedSizes[3] += estimateSizeStrat(whiteCount, blackCount, false, false, true);
-  estimatedSizes[4] += estimateSizeStrat(whiteCount, blackCount, true, true, false);
-  estimatedSizes[5] += estimateSizeStrat(whiteCount, blackCount, false, true, false);
-  estimatedSizes[6] += estimateSizeStrat(whiteCount, blackCount, true, false, false);
-  estimatedSizes[7] += estimateSizeStrat(whiteCount, blackCount, false, false, false);
+  estimatedSizes[0] += estimateSizeStrat(whiteCount, blackCount, 0, true, true, true);
+  estimatedSizes[1] += estimateSizeStrat(whiteCount, blackCount, 1, false, true, true);
+  estimatedSizes[2] += estimateSizeStrat(whiteCount, blackCount, 2, true, false, true);
+  estimatedSizes[3] += estimateSizeStrat(whiteCount, blackCount, 3, false, false, true);
+  estimatedSizes[4] += estimateSizeStrat(whiteCount, blackCount, 4, true, true, false);
+  estimatedSizes[5] += estimateSizeStrat(whiteCount, blackCount, 5, false, true, false);
+  estimatedSizes[6] += estimateSizeStrat(whiteCount, blackCount, 6, true, false, false);
+  estimatedSizes[7] += estimateSizeStrat(whiteCount, blackCount, 7, false, false, false);
 }
 
 void sol(int *whiteCount, int *blackCount) {
@@ -253,7 +258,7 @@ int main() {
   }
 
   for (int i = 0; i < 8; i++) {
-    printf("Strategy %d: %llu bytes\n", i, estimatedSizes[i]);
+    printf("Strategy %d: %llu bytes, max table %llu bytes\n", i, estimatedSizes[i], maxSizes[i]);
   }
 }
 

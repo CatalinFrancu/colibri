@@ -140,30 +140,47 @@ inline void getBlackPawnCaptures(Board *b, u64 ignoredFile, int shift, Move *m, 
 }
 
 /* Get all legal non-capturing moves on the given board if White is to move */
-int getWhiteNonCaptures(Board *b, Move *m) {
+int getWhiteNonCaptures(Board *b, Move *m, bool forward) {
   int numMoves = 0, fromSq, toSq;
   u64 mask;
 
-  // Pawn pushes (one-step)
-  mask = (b->bb[BB_WP] << 8) & b->bb[BB_EMPTY];
-  u64 oneStep = mask;
-  while (mask) {
-    GET_BIT_AND_CLEAR(mask, toSq);
-    fromSq = toSq - 8;
-    if (toSq < 56) {
-      pushMove(m, &numMoves, PAWN, fromSq, toSq, 0);
-    } else {
-      for (byte prom = KNIGHT; prom <= KING; prom++) {
-        pushMove(m, &numMoves, PAWN, fromSq, toSq, prom);
+  if (forward) {
+    // Pawn pushes (one-step)
+    mask = (b->bb[BB_WP] << 8) & b->bb[BB_EMPTY];
+    u64 oneStep = mask;
+    while (mask) {
+      GET_BIT_AND_CLEAR(mask, toSq);
+      fromSq = toSq - 8;
+      if (toSq < 56) {
+        pushMove(m, &numMoves, PAWN, fromSq, toSq, 0);
+      } else {
+        for (byte prom = KNIGHT; prom <= KING; prom++) {
+          pushMove(m, &numMoves, PAWN, fromSq, toSq, prom);
+        }
       }
     }
-  }
 
-  // Pawn pushes (two-step)
-  mask = ((oneStep & RANK_3) << 8) & b->bb[BB_EMPTY];
-  while (mask) {
-    GET_BIT_AND_CLEAR(mask, toSq);
-    pushMove(m, &numMoves, PAWN, toSq - 16, toSq, 0);
+    // Pawn pushes (two-step)
+    mask = ((oneStep & RANK_3) << 8) & b->bb[BB_EMPTY];
+    while (mask) {
+      GET_BIT_AND_CLEAR(mask, toSq);
+      pushMove(m, &numMoves, PAWN, toSq - 16, toSq, 0);
+    }
+  } else {
+    // Pawn pushes (one-step)
+    mask = (b->bb[BB_WP] >> 8) & ~RANK_1 & b->bb[BB_EMPTY];
+    u64 oneStep = mask;
+    while (mask) {
+      GET_BIT_AND_CLEAR(mask, toSq);
+      pushMove(m, &numMoves, PAWN, toSq + 8, toSq, 0);
+    }
+
+    // Pawn pushes (two-step)
+    mask = ((oneStep & RANK_3) >> 8) & b->bb[BB_EMPTY];
+    while (mask) {
+      GET_BIT_AND_CLEAR(mask, toSq);
+      pushMove(m, &numMoves, PAWN, toSq + 16, toSq, 0);
+    }
   }
 
   getKnightMoves(b->bb[BB_WN], b->bb[BB_EMPTY], m, &numMoves);
@@ -180,7 +197,7 @@ int getWhiteNonCaptures(Board *b, Move *m) {
 }
 
 /* Get all legal captures on the given board if White is to move */
-int getWhiteCaptures(Board* b, Move* m) {
+int getWhiteCaptures(Board *b, Move *m) {
   int numMoves = 0;
   getWhitePawnCaptures(b, FILE_H, 9, m, &numMoves);
   getWhitePawnCaptures(b, FILE_A, 7, m, &numMoves);
@@ -198,30 +215,47 @@ int getWhiteCaptures(Board* b, Move* m) {
 }
 
 /* Get all legal non-capturing moves on the given board if Black is to move */
-int getBlackNonCaptures(Board *b, Move *m) {
+int getBlackNonCaptures(Board *b, Move *m, bool forward) {
   int numMoves = 0, fromSq, toSq;
   u64 mask;
 
-  // Pawn pushes (one-step)
-  mask = (b->bb[BB_BP] >> 8) & b->bb[BB_EMPTY];
-  u64 oneStep = mask;
-  while (mask) {
-    GET_BIT_AND_CLEAR(mask, toSq);
-    fromSq = toSq + 8;
-    if (toSq >= 8) {
-      pushMove(m, &numMoves, PAWN, fromSq, toSq, 0);
-    } else {
-      for (byte prom = KNIGHT; prom <= KING; prom++) {
-        pushMove(m, &numMoves, PAWN, fromSq, toSq, prom);
+  if (forward) {
+    // Pawn pushes (one-step)
+    mask = (b->bb[BB_BP] >> 8) & b->bb[BB_EMPTY];
+    u64 oneStep = mask;
+    while (mask) {
+      GET_BIT_AND_CLEAR(mask, toSq);
+      fromSq = toSq + 8;
+      if (toSq >= 8) {
+        pushMove(m, &numMoves, PAWN, fromSq, toSq, 0);
+      } else {
+        for (byte prom = KNIGHT; prom <= KING; prom++) {
+          pushMove(m, &numMoves, PAWN, fromSq, toSq, prom);
+        }
       }
     }
-  }
 
-  // Pawn pushes (two-step)
-  mask = ((oneStep & RANK_6) >> 8) & b->bb[BB_EMPTY];
-  while (mask) {
-    GET_BIT_AND_CLEAR(mask, toSq);
-    pushMove(m, &numMoves, PAWN, toSq + 16, toSq, 0);
+    // Pawn pushes (two-step)
+    mask = ((oneStep & RANK_6) >> 8) & b->bb[BB_EMPTY];
+    while (mask) {
+      GET_BIT_AND_CLEAR(mask, toSq);
+      pushMove(m, &numMoves, PAWN, toSq + 16, toSq, 0);
+    }
+  } else {
+    // Pawn pushes (one-step)
+    mask = (b->bb[BB_BP] << 8) & ~RANK_8 & b->bb[BB_EMPTY];
+    u64 oneStep = mask;
+    while (mask) {
+      GET_BIT_AND_CLEAR(mask, toSq);
+      pushMove(m, &numMoves, PAWN, toSq - 8, toSq, 0);
+    }
+
+    // Pawn pushes (two-step)
+    mask = ((oneStep & RANK_6) << 8) & b->bb[BB_EMPTY];
+    while (mask) {
+      GET_BIT_AND_CLEAR(mask, toSq);
+      pushMove(m, &numMoves, PAWN, toSq - 16, toSq, 0);
+    }
   }
 
   getKnightMoves(b->bb[BB_BN], b->bb[BB_EMPTY], m, &numMoves);
@@ -238,7 +272,7 @@ int getBlackNonCaptures(Board *b, Move *m) {
 }
 
 /* Get all legal moves on the given board if Black is to move */
-int getBlackCaptures(Board* b, Move* m) {
+int getBlackCaptures(Board *b, Move *m) {
   int numMoves = 0;
   getBlackPawnCaptures(b, FILE_H, 7, m, &numMoves);
   getBlackPawnCaptures(b, FILE_A, 9, m, &numMoves);
@@ -255,10 +289,14 @@ int getBlackCaptures(Board* b, Move* m) {
   return numMoves;
 }
 
-int getAllMoves(Board* b, Move* m) {
+int getAllMoves(Board *b, Move *m, bool forward) {
+  if (!forward) {
+    // Notice the color inversion -- if White is to move, then Black must have made the last move
+    return (b->side == WHITE) ? getBlackNonCaptures(b, m, forward) : getWhiteNonCaptures(b, m, forward);
+  }
   int numMoves = (b->side == WHITE) ? getWhiteCaptures(b, m) : getBlackCaptures(b, m);
   if (!numMoves) {
-    numMoves = (b->side == WHITE) ? getWhiteNonCaptures(b, m) : getBlackNonCaptures(b, m);
+    numMoves = (b->side == WHITE) ? getWhiteNonCaptures(b, m, forward) : getBlackNonCaptures(b, m, forward);
   }
   return numMoves;
 }
