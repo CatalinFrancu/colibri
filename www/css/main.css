@@ -1,0 +1,80 @@
+#board {
+  box-shadow: 5px 5px 2px #888888;
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+
+.square { 
+  background-repeat: no-repeat;
+  height:45px;
+  width: 45px;
+}
+
+.whiteBg {
+  background-color: #e0e0e0;
+}
+
+.blackBg {
+  background-color: #b8b8b8;
+}
+
+#editBox {
+  margin-top: 10px;
+}
+
+.hammer {
+  border: 2px solid white;
+}
+
+.currentHammer {
+  border: 2px solid red;
+}
+
+.wk {
+  background-image: url('../img/wk.png');
+  height:45px;
+}
+.wq {
+  background-image: url('../img/wq.png');
+  height:45px;
+}
+.wr {
+  background-image: url('../img/wr.png');
+  height:45px;
+}
+.wb {
+  background-image: url('../img/wb.png');
+  height:45px;
+}
+.wn {
+  background-image: url('../img/wn.png');
+  height:45px;
+}
+.wp {
+  background-image: url('../img/wp.png');
+  height:45px;
+}
+.bk {
+  background-image: url('../img/bk.png');
+  height:45px;
+}
+.bq {
+  background-image: url('../img/bq.png');
+  height:45px;
+}
+.br {
+  background-image: url('../img/br.png');
+  height:45px;
+}
+.bb {
+  background-image: url('../img/bb.png');
+  height:45px;
+}
+.bn {
+  background-image: url('../img/bn.png');
+  height:45px;
+}
+.bp {
+  background-image: url('../img/bp.png');
+  height:45px;
+}

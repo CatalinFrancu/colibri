@@ -226,6 +226,31 @@ BOOST_AUTO_TEST_CASE(testGetPieceCount) {
   BOOST_CHECK_EQUAL(getPieceCount(&b), 2);
 }
 
+BOOST_AUTO_TEST_CASE(testSwitchSides) {
+  Board b = fenToBoard("8/8/3b2N1/8/1P6/4p3/8/8 w - b3 0 0");
+  changeSides(&b);
+
+  BOOST_CHECK_EQUAL(b.bb[BB_WP], 0x0000100000000000ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WN], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WB], 0x0000000000080000ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WR], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WQ], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WK], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WALL], 0x0000100000080000ull);
+
+  BOOST_CHECK_EQUAL(b.bb[BB_BP], 0x0000000200000000ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BN], 0x0000000000400000ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BB], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BR], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BQ], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BK], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BALL], 0x0000000200400000ull);
+
+  BOOST_CHECK_EQUAL(b.bb[BB_EMPTY], 0xffffeffdffb7ffffull);
+  BOOST_CHECK_EQUAL(b.bb[BB_EP], 0x0000020000000000ull);
+  BOOST_CHECK_EQUAL(b.side, BLACK);
+}
+
 BOOST_AUTO_TEST_CASE(testCanonicalizeBoard) {
   PieceSet ps[EGTB_MEN];
   int nps = comboToPieceSets("KQvN", ps);
@@ -280,6 +305,17 @@ BOOST_AUTO_TEST_CASE(testFenToBoard) {
   BOOST_CHECK_EQUAL(b.bb[BB_WP], 0x000000001000ef00ull);
   BOOST_CHECK_EQUAL(b.bb[BB_EP], 0x0000000000100000);
   BOOST_CHECK_EQUAL(b.side, BLACK);
+}
+
+BOOST_AUTO_TEST_CASE(testBoardToFen) {
+  const char *s1 = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 0";
+  Board b = fenToBoard(s1);
+  BOOST_CHECK_EQUAL(boardToFen(&b), s1);
+
+  // Position after 1. e4
+  const char *s2 = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b - e3 0 0";
+  b = fenToBoard(s2);
+  BOOST_CHECK_EQUAL(boardToFen(&b), s2);
 }
 
 BOOST_AUTO_TEST_CASE(testMakeWhiteMove) {

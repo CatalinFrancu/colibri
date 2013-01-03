@@ -1,55 +1,72 @@
+#include <assert.h>
+#include <netinet/in.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include "board.h"
 #include "defines.h"
+#include "egtb.h"
 #include "queryserver.h"
 
-/*--------------------------------------------------------------------*/
-/*--- Child - echo servlet                                         ---*/
-/*--------------------------------------------------------------------*/
-void* Child(void* arg)
-{   char line[100];
-    int bytes_read;
-    int client = *(int *)arg;
-
-    do
-    {
-        bytes_read = recv(client, line, sizeof(line), 0);
-        send(client, line, bytes_read, 0);
-    }
-    while (strncmp(line, "bye\r", 4) != 0);
-    close(client);
-    return arg;
+void handleEgtbQuery(FILE *fin, FILE *fout) {
+  char s[200];
+  if (!fgets(s, 200, fin)) {
+    fprintf(fout, "%d %d\n", INFTY, 0);
+    return;
+  }
+  Board b = fenToBoard(s);
+  string moveNames[200];
+  string fens[200];
+  int scores[200];
+  int numMoves;
+  int score = batchEgtbLookup(&b, moveNames, fens, scores, &numMoves);
+  fprintf(fout, "%d %d\n", score, numMoves);
+  for (int i = 0; i < numMoves; i++) {
+    fprintf(fout, "%s %d %s\n", moveNames[i].c_str(), scores[i], fens[i].c_str());
+  }
 }
 
-/*--------------------------------------------------------------------*/
-/*--- main - setup server and await connections (no need to clean  ---*/
-/*--- up after terminated children.                                ---*/
-/*--------------------------------------------------------------------*/
-int main(void)
-{   int sd;
-    struct sockaddr_in addr;
+void* handleConnection(void* arg) {
+  int fd = *(int*)arg;
+  FILE *fin = fdopen(fd, "r");
+  FILE *fout = fdopen(fd, "w");
+  char s[100];
 
-    if ( (sd = socket(PF_INET, SOCK_STREAM, 0)) < 0 )
-        DIE("Socket");
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(9999);
-    addr.sin_addr.s_addr = INADDR_ANY;
-    if ( bind(sd, (struct sockaddr*)&addr, sizeof(addr)) != 0 )
-        PANIC("Bind");
-    if ( listen(sd, 20) != 0 )
-        PANIC("Listen");
-    while (1)
-    {   int client, addr_size = sizeof(addr);
-        pthread_t child;
-
-        client = accept(sd, (struct sockaddr*)&addr, &addr_size);
-        printf("Connected: %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
-        if ( pthread_create(&child, NULL, Child, &client) != 0 )
-            perror("Thread creation");
-        else
-            pthread_detach(child);  /* disassociate from parent */
+  // Read a command
+  if (fscanf(fin, "%100s", s) == 1) {
+    if (!strcmp("egtb", s)) {
+      handleEgtbQuery(fin, fout);
     }
-    return 0;
+  }
+  fflush(fout);
+  fclose(fin);
+  fclose(fout);
+  close(fd);
+  return NULL;
 }
 
 void startServer() {
+  int sock = socket(AF_INET, SOCK_STREAM, 0);
+  assert(sock != -1);
+  int n = 1;
+  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char*)&n, sizeof (n));
 
+  struct sockaddr_in sin;
+  sin.sin_family = AF_INET;
+  sin.sin_port = htons(QUERY_SERVER_PORT);
+  sin.sin_addr.s_addr = INADDR_ANY;
+  assert(!bind(sock, (struct sockaddr*)&sin, sizeof(sin)));
+  assert(!listen(sock, 10));
+  printf("Listening for connections on port %d\n", QUERY_SERVER_PORT);
+  while (true) {
+    int conn = accept(sock, NULL, NULL);
+    assert(conn != -1);
+    pthread_t* thread = new pthread_t;
+    pthread_create(thread, NULL, handleConnection, &conn);
+    pthread_detach(*thread);
+  }
 }
