@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include "defines.h"
 #include "fileutil.h"
 
 void createFile(const char *fileName, int size, char c) {
@@ -19,6 +20,11 @@ unsigned getFileSize(const char *fileName) {
   struct stat st;
   stat(fileName, &st);
   return st.st_size;
+}
+
+char readChar(FILE *f, int position) {
+  fseek(f, position, SEEK_SET);
+  return fgetc(f);
 }
 
 void writeChar(FILE *f, int position, char c) {

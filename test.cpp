@@ -226,6 +226,33 @@ BOOST_AUTO_TEST_CASE(testGetPieceCount) {
   BOOST_CHECK_EQUAL(getPieceCount(&b), 2);
 }
 
+BOOST_AUTO_TEST_CASE(testCanonicalizeBoard) {
+  PieceSet ps[EGTB_MEN];
+  int nps = comboToPieceSets("KQvN", ps);
+  Board b = fenToBoard("8/8/4n3/8/8/Q7/5K2/8 w - - 0 0");
+  canonicalizeBoard(ps, nps, &b);
+
+  BOOST_CHECK_EQUAL(b.bb[BB_WP], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WN], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WB], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WR], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WQ], 0x0000000000000004ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WK], 0x0000020000000000ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WALL], 0x0000020000000004ull);
+
+  BOOST_CHECK_EQUAL(b.bb[BB_BP], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BN], 0x0000002000000000ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BB], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BR], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BQ], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BK], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BALL], 0x0000002000000000ull);
+
+  BOOST_CHECK_EQUAL(b.bb[BB_EMPTY], 0xfffffddffffffffbull);
+  BOOST_CHECK_EQUAL(b.bb[BB_EP], 0ull);
+  BOOST_CHECK_EQUAL(b.side, WHITE);
+}
+
 BOOST_AUTO_TEST_CASE(testFenToBoard) {
   Board b = fenToBoard(NEW_BOARD);
   BOOST_CHECK_EQUAL(b.bb[BB_WP], 0x000000000000ff00ull);
@@ -509,6 +536,36 @@ BOOST_AUTO_TEST_CASE(testMakeBlackMove) {
   BOOST_CHECK_EQUAL(b.side, WHITE);
 }
 
+BOOST_AUTO_TEST_CASE(testMakeBackwardMove) {
+  const char *fen = "3r1q2/2pb2k1/5n2/8/8/2N5/1K2BP2/2Q1R3 w - - 0 0";
+  Board witness = fenToBoard(fen);
+  Move m[200];
+
+  Board b = fenToBoard(fen);
+  int numMoves = getAllMoves(&b, m, FORWARD);
+  for (int i = 0; i < numMoves; i++) {
+    makeMove(&b, m[i]);
+    makeBackwardMove(&b, m[i]);
+    for (int k = 0; k < BB_COUNT; k++) {
+      if (k != BB_EP) {
+        BOOST_CHECK_EQUAL(b.bb[k], witness.bb[k]);
+      }
+    }
+  }
+
+  witness.side = BLACK;
+  b.side = BLACK;
+  numMoves = getAllMoves(&b, m, FORWARD);
+  for (int i = 0; i < numMoves; i++) {
+    makeMove(&b, m[i]);
+    makeBackwardMove(&b, m[i]);
+    for (int k = 0; k < BB_COUNT; k++) {
+      BOOST_CHECK_EQUAL(b.bb[k], witness.bb[k]);
+    }
+    BOOST_CHECK_EQUAL(b.side, witness.side);
+  }
+}
+
 /************************* Tests for movegen.cpp *************************/
 
 BOOST_AUTO_TEST_CASE(testGetWhiteMoves) {
@@ -517,21 +574,21 @@ BOOST_AUTO_TEST_CASE(testGetWhiteMoves) {
   string s[100];
 
   b = fenToBoard(NEW_BOARD);
-  int numMoves = getAllMoves(&b, m, true);
+  int numMoves = getAllMoves(&b, m, FORWARD);
   getAlgebraicNotation(&b, m, numMoves, s);
   const char *expected1[] = { "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3", "a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4", "Na3", "Nc3", "Nf3", "Nh3" };
   BOOST_CHECK_EQUAL(numMoves, 20);
   BOOST_CHECK_EQUAL_COLLECTIONS(s, s + numMoves, expected1, expected1 + numMoves);
 
   b = fenToBoard("4q3/8/8/pP3N2/6K1/R5b1/5n1P/4Q3 w - a6 0 1");
-  numMoves = getAllMoves(&b, m, true);
+  numMoves = getAllMoves(&b, m, FORWARD);
   getAlgebraicNotation(&b, m, numMoves, s);
   const char *expected2[] = { "hxg3", "bxa6", "Nxg3", "Rxg3", "Rxa5", "Qxe8", "Qxf2", "Qxa5", "Kxg3" };
   BOOST_CHECK_EQUAL(numMoves, 9);
   BOOST_CHECK_EQUAL_COLLECTIONS(s, s + numMoves, expected2, expected2 + numMoves);
 
   b = fenToBoard("8/4P3/8/8/8/8/q7/8 w - - 0 1");
-  numMoves = getAllMoves(&b, m, true);
+  numMoves = getAllMoves(&b, m, FORWARD);
   getAlgebraicNotation(&b, m, numMoves, s);
   const char *expected3[] = { "e8=N", "e8=B", "e8=R", "e8=Q", "e8=K" };
   BOOST_CHECK_EQUAL(numMoves, 5);
@@ -539,7 +596,7 @@ BOOST_AUTO_TEST_CASE(testGetWhiteMoves) {
 
   // Both the c and e white pawns can capture en passant
   b = fenToBoard("8/8/8/2PpP3/8/8/8/8 w - d6 0 1");
-  numMoves = getAllMoves(&b, m, true);
+  numMoves = getAllMoves(&b, m, FORWARD);
   getAlgebraicNotation(&b, m, numMoves, s);
   const char *expected4[] = { "cxd6", "exd6" };
   BOOST_CHECK_EQUAL(numMoves, 2);
@@ -547,7 +604,7 @@ BOOST_AUTO_TEST_CASE(testGetWhiteMoves) {
 
   // Resolving ambiguities
   b = fenToBoard("8/2q4q/8/7q/1N6/8/1N3N2/6N1 w - - 0 1");
-  numMoves = getAllMoves(&b, m, true);
+  numMoves = getAllMoves(&b, m, FORWARD);
   getAlgebraicNotation(&b, m, numMoves, s);
   const char *expected5[] = { "Ne2", "Nf3", "Ngh3", "Nbd1", "Nb2d3", "Na4", "Nc4", "Nfd1", "Nh1", "Nfd3", "Nfh3", "Ne4", "Ng4", "Na2", "Nc2", "N4d3", "Nd5", "Na6", "Nc6" };
   BOOST_CHECK_EQUAL(numMoves, 19);
@@ -555,7 +612,7 @@ BOOST_AUTO_TEST_CASE(testGetWhiteMoves) {
 
   // Resolving ambiguities
   b = fenToBoard("8/2Q4Q/8/7Q/1n6/8/1n3n2/6n1 w - - 0 1");
-  numMoves = getAllMoves(&b, m, true);
+  numMoves = getAllMoves(&b, m, FORWARD);
   getAlgebraicNotation(&b, m, numMoves, s);
   const char *expected6[] = { "Qha5", "Qb5", "Qhc5", "Qd5", "Qhe5", "Q5f5", "Qg5", "Qa7", "Qb7", "Qcd7", "Qce7", "Qcf7", "Qcg7", "Qhd7", "Qhe7", "Qh7f7",
     "Qhg7", "Qh1", "Qhh2", "Qh3", "Qh4", "Q5h6", "Qc1", "Qcc2", "Qc3", "Qc4", "Qcc5", "Qc6", "Qc8", "Q7h6", "Qh8", "Qd1", "Qe2", "Qf3", "Qg4", "Qca5",
@@ -565,7 +622,7 @@ BOOST_AUTO_TEST_CASE(testGetWhiteMoves) {
 
   // Diagonal and antidiagonal moves
   b = fenToBoard("8/3Q4/1B6/8/4B1B1/8/3B4/k7 w - - 0 1");
-  numMoves = getAllMoves(&b, m, true);
+  numMoves = getAllMoves(&b, m, FORWARD);
   getAlgebraicNotation(&b, m, numMoves, s);
   const char *expected7[] = { "Bc1", "Bde3", "Bf4", "Bg5", "Bh6", "Bb1", "Bc2", "Bd3", "Bef5", "Bg6", "Bh7", "Bd1", "Be2", "Bgf3", "Bh5", "Bba5", "Bc7",
     "Bd8", "Be1", "Bc3", "Bb4", "Bda5", "Bh1", "Bg2", "Bef3", "Bd5", "Bc6", "Bb7", "Ba8", "Bh3", "Bgf5", "Be6", "Bg1", "Bf2", "Bbe3", "Bd4", "Bc5", "Ba7",
@@ -580,21 +637,21 @@ BOOST_AUTO_TEST_CASE(testGetBlackMoves) {
   string s[100];
 
   b = fenToBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1");
-  int numMoves = getAllMoves(&b, m, true);
+  int numMoves = getAllMoves(&b, m, FORWARD);
   getAlgebraicNotation(&b, m, numMoves, s);
   const char *expected1[] = { "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6", "a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5", "Na6", "Nc6", "Nf6", "Nh6" };
   BOOST_CHECK_EQUAL(numMoves, 20);
   BOOST_CHECK_EQUAL_COLLECTIONS(s, s + numMoves, expected1, expected1 + numMoves);
 
   b = fenToBoard("4q3/5N1p/r5B1/6k1/Pp3n2/8/8/4Q3 b - a3 0 1");
-  numMoves = getAllMoves(&b, m, true);
+  numMoves = getAllMoves(&b, m, FORWARD);
   getAlgebraicNotation(&b, m, numMoves, s);
   const char *expected2[] = { "bxa3", "hxg6", "Nxg6", "Rxg6", "Rxa4", "Qxe1", "Qxa4", "Qxf7", "Kxg6" };
   BOOST_CHECK_EQUAL(numMoves, 9);
   BOOST_CHECK_EQUAL_COLLECTIONS(s, s + numMoves, expected2, expected2 + numMoves);
 
   b = fenToBoard("8/Q7/8/8/8/8/4p3/8 b - - 0 1");
-  numMoves = getAllMoves(&b, m, true);
+  numMoves = getAllMoves(&b, m, FORWARD);
   getAlgebraicNotation(&b, m, numMoves, s);
   const char *expected3[] = { "e1=N", "e1=B", "e1=R", "e1=Q", "e1=K" };
   BOOST_CHECK_EQUAL(numMoves, 5);
@@ -602,7 +659,7 @@ BOOST_AUTO_TEST_CASE(testGetBlackMoves) {
 
   // Both the c and e white pawns can capture en passant
   b = fenToBoard("8/8/8/8/2pPp3/8/8/8 b - d3 0 1");
-  numMoves = getAllMoves(&b, m, true);
+  numMoves = getAllMoves(&b, m, FORWARD);
   getAlgebraicNotation(&b, m, numMoves, s);
   const char *expected4[] = { "cxd3", "exd3" };
   BOOST_CHECK_EQUAL(numMoves, 2);
@@ -610,7 +667,7 @@ BOOST_AUTO_TEST_CASE(testGetBlackMoves) {
 
   // Resolving ambiguities
   b = fenToBoard("6n1/1n3n2/8/1n6/7Q/8/2Q4Q/8 b - - 0 1");
-  numMoves = getAllMoves(&b, m, true);
+  numMoves = getAllMoves(&b, m, FORWARD);
   getAlgebraicNotation(&b, m, numMoves, s);
   const char *expected5[] = { "Na3", "Nc3", "Nd4", "N5d6", "Na7", "Nc7", "Na5", "Nc5", "Nb7d6", "Nbd8", "Ne5", "Ng5", "Nfd6", "Nfh6", "Nfd8", "Nh8", "Nf6", "Ngh6", "Ne7" };
   BOOST_CHECK_EQUAL(numMoves, 19);
@@ -618,7 +675,7 @@ BOOST_AUTO_TEST_CASE(testGetBlackMoves) {
 
   // Resolving ambiguities
   b = fenToBoard("6N1/1N3N2/8/1N6/7q/8/2q4q/8 b - - 0 1");
-  numMoves = getAllMoves(&b, m, true);
+  numMoves = getAllMoves(&b, m, FORWARD);
   getAlgebraicNotation(&b, m, numMoves, s);
   const char *expected6[] = { "Qa2", "Qb2", "Qcd2", "Qce2", "Qcf2", "Qcg2", "Qhd2", "Qhe2", "Qh2f2", "Qhg2", "Qha4", "Qb4", "Qhc4", "Qd4", "Qhe4",
     "Q4f4", "Qg4", "Qc1", "Qc3", "Qcc4", "Qc5", "Qc6", "Qcc7", "Qc8", "Qh1", "Q2h3", "Q4h3", "Qh5", "Qh6", "Qhh7", "Qh8", "Qb1", "Qd3", "Qce4", "Qf5",
@@ -628,7 +685,7 @@ BOOST_AUTO_TEST_CASE(testGetBlackMoves) {
 
   // Diagonal and antidiagonal moves
   b = fenToBoard("K7/3b4/8/4b1b1/8/1b6/3q4/8 b - - 0 1");
-  numMoves = getAllMoves(&b, m, true);
+  numMoves = getAllMoves(&b, m, FORWARD);
   getAlgebraicNotation(&b, m, numMoves, s);
   const char *expected7[] = { "Ba2", "Bc4", "Bd5", "Bbe6", "Bf7", "Bg8", "Ba1", "Bb2", "Bc3", "Bd4", "Bef6", "Bg7", "Bh8", "Be3", "Bgf4", "Bh6", "Bda4",
     "Bb5", "Bc6", "Be8", "Bd1", "Bc2", "Bba4", "Bh2", "Bg3", "Bef4", "Bd6", "Bc7", "Bb8", "Bh4", "Bgf6", "Be7", "Bd8", "Bh3", "Bg4", "Bf5", "Bde6", "Bc8",
@@ -642,7 +699,7 @@ BOOST_AUTO_TEST_CASE(testGetBackwardMoves) {
   string s[100];
 
   Board b = fenToBoard("8/2Pq3p/6n1/3pB2R/1N1K1P2/1k1Q4/8/4r1b1 b - - 0 0");
-  int numMoves = getAllMoves(&b, m, false);
+  int numMoves = getAllMoves(&b, m, BACKWARD);
   getAlgebraicNotation(&b, m, numMoves, s);
   const char *expected1[] = { "f3", "c6", "f2", "Na2", "Nc2", "Na6", "Nc6", "Bf6", "Bg7", "Bh8", "Bd6", "Rf5", "Rg5", "Rh1", "Rh2", "Rh3", "Rh4", "Rh6",
     "Qc3", "Qe3", "Qf3", "Qg3", "Qh3", "Qd1", "Qd2", "Qb1", "Qc2", "Qe4", "Qf5", "Qf1", "Qe2", "Qc4", "Qb5", "Qa6", "Kc3", "Ke3", "Kc4", "Ke4", "Kc5" };
@@ -650,7 +707,7 @@ BOOST_AUTO_TEST_CASE(testGetBackwardMoves) {
   BOOST_CHECK_EQUAL_COLLECTIONS(s, s + numMoves, expected1, expected1 + numMoves);
 
   b.side = WHITE;
-  numMoves = getAllMoves(&b, m, false);
+  numMoves = getAllMoves(&b, m, BACKWARD);
   getAlgebraicNotation(&b, m, numMoves, s);
   const char *expected2[] = { "d6", "Nh4", "Ne7", "Nf8", "Nh8", "Bh2", "Bf2", "Be3", "Ra1", "Rb1", "Rc1", "Rd1", "Rf1", "Re2", "Re3", "Re4", "Qe7", "Qf7",
     "Qg7", "Qd6", "Qd8", "Qa4", "Qb5", "Qc6", "Qe8", "Qh3", "Qg4", "Qf5", "Qe6", "Qc8", "Ka2", "Kb2", "Kc2", "Ka3", "Kc3", "Ka4", "Kc4" };

@@ -51,6 +51,8 @@
 		<Unit filename="../movegen.h" />
 		<Unit filename="../precomp.cpp" />
 		<Unit filename="../precomp.h" />
+		<Unit filename="../queryserver.cpp" />
+		<Unit filename="../queryserver.h" />
 		<Unit filename="../test.cpp">
 			<Option target="Testing" />
 		</Unit>

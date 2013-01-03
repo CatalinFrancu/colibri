@@ -16,6 +16,9 @@ int getPieceCount(Board *b);
 /* Rotate the board as specified. Does not change the side to move. */
 void rotateBoard(Board *b, int orientation);
 
+/* Rotate the board as needed to bring it into canonical orientation */
+void canonicalizeBoard(PieceSet *ps, int nps, Board *b);
+
 /* Construct a board from a FEN notation */
 Board fenToBoard(const char *fen);
 
@@ -23,8 +26,11 @@ Board fenToBoard(const char *fen);
   m is the array of all moves possible on the given board. */
 void getAlgebraicNotation(Board *b, Move *m, int numMoves, string *san);
 
-/* Make move m on the board b, modifying b. */
+/* Make move m on the board b, modifying b */
 void makeMove(Board* b, Move m);
+
+/* Make backward move m on the board b, modifying b. See the remarks for getAllMoves() (no un-captures, no un-promotions etc.) */
+void makeBackwardMove(Board *b, Move m);
 
 /* Statically evaluates a board:
  * - if one side has no pieces left, it wins

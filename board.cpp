@@ -6,7 +6,6 @@
 #include <string.h>
 #include "board.h"
 #include "precomp.h"
-using namespace std;
 
 void printBoard(Board *b) {
   for (int row = 7; row >= 0; row--) {
@@ -50,6 +49,24 @@ int getPieceCount(Board *b) {
 void rotateBoard(Board *b, int orientation) {
   for (int i = 0; i < BB_COUNT; i++) {
     b->bb[i] = rotate(b->bb[i], orientation);
+  }
+}
+
+void canonicalizeBoard(PieceSet *ps, int nps, Board *b) {
+  int base = (ps[0].side == WHITE) ? BB_WALL : BB_BALL;
+  u64 mask = b->bb[base + ps[0].piece];
+  if (ps[0].piece == PAWN) {
+    mask >>= 8;
+  }
+  int comb = rankCombination(mask, 0);
+  int canonical;
+  if (ps[0].piece == PAWN) {
+    canonical = canonical48[ps[0].count][comb];
+  } else {
+    canonical = canonical64[ps[0].count][comb];
+  }
+  if (canonical < 0) {
+    rotateBoard(b, -canonical);
   }
 }
 
@@ -210,6 +227,17 @@ void makeMove(Board* b, Move m) {
     makeMoveForSide(b, m, BB_BALL, BB_WALL);
   }
 }
+
+void makeBackwardMove(Board *b, Move m) {
+  int base = (b->side == WHITE) ? BB_BALL : BB_WALL;
+  u64 mask = (1ull << m.from) ^ (1ull << m.to);
+  b->bb[base] ^= mask;
+  b->bb[base + m.piece] ^= mask;
+  b->bb[BB_EMPTY] ^= mask;
+  b->side = WHITE + BLACK - b->side;
+  b->bb[BB_EP] = 0ull;
+}
+
 
 int evalBoard(Board *b) {
   if (!b->bb[BB_WALL]) {
