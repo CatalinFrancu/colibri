@@ -22,19 +22,6 @@ int main(int argc, char **argv) {
     startServer();
   }
 
-  // generateEgtb("KvR");
-  Board b = fenToBoard("8/8/8/5k2/8/8/2R5/8 w - - 0 0");
-  printBoard(&b);
-  string moveNames[200];
-  string fens[200];
-  int scores[200];
-  int numMoves;
-  int score = batchEgtbLookup(&b, moveNames, fens, scores, &numMoves);
-  printf("%d\n", score);
-  for (int i = 0; i < numMoves; i++) {
-    printf("%s %d %s\n", moveNames[i].c_str(), scores[i], fens[i].c_str());
-  }
-
-
+  generateEgtb("NvN");
   return 0;
 }
