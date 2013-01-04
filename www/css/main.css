@@ -1,12 +1,38 @@
+table {
+  border-collapse: collapse;
+}
+
+#leftColumn {
+  float: left;
+}
+
+#rightColumn {
+  float: left;
+  padding-left: 20px;
+}
+
 #board {
   box-shadow: 5px 5px 2px #888888;
   border: 1px solid black;
-  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+#board th {
+  color: #555;
+}
+
+#board .lr {
+  width: 20px;
+}
+
+#board .tb {
+  height: 20px;
 }
 
 .square { 
   background-repeat: no-repeat;
-  height:45px;
+  cursor: crosshair;
+  height: 45px;
   width: 45px;
 }
 
@@ -18,8 +44,29 @@
   background-color: #b8b8b8;
 }
 
+.stmOn {
+  background: url('../img/icon/lightbulb.png') no-repeat center center;
+}
+
+.stmOff {
+  background: url('../img/icon/lightbulb_off.png') no-repeat center center;
+}
+
+#editLink {
+  color: #444;
+}
+
+#toolBox {
+  box-shadow: 5px 5px 2px #888888;
+  border: 1px solid black;
+  margin-top: 5px;
+  padding: 5px;
+  display: none;
+}
+
 #editBox {
-  margin-top: 10px;
+  border-collapse: separate;
+  margin: 10px auto 0px;
 }
 
 .hammer {
@@ -28,53 +75,102 @@
 
 .currentHammer {
   border: 2px solid red;
+  border-radius: 2px;
+  box-shadow: 2px 2px 2px #aa6666;
+}
+
+.stmHeader {
+  margin-bottom: 10px;
+}
+
+.stm {
+  cursor: pointer;
+  float: left;
+  margin-right: 10px;
+  padding: 2px 5px;
+  border: 2px solid;
+}
+
+.stmWhite {
+  border-color: black;
+}
+
+.stmBlack {
+  background-color: #444;
+  border-color: #444;
+  color: white;
+}
+
+#editForm {
+  float: right;
+}
+
+#moves td {
+  padding-right: 10px;
+  padding-top: 5px;
+}
+
+.scoreWin {
+  color: #0c0;
+}
+
+.scoreLose {
+  color: #c00;
+}
+
+.eraseOne {
+  background-image: url('../img/eraser.png');
+}
+
+.eraseAll {
+  background-image: url('../img/cross.png');
 }
 
 .wk {
-  background-image: url('../img/wk.png');
+  background-image: url('../img/pieces/wk.png');
   height:45px;
 }
 .wq {
-  background-image: url('../img/wq.png');
+  background-image: url('../img/pieces/wq.png');
   height:45px;
 }
 .wr {
-  background-image: url('../img/wr.png');
+  background-image: url('../img/pieces/wr.png');
   height:45px;
 }
 .wb {
-  background-image: url('../img/wb.png');
+  background-image: url('../img/pieces/wb.png');
   height:45px;
 }
 .wn {
-  background-image: url('../img/wn.png');
+  background-image: url('../img/pieces/wn.png');
   height:45px;
 }
 .wp {
-  background-image: url('../img/wp.png');
+  background-image: url('../img/pieces/wp.png');
   height:45px;
 }
 .bk {
-  background-image: url('../img/bk.png');
+  background-image: url('../img/pieces/bk.png');
   height:45px;
 }
 .bq {
-  background-image: url('../img/bq.png');
+  background-image: url('../img/pieces/bq.png');
   height:45px;
 }
 .br {
-  background-image: url('../img/br.png');
+  background-image: url('../img/pieces/br.png');
   height:45px;
 }
 .bb {
-  background-image: url('../img/bb.png');
+  background-image: url('../img/pieces/bb.png');
   height:45px;
 }
 .bn {
-  background-image: url('../img/bn.png');
+  background-image: url('../img/pieces/bn.png');
   height:45px;
 }
 .bp {
-  background-image: url('../img/bp.png');
+  background-image: url('../img/pieces/bp.png');
   height:45px;
 }

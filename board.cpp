@@ -5,6 +5,7 @@
 #include <string>
 #include <string.h>
 #include "board.h"
+#include "egtb.h"
 #include "precomp.h"
 
 void printBoard(Board *b) {
@@ -298,5 +299,5 @@ int evalBoard(Board *b) {
   if (!b->bb[BB_BALL]) {
     return (b->side == WHITE) ? -1 : 1; // Lost/won now
   }
-  return EGTB_DRAW;
+  return egtbLookup(b);
 }

@@ -1,4 +1,3 @@
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -294,32 +293,48 @@ void iterateEgtb(PieceSet *ps, int nps, int level, Board *b, Move *m, FILE *tmpT
 }
 
 void retrograde(PieceSet *ps, int nps, Board *b, int targetScore, FILE *tmpTable, FILE *tmpBoards, Move *mf, Move *mb) {
-  int nb = getAllMoves(b, mb, BACKWARD);
-  for (int i = 0; i < nb; i++) {
-    // Make backward move
-    Board br = *b; // Retro-board
-    makeBackwardMove(&br, mb[i]);
+  // Handle all the legal orientations of the board as well
+  int legalOriPawns[2] = { ORI_NORMAL, ORI_FLIP_EW };
+  int legalOriNoPawns[8] = { ORI_NORMAL, ORI_ROT_CCW, ORI_ROT_180, ORI_ROT_CW, ORI_FLIP_NS, ORI_FLIP_DIAG, ORI_FLIP_EW, ORI_FLIP_ANTIDIAG };
+  int *legalOri, oriCount;
+  if (ps[0].piece == PAWN) {
+    legalOri = legalOriPawns;
+    oriCount = 2;
+  } else {
+    legalOri = legalOriNoPawns;
+    oriCount = 8;
+  }
 
-    // First make sure that one of the forward moves is symmetric to mb[i]. See the comments for getAllMoves() for details.
-    int nf = getAllMoves(&br, mf, FORWARD);
-    int sym = 0;
-    while ((sym < nf) && ((mf[sym].piece != mb[i].piece) || (mf[sym].from != mb[i].to) || (mf[sym].to != mb[i].from))) {
-      sym++;
-    }
-    if (sym < nf) {
-      // Canonicalize the board and therefore recompute the forward move list
-      canonicalizeBoard(ps, nps, &br);
-      nf = getAllMoves(&br, mf, FORWARD);
+  for (int ori = 0; ori < oriCount; ori++) {
+    Board brot = *b;
+    rotateBoard(&brot, legalOri[ori]);
+    int nb = getAllMoves(&brot, mb, BACKWARD);
+    for (int i = 0; i < nb; i++) {
+      // Make backward move
+      Board br = brot; // Retro-board
+      makeBackwardMove(&br, mb[i]);
 
-      // Don't look at this position if we've already scored it
-      int index = getEgtbIndex(ps, nps, &br);
-      if (readChar(tmpTable, index) == EGTB_DRAW) {
-        int score = forwardStep(&br, mf, nf, ps, nps, tmpTable);
-        if ((score != EGTB_DRAW) && (abs(score) <= targetScore)) {
-          unsigned code = encodeEgtbBoard(ps, nps, &br);
-          fwrite(&code, sizeof(unsigned), 1, tmpBoards);
-          int fileScore = (score > 0) ? (score + 1) : (score - 1);
-          writeChar(tmpTable, index, fileScore);
+      // First make sure that one of the forward moves is symmetric to mb[i]. See the comments for getAllMoves() for details.
+      int nf = getAllMoves(&br, mf, FORWARD);
+      int sym = 0;
+      while ((sym < nf) && ((mf[sym].piece != mb[i].piece) || (mf[sym].from != mb[i].to) || (mf[sym].to != mb[i].from))) {
+        sym++;
+      }
+      if (sym < nf) {
+        // Canonicalize the board and therefore recompute the forward move list
+        canonicalizeBoard(ps, nps, &br);
+        nf = getAllMoves(&br, mf, FORWARD);
+
+        // Don't look at this position if we've already scored it
+        int index = getEgtbIndex(ps, nps, &br);
+        if (readChar(tmpTable, index) == EGTB_DRAW) {
+          int score = forwardStep(&br, mf, nf, ps, nps, tmpTable);
+          if ((score != EGTB_DRAW) && (abs(score) <= targetScore)) {
+            unsigned code = encodeEgtbBoard(ps, nps, &br);
+            fwrite(&code, sizeof(unsigned), 1, tmpBoards);
+            int fileScore = (score > 0) ? (score + 1) : (score - 1);
+            writeChar(tmpTable, index, fileScore);
+          }
         }
       }
     }
@@ -345,7 +360,8 @@ void generateEgtb(const char *combo) {
   FILE *fBoards1 = fopen(tmpBoardName1, "w"), *fBoards2;
   iterateEgtb(ps, numPieceSets, 0, &b, m, fTable, fBoards1);
   fclose(fBoards1);
-  printf("Discovered %lu boards with wins and losses in 0 or 1 half-moves\n", getFileSize(tmpBoardName1) / sizeof(unsigned));
+  int solved = getFileSize(tmpBoardName1) / sizeof(unsigned);
+  printf("Discovered %d boards with wins and losses in 0 or 1 half-moves\n", solved);
 
   int targetScore = 1;
   Move mf[200], mb[200]; // Storage space for forward and backward moves
@@ -364,7 +380,9 @@ void generateEgtb(const char *combo) {
     fclose(fBoards2);
     unlink(tmpBoardName1);
     rename(tmpBoardName2, tmpBoardName1);
-    printf("Discovered %lu boards at score ±%d\n", getFileSize(tmpBoardName1) / sizeof(unsigned), targetScore);
+    int solvedStep = getFileSize(tmpBoardName1) / sizeof(unsigned);
+    solved += solvedStep;
+    printf("Discovered %d boards at score ±%d\n", solvedStep, targetScore);
   }
 
   // Done! Move the generated file in the EGTB folder and delete the temp files
@@ -372,10 +390,8 @@ void generateEgtb(const char *combo) {
   unlink(tmpBoardName1);
   string destName = string(EGTB_PATH) + "/" + combo + ".egt";
   printf("Moving [%s] to [%s]\n", tmpTableName, destName.c_str());
-  if (rename(tmpTableName, destName.c_str()) == -1) {
-    int errsv = errno;
-    printf("errno: %d\n", errsv);
-  }
+  rename(tmpTableName, destName.c_str());
+  printf("Table size: %d, of which non-draws: %d\n", size, solved);
 }
 
 int egtbLookup(Board *b) {
@@ -448,7 +464,7 @@ int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int 
       Board b2 = *b;
       makeMove(&b2, m[i]);
       fens[i] = boardToFen(&b2);
-      scores[i] = egtbLookup(&b2);
+      scores[i] = evalBoard(&b2);
     }
   }
   return result;
