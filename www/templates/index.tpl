@@ -9,14 +9,19 @@
   </head>
 
   <body>
+    <div class="title">
+      Suicide chess browser by <span class="plug">Colibri</span>
+    </div>
+
     <div id="leftColumn">
+      <div id="fen">FEN: {$fen}</div>
       <table id="board">
         <tr>
           <th class="lr tb"></th>
           {foreach from=$board[8] item=square key=fileName}
           <th class="tb">{$fileName}</th>
           {/foreach}
-          <th class="lr tb {if $stm == 'w'}stmOff{else}stmOn{/if}"></th>
+          <th></th>
         </tr>
         {foreach from=$board item=rank key=rankNumber}
           <tr>
@@ -32,12 +37,14 @@
           {foreach from=$board[8] item=square key=fileName}
           <th class="tb">{$fileName}</th>
           {/foreach}
-          <th class="lr tb {if $stm == 'w'}stmOn{else}stmOff{/if}"></th>
+          <th></th>
         </tr>
       </table>
 
       <div>
-        <a id="editLink" href="#">edit position</a>
+        <div id="editLinkDiv"><a id="editLink" href="#">edit position</a></div>
+        <div id="stmDiv" class="{if $stm == 'w'}stmReadWhite{else}stmReadBlack{/if}">to move</div>
+        <div style="clear: both"></div>
       </div>
 
       <div id="toolBox">
@@ -59,19 +66,20 @@
             <td class="square hammer"><div class="bb"></div></td>
             <td class="square hammer"><div class="bn"></div></td>
             <td class="square hammer"><div class="bp"></div></td>
-            <td class="square hammer eraseAll" title="Erase the entire board"><div></div></td>
+            <td class="square eraseAll" title="Erase the entire board"><div></div></td>
           </tr>
         </table>
 
-        <div class="stmHeader">Side to move:</div>
-        <div class="stm stmWhite {if $stm == 'w'}stmSelected{/if}">white</div>
-        <div class="stm stmBlack {if $stm == 'b'}stmSelected{/if}">black</div>
-        <form id="editForm" action="index.php">
-          <input id="fen" type="hidden" name="fen" value=""/>
-          <input id="goButton" type="button" value="Go!"/>
-        </form>
-
-        <div style="clear: both"></div>
+        Side to move:
+        <div id="stmBox">
+          <div class="stm stmWhite {if $stm == 'w'}stmSelected{/if}">white</div>
+          <div class="stm stmBlack {if $stm == 'b'}stmSelected{/if}">black</div>
+          <form id="editForm" action="index.php">
+            <input id="fenField" type="hidden" name="fen" value=""/>
+            <input id="goButton" type="button" value="Go!"/>
+          </form>
+          <div style="clear: both"></div>
+        </div>
       </div>
     </div>
 

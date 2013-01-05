@@ -1,14 +1,39 @@
+body {
+  font-family: arial;
+  margin: 0px;
+}
+
 table {
   border-collapse: collapse;
 }
 
+div.title {
+  background: #444;
+  color: white;
+  font-size: 20px;
+  padding: 5px 10px;
+}
+
+span.plug {
+  color: #ff7700;
+}
+
 #leftColumn {
   float: left;
+  margin-left: 5px;
+  width: 425px;
 }
 
 #rightColumn {
   float: left;
   padding-left: 20px;
+}
+
+#fen {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  text-align: center;
 }
 
 #board {
@@ -44,16 +69,27 @@ table {
   background-color: #b8b8b8;
 }
 
-.stmOn {
-  background: url('../img/icon/lightbulb.png') no-repeat center center;
-}
-
-.stmOff {
-  background: url('../img/icon/lightbulb_off.png') no-repeat center center;
+#editLinkDiv {
+  float: left;
+  padding-top: 3px;
 }
 
 #editLink {
   color: #444;
+}
+
+#stmDiv {
+  float: right;
+  padding-top: 3px;
+  padding-left: 26px;
+}
+
+.stmReadWhite {
+  background: url('../img/pieces/wk24.png') no-repeat;
+}
+
+.stmReadBlack {
+  background: url('../img/pieces/bk24.png') no-repeat;
 }
 
 #toolBox {
@@ -66,7 +102,7 @@ table {
 
 #editBox {
   border-collapse: separate;
-  margin: 10px auto 0px;
+  padding: 8px 18px;
 }
 
 .hammer {
@@ -74,13 +110,13 @@ table {
 }
 
 .currentHammer {
-  border: 2px solid red;
+  border: 2px solid #844;
   border-radius: 2px;
   box-shadow: 2px 2px 2px #aa6666;
 }
 
-.stmHeader {
-  margin-bottom: 10px;
+#stmBox {
+  padding: 8px 20px;
 }
 
 .stm {
@@ -88,17 +124,20 @@ table {
   float: left;
   margin-right: 10px;
   padding: 2px 5px;
-  border: 2px solid;
 }
 
 .stmWhite {
-  border-color: black;
 }
 
 .stmBlack {
   background-color: #444;
-  border-color: #444;
   color: white;
+}
+
+.stmSelected {
+  border: 3px solid #844;
+  border-radius: 2px;
+  box-shadow: 2px 2px 2px #aa6666;
 }
 
 #editForm {
@@ -123,6 +162,7 @@ table {
 }
 
 .eraseAll {
+  border: 2px solid white;
   background-image: url('../img/cross.png');
 }
 

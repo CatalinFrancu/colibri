@@ -3,8 +3,9 @@ currentHammer = null;
 $(function() {
   $('#editLink').click(editLinkClick);
   $('.hammer').click(hammerClick);
+  $('.eraseAll').click(eraseAllClick);
   $('.anvil').click(anvilClick);
-  $('#stm').click(stmClick);
+  $('.stm').click(stmClick);
   $('#goButton').click(goButtonClick);
 });
 
@@ -21,6 +22,10 @@ function hammerClick() {
   currentHammer = $(this);
 }
 
+function eraseAllClick() {
+  $('.anvil').children('div').attr('class', '');
+}
+
 function anvilClick() {
   if (!currentHammer) {
     return;
@@ -33,9 +38,9 @@ function anvilClick() {
 }
 
 function stmClick() {
-  $(this).removeClass(currentStm + 'k');
-  currentStm = (currentStm == 'w') ? 'b' : 'w';
-  $(this).addClass(currentStm + 'k');
+  $('.stm').removeClass('stmSelected');
+  $(this).addClass('stmSelected');
+  currentStm = ($(this).html() == 'white') ? 'w' : 'b';
 }
 
 function goButtonClick() {
@@ -66,6 +71,6 @@ function goButtonClick() {
     fen += numEmpty;
   }
   fen += ' ' + currentStm + ' - - 0 0';
-  $('#fen').val(fen);
+  $('#fenField').val(fen);
   $('#editForm').submit();
 }

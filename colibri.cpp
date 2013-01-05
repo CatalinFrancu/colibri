@@ -22,6 +22,31 @@ int main(int argc, char **argv) {
     startServer();
   }
 
-  generateEgtb("NvN");
+//  generateEgtb("KvK");
+//  generateEgtb("KvQ");
+//  generateEgtb("KvR");
+//  generateEgtb("KvB");
+//  generateEgtb("KvN");
+//  generateEgtb("QvQ");
+//  generateEgtb("QvR");
+//  generateEgtb("QvB");
+//  generateEgtb("QvN");
+//  generateEgtb("RvR");
+//  generateEgtb("RvB");
+//  generateEgtb("RvN");
+//  generateEgtb("BvB");
+//  generateEgtb("BvN");
+//  generateEgtb("NvN");
+//  generateEgtb("KvP");
+//  generateEgtb("QvP");
+//  generateEgtb("RvP");
+//  generateEgtb("BvP");
+//  generateEgtb("NvP");
+  generateEgtb("KKKvK");
+  generateEgtb("KKKvQ");
+  generateEgtb("KKKvR");
+  generateEgtb("KKKvB");
+  generateEgtb("KKKvN");
+  generateEgtb("KKKvP");
   return 0;
 }
