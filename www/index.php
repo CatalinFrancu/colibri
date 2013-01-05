@@ -3,14 +3,21 @@
 require_once 'smarty/Smarty.class.php';
 define('BACKEND_PORT', 2359);
 
-$fen = isset($_GET['fen']) ? $_GET['fen'] : "8/8/8/8/8/6R1/8/1k6 w - - 0 0";
+$fen = isset($_GET['fen']) ? $_GET['fen'] : null;
 
-list($board, $stm) = fenToBoard($fen);
+if ($fen) {
+  list($board, $stm) = fenToBoard($fen);
+} else {
+  list($board, $stm) = randomBoard(2);
+  $fen = boardToFen($board, $stm);
+}
+colorBoard($board);
 list($score, $moves) = serverQuery($fen);
 
 $smarty = new Smarty();
 $smarty->template_dir = 'templates';
 $smarty->compile_dir = 'templates_c';
+$smarty->assign('fen', $fen);
 $smarty->assign('board', $board);
 $smarty->assign('stm', $stm);
 $smarty->assign('score', $score);
@@ -19,7 +26,54 @@ $smarty->display('index.tpl');
 
 /***************************************************************************/
 
-/* Also sets the appropriate color on each square */
+function randomBoard($numPieces) {
+  $pieceNames = array('k', 'q', 'r', 'b', 'n', 'p');
+  $board = array();
+  for ($i = 8; $i >= 1; $i--) {
+    for ($j = 'a'; $j <= 'h'; $j++) {
+      $board[$i][$j]['piece'] = '';
+    }
+  }
+  for ($k = 0; $k < $numPieces; $k++) {
+    do {
+      $i = rand(1, 8);
+      $j = chr(ord('a') + rand(0, 7));
+    } while ($board[$i][$j]['piece']);
+    $color = ($k < 2) ? $k : rand(0, 1); // First two pieces to be placed are of opposite colors
+    $piece = $pieceNames[rand(0, 5)];
+    $board[$i][$j]['piece'] = ($color ? 'w' : 'b') . $piece;
+  }
+  $stm = (rand(0, 1) == 1) ? 'w' : 'b';
+  return array($board, $stm);
+}
+
+function boardToFen($board, $stm) {
+  $fen = '';
+  for ($rank = 8; $rank >= 1; $rank--) {
+    if ($rank < 8) {
+      $fen .= '/';
+    }
+    $numEmpty = 0;
+    for ($file = 'a'; $file <= 'h'; $file++) {
+      $str = $board[$rank][$file]['piece'];
+      if (!$str) {
+        $numEmpty++;
+      } else {
+        if ($numEmpty) {
+          $fen .= $numEmpty;
+          $numEmpty = 0;
+        }
+        $fen .= ($str[0] == 'w') ? strtoupper($str[1]) : $str[1];
+      }
+    }
+    if ($numEmpty) {
+      $fen .= $numEmpty;
+    }
+  }
+  $fen .= " $stm - - 0 0";
+  return $fen;
+}
+
 function fenToBoard($fen) {
   $board = array();
   list($pos, $stm, $ignored1, $epSquare, $ignored2, $ignored3) = explode(' ', $fen);
@@ -44,13 +98,15 @@ function fenToBoard($fen) {
     }
     $board[$rankNumber--] = $v;
   }
+  return array($board, $stm);
+}
 
+function colorBoard(&$board) {
   foreach ($board as $i => $row) {
     foreach ($row as $j => $square) {
       $board[$i][$j]['color'] = (($i + ord($j)) % 2) ? 'whiteBg' : 'blackBg';
     }
   }
-  return array($board, $stm);
 }
 
 function serverQuery($fen) {

@@ -240,7 +240,10 @@ void evaluatePlacement(PieceSet *ps, int nps, Board *b, int side, Move *m, FILE 
     fwrite(&code, sizeof(unsigned), 1, tmpBoards);
     // It is safe to pass b to getEgtbIndex because we generated it in canonical fashion
     int index = getEgtbIndex(ps, nps, b);
-    int fileScore = (score > 0) ? (score + 1) : (score - 1);
+    // If there are no moves, the score is a 1 (won now) or -1 (lost now).
+    // If there are moves, there is a conversion (capture / promotion) and the score is a 2 (win in 1) or -2 (loss in 1)
+    int fileScore = numMoves ? 2 : 1;
+    fileScore *= (score > 0) ? 1 : -1;
     writeChar(tmpTable, index, fileScore);
   }
 }
@@ -392,6 +395,8 @@ void generateEgtb(const char *combo) {
   printf("Moving [%s] to [%s]\n", tmpTableName, destName.c_str());
   rename(tmpTableName, destName.c_str());
   printf("Table size: %d, of which non-draws: %d\n", size, solved);
+  printf("Longest win/loss:\n");
+  printBoard(&b);
 }
 
 int egtbLookup(Board *b) {
