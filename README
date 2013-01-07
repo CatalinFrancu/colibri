@@ -1,0 +1,12 @@
+Colibri is a suicide chess engine, playing according to freechess.org rules.
+I developed this program using Code::Blocks, but I used cbp2make (revision 137
+at the time of writing this document) to generate a Makefile:
+
+cd /path/to/colibri/codeblocks
+cbp2make -in colibri.cbp -out Makefile
+make
+
+The resulting binary is /path/to/colibri/bin/Release/colibri.
+
+I'll try to keep this Makefile up to date as the project changes, but you can
+always use cbp2make to generate the latest version of a Makefile.

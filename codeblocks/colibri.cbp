@@ -54,11 +54,9 @@
 		<Unit filename="../precomp.h" />
 		<Unit filename="../queryserver.cpp">
 			<Option target="Release" />
-			<Option target="EgtbEstimator" />
 		</Unit>
 		<Unit filename="../queryserver.h">
 			<Option target="Release" />
-			<Option target="EgtbEstimator" />
 		</Unit>
 		<Unit filename="../test.cpp">
 			<Option target="Testing" />
