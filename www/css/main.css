@@ -157,8 +157,14 @@ span.plug {
   color: #c00;
 }
 
+.epSquare {
+  background-image: url('../img/ep.png');
+  height:45px;
+}
+
 .eraseOne {
   background-image: url('../img/eraser.png');
+  height:45px;
 }
 
 .eraseAll {
