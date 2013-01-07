@@ -8,18 +8,6 @@
 #include "movegen.h"
 #include "precomp.h"
 
-int getPieceByName(char c) {
-  switch(c) {
-    case 'P': return PAWN;
-    case 'N': return KNIGHT;
-    case 'B': return BISHOP;
-    case 'R': return ROOK;
-    case 'Q': return QUEEN;
-    case 'K': return KING;
-    default: return -1;
-  }
-}
-
 void comboToPieceCounts(const char *combo, int counts[2][KING + 1]) {
   for (int i = 0; i <= 1; i++) {
     for (int j = PAWN; j <= KING; j++) {
@@ -31,7 +19,7 @@ void comboToPieceCounts(const char *combo, int counts[2][KING + 1]) {
     if (*s == 'v') {
       line++;
     } else {
-      counts[line][getPieceByName(*s)]++;
+      counts[line][PIECE_BY_NAME[*s - 'A']]++;
     }
   }
 }
@@ -99,16 +87,68 @@ int getEgtbSize(PieceSet *ps, int numPieceSets) {
   return result;
 }
 
-int getEgtbIndex(PieceSet *ps, int nps, Board *b) {
-//  // First rotate the board if needed
-//  int base = (ps[0].side == WHITE) ? BB_WALL: BB_BALL;
-//  u64 firstBb = b->bb[base + ps[0].piece];
-//  int comb = rankCombination(firstBb, 0ull);
-//  int canon = (ps[0].piece == PAWN) ? canonical48[ps[0].count][comb] : canonical64[ps[0].count][comb];
-//  if (canon < 0) { // Then it indicates a negated orientation
-//    rotateBoard(b, -canon);
-//  }    *********************** MOVE THIS TO EGTB_LOOKUP ***************************
+int getEpEgtbSize(PieceSet *ps, int nps) {
+  if (ps[0].piece != PAWN || ps[1].piece != PAWN) {
+    return 0;
+  }
+  int result = 14;
+  int left = 44; // Out of the 48 pawn positions, 2 are taken by the WP and BP and the 2 squares behind the en passant pawn must be clear
 
+  // Factor in the remaining pawns
+  result *= choose[left][ps[0].count - 1];
+  left -= ps[0].count - 1;
+  result *= choose[left][ps[1].count - 1];
+  left -= ps[1].count - 1;
+
+  // Switch from 48 to 64 and factor in the remaining pieces
+  left += 16;
+  for (int i = 2; i < nps; i++) {
+    result *= choose[left][ps[i].count];
+    left -= ps[i].count;
+  }
+  return result;
+}
+
+int getEpEgtbIndex(PieceSet *ps, int nps, Board *b) {
+  int epSq = ctz(b->bb[BB_EP]);
+  int file = epSq & 7;
+  int result = file * 2; // So 0, 2, 4 or 6
+  u64 occupied = b->bb[BB_EP] ^ (b->bb[BB_EP] << 8) ^ (b->bb[BB_EP] >> 8);
+  u64 pawnRight = (b->side == WHITE) ? (b->bb[BB_EP] >> 7) : (b->bb[BB_EP] << 9); // Will see if the capturing pawn is on the right
+  u64 stmPawns = (b->side == WHITE) ? b->bb[BB_WP] : b->bb[BB_BP];
+
+  if (stmPawns & pawnRight) {
+    occupied ^= pawnRight;
+  } else {
+    occupied ^= (pawnRight >> 2);
+    result--;
+  }
+  if (b->side == BLACK) {
+    result += 7;
+  }
+
+  for (int i = 0; i < nps; i++) {
+    int base = (ps[i].side == WHITE) ? BB_WALL : BB_BALL;
+    u64 mask = b->bb[base + ps[i].piece] & ~occupied; // We have already accounted for two pawns
+    int cnt = (i < 2) ? (ps[i].count - 1) : ps[i].count;
+    int freeSquares, comb;
+    if (ps[i].piece == PAWN) {
+      comb = rankCombination(mask >> 8, occupied >> 8);
+      freeSquares = 48 - popCount(occupied);
+    } else {
+      comb = rankCombination(mask, occupied);
+      freeSquares = 64 - popCount(occupied);
+    }
+    result = result * choose[freeSquares][cnt] + comb;
+    occupied |= mask;
+  }
+  return result + getEgtbSize(ps, nps);
+}
+
+int getEgtbIndex(PieceSet *ps, int nps, Board *b) {
+  if (b->bb[BB_EP]) {
+    return getEpEgtbIndex(ps, nps, b);
+  }
   u64 occupied = 0ull;
   int base, result = 0, comb;
 
@@ -250,6 +290,7 @@ void evaluatePlacement(PieceSet *ps, int nps, Board *b, int side, Move *m, FILE 
 
 /**
  * Recursively iterate over all possible placements of the piece sets.
+ * Does not deal with ep positions -- those are handled separately by iterateEpEgtb().
  * ps - array of piece sets
  * nps - number of piece sets
  * level - index of current piece set being placed
@@ -270,7 +311,7 @@ void iterateEgtb(PieceSet *ps, int nps, int level, Board *b, Move *m, FILE *tmpT
   int gsize = ps[level].count;
   bool isPawn = ps[level].piece == PAWN;
   int freeSquares = (isPawn ? 48 : 64) - getPieceCount(b);
-  int numCombs = choose[freeSquares][ps[level].count];
+  int numCombs = choose[freeSquares][gsize];
   u64 occupied = b->bb[BB_WALL] ^ b->bb[BB_BALL];
   if (isPawn) {
     occupied >>= 8;
@@ -292,6 +333,53 @@ void iterateEgtb(PieceSet *ps, int nps, int level, Board *b, Move *m, FILE *tmpT
       b->bb[baseBb + ps[level].piece] = 0ull;
       b->bb[BB_EMPTY] ^= mask;
     }
+  }
+}
+
+/* Params: see iterateEgtb(). */
+void iterateEpEgtbHelper(PieceSet *ps, int nps, int level, Board *b, Move *m, u64 occupied, FILE *tmpTable, FILE *tmpBoards) {
+  if (level == nps) {
+    evaluatePlacement(ps, nps, b, b->side, m, tmpTable, tmpBoards);
+    return;
+  }
+
+  int base = (ps[level].side == WHITE) ? BB_WALL : BB_BALL;
+  bool isPawn = ps[level].piece == PAWN;
+  int gsize = isPawn ? (ps[level].count - 1) : ps[level].count;
+  int freeSquares = (isPawn ? 48 : 64) - popCount(occupied);
+  int numCombs = choose[freeSquares][gsize];
+
+  for (int comb = 0; comb < numCombs; comb++) {
+    u64 mask = unrankCombination(comb, gsize, occupied);
+    b->bb[base] ^= mask;
+    b->bb[base + ps[level].piece] ^= mask;
+    b->bb[BB_EMPTY] ^= mask;
+    iterateEpEgtbHelper(ps, nps, level + 1, b, m, occupied ^ mask, tmpTable, tmpBoards);
+    b->bb[base] ^= mask;
+    b->bb[base + ps[level].piece] ^= mask;
+    b->bb[BB_EMPTY] ^= mask;
+  }
+}
+
+/* Params: see iterateEgtb(). */
+void iterateEpEgtb(PieceSet *ps, int nps, FILE *tmpTable, FILE *tmpBoards) {
+  // Generate the 14 canonical placements for the pair of pawns.
+  Board b;
+  Move m[200];
+  for (int i = 0; i < 14; i++) {
+    emptyBoard(&b);
+    b.side = (i < 7) ? WHITE : BLACK;
+    int index = i % 7;
+    int allStm = (b.side == WHITE) ? BB_WALL : BB_BALL;
+    int allSntm = BB_WALL + BB_BALL - allStm;
+    int file = (index + 1) / 2;
+    b.bb[BB_EP] = ((b.side == WHITE) ? 0x0000010000000000ull : 0x0000000000010000ull) << file;
+    b.bb[allSntm + PAWN] = b.bb[allSntm] = (b.side == WHITE) ? (b.bb[BB_EP] >> 8) : (b.bb[BB_EP] << 8);
+    b.bb[allStm + PAWN] = b.bb[allStm] = (index & 1) ? (b.bb[allSntm] >> 1) : (b.bb[allSntm] << 1);
+    u64 occupied = b.bb[allStm] | b.bb[BB_EP] | (b.bb[BB_EP] << 8) | (b.bb[BB_EP] >> 8);
+    printBoard(&b);
+    printf("Occupancy: %016llx\n", occupied);
+    iterateEpEgtbHelper(ps, nps, 0, &b, m, occupied, tmpTable, tmpBoards);
   }
 }
 
@@ -357,11 +445,14 @@ void generateEgtb(const char *combo) {
   // First populate all the immediate wins / losses (no legal moves) and immediate conversions (win/loss in 1).
   // Collect all the positions thus evaluated, in encoded form, in a temporary file.
   emptyBoard(&b);
-  int size = getEgtbSize(ps, numPieceSets);
+  int size = getEgtbSize(ps, numPieceSets) + getEpEgtbSize(ps, numPieceSets);
   createFile(tmpTableName, size, EGTB_DRAW);
   FILE *fTable = fopen(tmpTableName, "r+");
   FILE *fBoards1 = fopen(tmpBoardName1, "w"), *fBoards2;
   iterateEgtb(ps, numPieceSets, 0, &b, m, fTable, fBoards1);
+  if (ps[0].piece == PAWN && ps[1].piece == PAWN) {
+    iterateEpEgtb(ps, numPieceSets, fTable, fBoards1);
+  }
   fclose(fBoards1);
   int solved = getFileSize(tmpBoardName1) / sizeof(unsigned);
   printf("Discovered %d boards with wins and losses in 0 or 1 half-moves\n", solved);
