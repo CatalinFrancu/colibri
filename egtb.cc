@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -488,15 +489,18 @@ void generateEgtb(const char *combo) {
   printf("Table size: %d, of which non-draws: %d\n", size, solved);
   printf("Longest win/loss:\n");
   printBoard(&b);
+
+  // Now verify it
+  egtbVerify(combo);
 }
 
 int egtbLookup(Board *b) {
   int wp = popCount(b->bb[BB_WALL]), bp = popCount(b->bb[BB_BALL]);
   if (!wp || !bp) {
-    return INFTY; // You're looking in the wrong place, buddy -- evalBoard() should catch this
+    return EGTB_DRAW; // You're looking in the wrong place, buddy -- evalBoard() should catch this
   }
   if (wp + bp > EGTB_MEN) {
-    return INFTY;
+    return EGTB_DRAW;
   }
 
   // See if we need to change sides
@@ -564,4 +568,146 @@ int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int 
     }
   }
   return result;
+}
+
+void egtbVerifyPosition(Board *b, Move *m) {
+  int score = egtbLookup(b);
+  int numMoves = getAllMoves(b, m, FORWARD);
+
+  // If no moves are possible, the score should be 1, 0 or -1 depending on the count of white and black pieces.
+  if (!numMoves) {
+    int stmCount = popCount((b->side == WHITE) ? b->bb[BB_WALL] : b->bb[BB_BALL]);
+    int sntmCount = popCount((b->side == WHITE) ? b->bb[BB_BALL] : b->bb[BB_WALL]);
+    if (stmCount > sntmCount) {
+      assert(score == -1); // Lost now
+    } else if (stmCount < sntmCount) {
+      assert(score == 1); // Won now
+    } else {
+      assert(score == EGTB_DRAW);
+    }
+    return;
+  }
+
+  int childScore[numMoves]; // child scores
+  for (int i = 0; i < numMoves; i++) {
+    Board b2 = *b;
+    makeMove(&b2, m[i]);
+    childScore[i] = evalBoard(&b2);
+  }
+
+  // If all moves are captures, they all convert, so the score should be 2, 0 or -2.
+  u64 toMask = 1ull << m[0].to;
+  int captures = ((m[0].piece == PAWN) && (toMask == b->bb[BB_EP])) || (toMask & ~b->bb[BB_EMPTY]);
+  if (captures) {
+    int anyNeg = false, allPos = true;
+    for (int i = 0; i < numMoves; i++) {
+      if (childScore[i] < 0) {
+        anyNeg = true;
+      }
+      if (childScore[i] <= 0) {
+        allPos = false;
+      }
+    }
+    if (anyNeg) {
+      assert(score == 2); // Convert to a win in 1
+    } else if (allPos) {
+      assert(score == -2); // Convert to a loss in 1
+    } else {
+      assert(score == 0); // Cannot win, but can convert to a draw
+    }
+  }
+
+  // ************************* TODO: promotions and non-captures
+
+  int minNeg = INFTY, maxNeg = INFTY, minPos = -INFTY, maxPos = -INFTY;
+  for (int i = 0; i < numMoves; i++) {
+    Board b2 = *b;
+    makeMove(&b2, m[i]);
+    int childScore = evalBoard(&b2);
+    if (childScore < minNeg) {
+      minNeg = childScore;
+    }
+    if (childScore < 0 && childScore > maxNeg) {
+      maxNeg = childScore;
+    }
+    if (childScore > maxPos) {
+      maxPos = childScore;
+    }
+    if (childScore > 0 && childScore < minPos) {
+      minPos = childScore;
+    }
+  }
+}
+
+void egtbVerifySideAndEp(Board *b, Move *m) {
+  // Check all the possible epSquares if White is to move
+  for (int sq = 40; sq < 48; sq++) {
+    u64 mask = 1ull << sq;
+    if ((b->bb[BB_EMPTY] & mask) &&
+        (b->bb[BB_EMPTY] & (mask << 8)) &&
+        (b->bb[BB_BP] & (mask >> 8)) &&
+        (b->bb[BB_WP] & RANK_5 & ((mask >> 7) ^ (mask >> 9)))) {
+      b->bb[BB_EP] = mask;
+      b->side = WHITE;
+      egtbVerifyPosition(b, m);
+    }
+  }
+  for (int sq = 16; sq < 24; sq++) {
+    u64 mask = 1ull << sq;
+    if ((b->bb[BB_EMPTY] & mask) &&
+        (b->bb[BB_EMPTY] & (mask >> 8)) &&
+        (b->bb[BB_WP] & (mask << 8)) &&
+        (b->bb[BB_BP] & RANK_4 & ((mask << 7) ^ (mask << 9)))) {
+      b->bb[BB_EP] = mask;
+      b->side = BLACK;
+      egtbVerifyPosition(b, m);
+    }
+  }
+  b->bb[BB_EP] = 0ull;
+  b->side = WHITE;
+  egtbVerifyPosition(b, m);
+  b->side = BLACK;
+  egtbVerifyPosition(b, m);
+}
+
+/**
+ * Recursively construct all possible positions of the given combo, canonical or not, including EP positions
+ * combo - combination to verify, eg NNPvPP
+ * side - side whose pieces we are currently placing (starts as White, switches to Black once we hit the 'v')
+ * level - index of current piece set being placed
+ * maxLevel - maximum numer of level (shortcut for strlen(combo))
+ * b - board being constructed
+ * m - reusable space for move generation during evaluatePlacement()
+ */
+void egtbVerifyHelper(const char *combo, int side, int level, int maxLevel, Board *b, Move *m) {
+  if (level == maxLevel) {
+    egtbVerifySideAndEp(b, m);
+  } else if (combo[level] == 'v') {
+    egtbVerifyHelper(combo, BLACK, level + 1, maxLevel, b, m);
+  } else {
+    int base = (side == WHITE) ? BB_WALL : BB_BALL;
+    int piece = PIECE_BY_NAME[combo[level] - 'A'];
+    int startSq = (piece == PAWN) ? 8 : 0;
+    int endSq = (piece == PAWN) ? 56 : 64;
+    for (int sq = startSq; sq < endSq; sq++) {
+      u64 mask = 1ull << sq;
+      if (b->bb[BB_EMPTY] & mask) {
+        b->bb[base] ^= mask;
+        b->bb[base + piece] ^= mask;
+        b->bb[BB_EMPTY] ^= mask;
+        egtbVerifyHelper(combo, side, level + 1, maxLevel, b, m);
+        b->bb[base] ^= mask;
+        b->bb[base + piece] ^= mask;
+        b->bb[BB_EMPTY] ^= mask;
+      }
+    }
+  }
+}
+
+void egtbVerify(const char *combo) {
+  Board b;
+  emptyBoard(&b);
+  Move m[200];
+  string fileName = string(EGTB_PATH) + "/" + combo + ".egt";
+  egtbVerifyHelper(combo, WHITE, 0, strlen(combo), &b, m);
 }

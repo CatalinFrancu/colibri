@@ -49,6 +49,8 @@ using namespace std;
 #define FILE_H 0x8080808080808080ull
 #define RANK_1 0x00000000000000ffull
 #define RANK_3 0x0000000000ff0000ull
+#define RANK_4 0x00000000ff000000ull
+#define RANK_5 0x000000ff00000000ull
 #define RANK_6 0x0000ff0000000000ull
 #define RANK_8 0xff00000000000000ull
 

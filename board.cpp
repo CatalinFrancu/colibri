@@ -69,9 +69,9 @@ bool epCapturePossible(Board *b) {
   }
   u64 captor;
   if (b->side == WHITE) {
-    captor = b->bb[BB_WP] & ((b->bb[BB_EP] >> 9) ^ (b->bb[BB_EP] >> 7));
+    captor = b->bb[BB_WP] & RANK_5 & ((b->bb[BB_EP] >> 9) ^ (b->bb[BB_EP] >> 7));
   } else {
-    captor = b->bb[BB_BP] & ((b->bb[BB_EP] << 9) ^ (b->bb[BB_EP] << 7));
+    captor = b->bb[BB_BP] & RANK_4 & ((b->bb[BB_EP] << 9) ^ (b->bb[BB_EP] << 7));
   }
   return (captor != 0ull);
 }
