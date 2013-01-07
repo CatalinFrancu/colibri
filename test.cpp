@@ -251,6 +251,14 @@ BOOST_AUTO_TEST_CASE(testSwitchSides) {
   BOOST_CHECK_EQUAL(b.side, BLACK);
 }
 
+BOOST_AUTO_TEST_CASE(testEpCapturePossible) {
+  Board b = fenToBoard("8/8/8/pP6/8/8/8/8 w - a6 0 0");
+  BOOST_CHECK_EQUAL(epCapturePossible(&b), true);
+
+  b = fenToBoard("8/8/8/p7/7P/8/8/8 w - a6 0 0");
+  BOOST_CHECK_EQUAL(epCapturePossible(&b), false);
+}
+
 BOOST_AUTO_TEST_CASE(testCanonicalizeBoard) {
   PieceSet ps[EGTB_MEN];
   int nps = comboToPieceSets("KQvN", ps);

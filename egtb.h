@@ -50,4 +50,10 @@ int egtbLookup(Board *b);
  */
 int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int *numMoves);
 
+/* Verifies the correctness of an EGTB table using only the forward move generator:
+ * - Generates all the possible positions, canonical and non-canonical
+ * - Asserts that the value of each position is consistent with the values of its child positions.
+ */
+void egtbVerify(const char *combo);
+
 #endif
