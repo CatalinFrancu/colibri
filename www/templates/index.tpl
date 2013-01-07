@@ -87,6 +87,7 @@
     </div>
 
     <div id="rightColumn">
+      Score: {$score}
       <table id="moves">
         {foreach from=$moves item=m}
           <tr>

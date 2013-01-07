@@ -146,8 +146,10 @@ int getEpEgtbIndex(PieceSet *ps, int nps, Board *b) {
 }
 
 int getEgtbIndex(PieceSet *ps, int nps, Board *b) {
-  if (b->bb[BB_EP]) {
+  if (epCapturePossible(b)) {
     return getEpEgtbIndex(ps, nps, b);
+  } else {
+    b->bb[BB_EP] = 0ull;
   }
   u64 occupied = 0ull;
   int base, result = 0, comb;
@@ -377,8 +379,6 @@ void iterateEpEgtb(PieceSet *ps, int nps, FILE *tmpTable, FILE *tmpBoards) {
     b.bb[allSntm + PAWN] = b.bb[allSntm] = (b.side == WHITE) ? (b.bb[BB_EP] >> 8) : (b.bb[BB_EP] << 8);
     b.bb[allStm + PAWN] = b.bb[allStm] = (index & 1) ? (b.bb[allSntm] >> 1) : (b.bb[allSntm] << 1);
     u64 occupied = b.bb[allStm] | b.bb[BB_EP] | (b.bb[BB_EP] << 8) | (b.bb[BB_EP] >> 8);
-    printBoard(&b);
-    printf("Occupancy: %016llx\n", occupied);
     iterateEpEgtbHelper(ps, nps, 0, &b, m, occupied, tmpTable, tmpBoards);
   }
 }
