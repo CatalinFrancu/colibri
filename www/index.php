@@ -98,6 +98,9 @@ function fenToBoard($fen) {
     }
     $board[$rankNumber--] = $v;
   }
+  if ($epSquare != '-') {
+    $board[$epSquare[1]][$epSquare[0]]['piece'] = 'epSquare';
+  }
   return array($board, $stm);
 }
 

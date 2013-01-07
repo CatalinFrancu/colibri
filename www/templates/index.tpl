@@ -26,8 +26,8 @@
         {foreach from=$board item=rank key=rankNumber}
           <tr>
             <th class="lr">{$rankNumber}</th>
-            {foreach from=$rank item=square}
-              <td class="square anvil {$square.color}"><div class="{$square.piece}"></div></td>
+            {foreach from=$rank item=square key=fileLetter}
+              <td class="square anvil {$square.color}"><div id="{$fileLetter}{$rankNumber}" class="{$square.piece}"></div></td>
             {/foreach}
             <th class="lr">{$rankNumber}</th>
           </tr>
@@ -57,7 +57,6 @@
             <td class="square hammer"><div class="wb"></div></td>
             <td class="square hammer"><div class="wn"></div></td>
             <td class="square hammer"><div class="wp"></div></td>
-            <td class="square hammer eraseOne" title="Erase one piece"><div></div></td>
           </tr>
           <tr>
             <td class="square hammer"><div class="bk"></div></td>
@@ -66,6 +65,10 @@
             <td class="square hammer"><div class="bb"></div></td>
             <td class="square hammer"><div class="bn"></div></td>
             <td class="square hammer"><div class="bp"></div></td>
+          </tr>
+          <tr>
+            <td class="square hammer" title="En passant target square"><div class="epSquare"></div></td>
+            <td class="square hammer" title="Erase one piece"><div class="eraseOne"></div></td>
             <td class="square eraseAll" title="Erase the entire board"><div></div></td>
           </tr>
         </table>
