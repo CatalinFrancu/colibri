@@ -64,6 +64,13 @@ void changeSides(Board *b) {
 }
 
 void canonicalizeBoard(PieceSet *ps, int nps, Board *b) {
+  // Boards where en passant capture is possible are first indexed by the EP square, which must be on the left-hand side.
+  if (b->bb[BB_EP]) {
+    if (b->bb[BB_EP] & 0xf0f0f0f0f0f0f0f0ull) {
+      rotateBoard(b, ORI_FLIP_EW);
+    }
+    return;
+  }
   int base = (ps[0].side == WHITE) ? BB_WALL : BB_BALL;
   u64 mask = b->bb[base + ps[0].piece];
   if (ps[0].piece == PAWN) {
@@ -241,7 +248,7 @@ void makeMoveForSide(Board* b, Move m, int allMe, int allYou) {
 
   // If an en passant capture, remove the captured pawn
   if ((m.piece == PAWN) && (toMask == b->bb[BB_EP])) {
-    u64 capturedPawn = 1ull << ((m.from & ~7) + (m.to & 7));
+    u64 capturedPawn = (b->side == WHITE) ? (toMask >> 8) : (toMask << 8);
     b->bb[allYou + PAWN] ^= capturedPawn;
     b->bb[allYou] ^= capturedPawn;
   }
@@ -287,8 +294,8 @@ void makeBackwardMove(Board *b, Move m) {
   b->bb[base] ^= mask;
   b->bb[base + m.piece] ^= mask;
   b->bb[BB_EMPTY] ^= mask;
-  b->side = WHITE + BLACK - b->side;
   b->bb[BB_EP] = 0ull;
+  b->side = WHITE + BLACK - b->side;
 }
 
 

@@ -140,11 +140,18 @@ inline void getBlackPawnCaptures(Board *b, u64 ignoredFile, int shift, Move *m, 
 }
 
 /* Get all legal non-capturing moves on the given board if White is to move */
-int getWhiteNonCaptures(Board *b, Move *m, bool forward) {
+int getWhiteNonCaptures(Board *b, Move *m, bool direction) {
   int numMoves = 0, fromSq, toSq;
   u64 mask;
 
-  if (forward) {
+  if (direction == BACKWARD && b->bb[BB_EP]) {
+    // special case: the only move we can take back is the double push pawn
+    int epSq = ctz(b->bb[BB_EP]);
+    pushMove(m, &numMoves, PAWN, epSq + 8, epSq - 8, 0);
+    return numMoves;
+  }
+
+  if (direction == FORWARD) {
     // Pawn pushes (one-step)
     mask = (b->bb[BB_WP] << 8) & b->bb[BB_EMPTY];
     u64 oneStep = mask;
@@ -215,11 +222,18 @@ int getWhiteCaptures(Board *b, Move *m) {
 }
 
 /* Get all legal non-capturing moves on the given board if Black is to move */
-int getBlackNonCaptures(Board *b, Move *m, bool forward) {
+int getBlackNonCaptures(Board *b, Move *m, bool direction) {
   int numMoves = 0, fromSq, toSq;
   u64 mask;
 
-  if (forward) {
+  if (direction == BACKWARD && b->bb[BB_EP]) {
+    // special case: the only move we can take back is the double push pawn
+    int epSq = ctz(b->bb[BB_EP]);
+    pushMove(m, &numMoves, PAWN, epSq - 8, epSq + 8, 0);
+    return numMoves;
+  }
+
+  if (direction == FORWARD) {
     // Pawn pushes (one-step)
     mask = (b->bb[BB_BP] >> 8) & b->bb[BB_EMPTY];
     u64 oneStep = mask;
@@ -289,14 +303,14 @@ int getBlackCaptures(Board *b, Move *m) {
   return numMoves;
 }
 
-int getAllMoves(Board *b, Move *m, bool forward) {
-  if (!forward) {
+int getAllMoves(Board *b, Move *m, bool direction) {
+  if (direction == BACKWARD) {
     // Notice the color inversion -- if White is to move, then Black must have made the last move
-    return (b->side == WHITE) ? getBlackNonCaptures(b, m, forward) : getWhiteNonCaptures(b, m, forward);
+    return (b->side == WHITE) ? getBlackNonCaptures(b, m, direction) : getWhiteNonCaptures(b, m, direction);
   }
   int numMoves = (b->side == WHITE) ? getWhiteCaptures(b, m) : getBlackCaptures(b, m);
   if (!numMoves) {
-    numMoves = (b->side == WHITE) ? getWhiteNonCaptures(b, m, forward) : getBlackNonCaptures(b, m, forward);
+    numMoves = (b->side == WHITE) ? getWhiteNonCaptures(b, m, direction) : getBlackNonCaptures(b, m, direction);
   }
   return numMoves;
 }

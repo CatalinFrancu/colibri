@@ -16,11 +16,22 @@ unsigned encodeEgtbBoard(PieceSet *ps, int nps, Board *b);
 /* Decodes an EGTB board */
 void decodeEgtbBoard(PieceSet *ps, int nps, Board *b, unsigned code);
 
-/* Get the size of the table for the given piece set */
+/* Get the size of the table for the given piece set, ignoring possible en passant situations */
 int getEgtbSize(PieceSet *ps, int numPieceSets);
+
+/* Get the size of the table for en passant situations. Returns 0 if one side has no pawns.
+ * Considering the E-W symmetry, there are 7 placements for a WP and BP for the side to move, so 14 for both sides.
+ * After the WP and BP are placed, 60 usable squares remain (44 for pawns). That is because the two squares behind
+ * the pushed pawn must also remain empty. */
+int getEpEgtbSize(PieceSet *ps, int numPieceSets);
 
 /* Get the index of this position within its EGTB table. Assumes b is rotated into its canonical position. */
 int getEgtbIndex(PieceSet *ps, int nps, Board *b);
+
+/* Get the index of this position within its EGTB table when the EP bit is set.
+ * Assumes b is mirrored into its canonical position.
+ * EP positions are appended after all the non-EP ones, so this function adds getEgtbSize() to its result. */
+int getEpEgtbIndex(PieceSet *ps, int nps, Board *b);
 
 /* Generate and write to file the endgame tablebase for the given combo */
 void generateEgtb(const char *combo);

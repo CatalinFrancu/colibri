@@ -130,5 +130,6 @@ typedef struct PieceSet {
 
 /* Piece names for move notation */
 const char PIECE_INITIALS[8] = " PNBRQK";
+const int PIECE_BY_NAME[26] = { 0, BISHOP, 0, 0, 0, 0, 0, 0, 0, 0, KING, 0, 0, KNIGHT, 0, PAWN, QUEEN, ROOK, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 #endif

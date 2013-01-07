@@ -276,6 +276,31 @@ BOOST_AUTO_TEST_CASE(testCanonicalizeBoard) {
   BOOST_CHECK_EQUAL(b.bb[BB_EMPTY], 0xfffffddffffffffbull);
   BOOST_CHECK_EQUAL(b.bb[BB_EP], 0ull);
   BOOST_CHECK_EQUAL(b.side, WHITE);
+
+  // En passant case
+  nps = comboToPieceSets("NNPvPP", ps);
+  b = fenToBoard("8/2p5/8/1N6/5pP1/8/8/5N2 b - g3 0 0");
+  canonicalizeBoard(ps, nps, &b);
+
+  BOOST_CHECK_EQUAL(b.bb[BB_WP], 0x0000000002000000ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WN], 0x0000004000000004ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WB], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WR], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WQ], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WK], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_WALL], 0x0000004002000004ull);
+
+  BOOST_CHECK_EQUAL(b.bb[BB_BP], 0x0020000004000000ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BN], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BB], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BR], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BQ], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BK], 0ull);
+  BOOST_CHECK_EQUAL(b.bb[BB_BALL], 0x0020000004000000ull);
+
+  BOOST_CHECK_EQUAL(b.bb[BB_EMPTY], 0xffdfffbff9fffffbull);
+  BOOST_CHECK_EQUAL(b.bb[BB_EP], 0x0000000000020000ull);
+  BOOST_CHECK_EQUAL(b.side, BLACK);
 }
 
 BOOST_AUTO_TEST_CASE(testFenToBoard) {
@@ -749,6 +774,23 @@ BOOST_AUTO_TEST_CASE(testGetBackwardMoves) {
     "Qg7", "Qd6", "Qd8", "Qa4", "Qb5", "Qc6", "Qe8", "Qh3", "Qg4", "Qf5", "Qe6", "Qc8", "Ka2", "Kb2", "Kc2", "Ka3", "Kc3", "Ka4", "Kc4" };
   BOOST_CHECK_EQUAL(numMoves, 37);
   BOOST_CHECK_EQUAL_COLLECTIONS(s, s + numMoves, expected2, expected2 + numMoves);
+
+  // When the EP bit is set, the only legal move that could have been made is the double pawn push
+  b = fenToBoard("8/8/8/2p2p2/8/8/P7/8 w - f6 0 0");
+  numMoves = getAllMoves(&b, m, BACKWARD);
+  BOOST_CHECK_EQUAL(numMoves, 1);
+  BOOST_CHECK_EQUAL(m[0].piece, PAWN);
+  BOOST_CHECK_EQUAL(m[0].from, 37);
+  BOOST_CHECK_EQUAL(m[0].to, 53);
+  BOOST_CHECK_EQUAL(m[0].promotion, 0);
+
+  b = fenToBoard("8/p7/8/8/2P2P2/8/8/8 b - c3 0 0");
+  numMoves = getAllMoves(&b, m, BACKWARD);
+  BOOST_CHECK_EQUAL(numMoves, 1);
+  BOOST_CHECK_EQUAL(m[0].piece, PAWN);
+  BOOST_CHECK_EQUAL(m[0].from, 26);
+  BOOST_CHECK_EQUAL(m[0].to, 10);
+  BOOST_CHECK_EQUAL(m[0].promotion, 0);
 }
 
 /************************* Tests for egtb.cpp *************************/
@@ -924,6 +966,19 @@ BOOST_AUTO_TEST_CASE(testGetEgtbSize) {
   numPieceSets = comboToPieceSets("KPPvN", ps);
   BOOST_CHECK_EQUAL(numPieceSets, 3);
   BOOST_CHECK_EQUAL(getEgtbSize(ps, numPieceSets), 4356864);
+
+  numPieceSets = comboToPieceSets("NNPvPP", ps);
+  BOOST_CHECK_EQUAL(numPieceSets, 3);
+  BOOST_CHECK_EQUAL(getEgtbSize(ps, numPieceSets), 94955040);
+  BOOST_CHECK_EQUAL(getEpEgtbSize(ps, numPieceSets), 1053976);
+
+  numPieceSets = comboToPieceSets("NPPvPP", ps);
+  BOOST_CHECK_EQUAL(numPieceSets, 3);
+  BOOST_CHECK_EQUAL(getEpEgtbSize(ps, numPieceSets), 1536304);
+
+  numPieceSets = comboToPieceSets("PPPvPP", ps);
+  BOOST_CHECK_EQUAL(numPieceSets, 2);
+  BOOST_CHECK_EQUAL(getEpEgtbSize(ps, numPieceSets), 556248);
 }
 
 BOOST_AUTO_TEST_CASE(testGetEgtbIndex) {
@@ -944,6 +999,13 @@ BOOST_AUTO_TEST_CASE(testGetEgtbIndex) {
   nps = comboToPieceSets("QPPvNP", ps);
   b = fenToBoard("8/8/8/5p2/2n5/P7/3P4/5Q2 b - - 0 0");
   BOOST_CHECK_EQUAL(getEgtbIndex(ps, nps, &b), 6595967);
+
+  // En passant cases
+  nps = comboToPieceSets("NNPvPP", ps);
+  b = fenToBoard("8/8/N4N2/1pP5/8/5p2/8/8 w - b6 0 0");
+  BOOST_CHECK_EQUAL(getEgtbIndex(ps, nps, &b), 95128708);
+  b = fenToBoard("8/5N2/8/5p2/NpP5/8/8/8 b - c3 0 0");
+  BOOST_CHECK_EQUAL(getEgtbIndex(ps, nps, &b), 95751805);
 }
 
 /************************* Tests for fileutil.cpp *************************/
