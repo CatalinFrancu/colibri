@@ -63,13 +63,28 @@ void changeSides(Board *b) {
   b->side = WHITE + BLACK - b->side;
 }
 
+bool epCapturePossible(Board *b) {
+  if (!b->bb[BB_EP]) {
+    return false;
+  }
+  u64 captor;
+  if (b->side == WHITE) {
+    captor = b->bb[BB_WP] & ((b->bb[BB_EP] >> 9) ^ (b->bb[BB_EP] >> 7));
+  } else {
+    captor = b->bb[BB_BP] & ((b->bb[BB_EP] << 9) ^ (b->bb[BB_EP] << 7));
+  }
+  return (captor != 0ull);
+}
+
 void canonicalizeBoard(PieceSet *ps, int nps, Board *b) {
   // Boards where en passant capture is possible are first indexed by the EP square, which must be on the left-hand side.
-  if (b->bb[BB_EP]) {
+  if (epCapturePossible(b)) {
     if (b->bb[BB_EP] & 0xf0f0f0f0f0f0f0f0ull) {
       rotateBoard(b, ORI_FLIP_EW);
     }
     return;
+  } else {
+    b->bb[BB_EP] = 0ull;
   }
   int base = (ps[0].side == WHITE) ? BB_WALL : BB_BALL;
   u64 mask = b->bb[base + ps[0].piece];

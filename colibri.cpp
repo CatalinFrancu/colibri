@@ -22,6 +22,15 @@ int main(int argc, char **argv) {
     startServer();
   }
 
+  string destName = string(EGTB_PATH) + "/PvP.egt";
+  unlink(destName.c_str());
   generateEgtb("PvP");
+
+  Board b;
+  int score;
+
+  b = fenToBoard("8/8/8/5p2/P7/8/8/8 w - f6 0 0");
+  score = egtbLookup(&b);
+  printf("SCORE %d\n", score);
   return 0;
 }
