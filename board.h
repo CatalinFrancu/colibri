@@ -10,6 +10,9 @@ void printBoard(Board *b);
 /* Construct an empty board */
 void emptyBoard(Board *b);
 
+/* This is expensive -- only use for debugging */
+bool equalBoard(Board *b1, Board *b2);
+
 /* Returns the number of pieces on the board */
 int getPieceCount(Board *b);
 

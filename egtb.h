@@ -54,6 +54,9 @@ int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int 
  * - Generates all the possible positions, canonical and non-canonical
  * - Asserts that the value of each position is consistent with the values of its child positions.
  */
-void egtbVerify(const char *combo);
+void verifyEgtb(const char *combo);
+
+/* Generates all EGTB where white has wc pieces and black has bc pieces */
+void generateAllEgtb(int wc, int bc);
 
 #endif

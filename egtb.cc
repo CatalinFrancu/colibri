@@ -253,7 +253,9 @@ int forwardStep(Board *b, Move *m, int numMoves, PieceSet *ps, int nps, FILE *fT
       makeMove(&b2, m[i]);
       canonicalizeBoard(ps, nps, &b2);
       int childScore;
-      if (fTable) {
+      if (m[i].promotion) {
+        childScore = sgn(evalBoard(&b2));
+      } else if (fTable) {
         int index = getEgtbIndex(ps, nps, &b2);
         childScore = readChar(fTable, index);
       } else {
@@ -353,7 +355,12 @@ void iterateEpEgtbHelper(PieceSet *ps, int nps, int level, Board *b, Move *m, u6
   int numCombs = choose[freeSquares][gsize];
 
   for (int comb = 0; comb < numCombs; comb++) {
-    u64 mask = unrankCombination(comb, gsize, occupied);
+    u64 mask;
+    if (isPawn) {
+      mask = unrankCombination(comb, gsize, occupied >> 8) << 8;
+    } else {
+      mask = unrankCombination(comb, gsize, occupied);
+    }
     b->bb[base] ^= mask;
     b->bb[base + ps[level].piece] ^= mask;
     b->bb[BB_EMPTY] ^= mask;
@@ -491,7 +498,7 @@ void generateEgtb(const char *combo) {
   printBoard(&b);
 
   // Now verify it
-  egtbVerify(combo);
+  verifyEgtb(combo);
 }
 
 int egtbLookup(Board *b) {
@@ -570,14 +577,29 @@ int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int 
   return result;
 }
 
+void matchOrDie(bool condition, Board *b, int score, int minNeg, int maxNeg, int minPos, int maxPos, bool anyDraws, int *childScores, int numMoves) {
+  if (!condition) {
+    printf("VERIFICATION ERROR: score %d, minNeg %d, maxNeg %d, minPos %d, maxPos %d, anyDraws %d\n",score, minNeg, maxNeg, minPos, maxPos, anyDraws);
+    printf("Child scores:");
+    for (int i = 0; i < numMoves; i++) {
+      printf(" %d", childScores[i]);
+    }
+    printf("\n");
+    printBoard(b);
+    assert(false);
+  }
+}
+
 void egtbVerifyPosition(Board *b, Move *m) {
-  int score = egtbLookup(b);
-  int numMoves = getAllMoves(b, m, FORWARD);
+  Board bc = *b;
+  int score = egtbLookup(&bc);
+  bc = *b;
+  int numMoves = getAllMoves(&bc, m, FORWARD);
 
   // If no moves are possible, the score should be 1, 0 or -1 depending on the count of white and black pieces.
   if (!numMoves) {
-    int stmCount = popCount((b->side == WHITE) ? b->bb[BB_WALL] : b->bb[BB_BALL]);
-    int sntmCount = popCount((b->side == WHITE) ? b->bb[BB_BALL] : b->bb[BB_WALL]);
+    int stmCount = popCount((bc.side == WHITE) ? bc.bb[BB_WALL] : bc.bb[BB_BALL]);
+    int sntmCount = popCount((bc.side == WHITE) ? bc.bb[BB_BALL] : bc.bb[BB_WALL]);
     if (stmCount > sntmCount) {
       assert(score == -1); // Lost now
     } else if (stmCount < sntmCount) {
@@ -590,7 +612,7 @@ void egtbVerifyPosition(Board *b, Move *m) {
 
   int childScore[numMoves]; // child scores
   for (int i = 0; i < numMoves; i++) {
-    Board b2 = *b;
+    Board b2 = bc;
     makeMove(&b2, m[i]);
     childScore[i] = evalBoard(&b2);
   }
@@ -615,27 +637,42 @@ void egtbVerifyPosition(Board *b, Move *m) {
     } else {
       assert(score == 0); // Cannot win, but can convert to a draw
     }
+    return;
   }
 
-  // ************************* TODO: promotions and non-captures
-
-  int minNeg = INFTY, maxNeg = INFTY, minPos = -INFTY, maxPos = -INFTY;
+  // Promotions and normal moves
+  int minNeg = INFTY, maxNeg = -INFTY, minPos = INFTY, maxPos = -INFTY, anyDraws = false;
   for (int i = 0; i < numMoves; i++) {
-    Board b2 = *b;
-    makeMove(&b2, m[i]);
-    int childScore = evalBoard(&b2);
-    if (childScore < minNeg) {
-      minNeg = childScore;
+    int cs = childScore[i];
+    if (m[i].promotion) {
+      if (cs > 0) {
+        cs = 1;
+      } else if (cs < 0) {
+        cs = -1;
+      }
     }
-    if (childScore < 0 && childScore > maxNeg) {
-      maxNeg = childScore;
+    if (cs < 0 && cs < minNeg) {
+      minNeg = cs;
     }
-    if (childScore > maxPos) {
-      maxPos = childScore;
+    if (cs < 0 && cs > maxNeg) {
+      maxNeg = cs;
     }
-    if (childScore > 0 && childScore < minPos) {
-      minPos = childScore;
+    if (cs > 0 && cs > maxPos) {
+      maxPos = cs;
     }
+    if (cs > 0 && cs < minPos) {
+      minPos = cs;
+    }
+    if (cs == EGTB_DRAW) {
+      anyDraws = true;
+    }
+  }
+  if (score > 0) {
+    matchOrDie(maxNeg == -score + 1, &bc, score, minNeg, maxNeg, minPos, maxPos, anyDraws, childScore, numMoves);
+  } else if (score < 0) {
+    matchOrDie((maxPos == -score - 1) && (maxNeg == -INFTY) && !anyDraws, &bc, score, minNeg, maxNeg, minPos, maxPos, anyDraws, childScore, numMoves);
+  } else {
+    matchOrDie(anyDraws && (maxNeg == -INFTY), &bc, score, minNeg, maxNeg, minPos, maxPos, anyDraws, childScore, numMoves);
   }
 }
 
@@ -704,10 +741,40 @@ void egtbVerifyHelper(const char *combo, int side, int level, int maxLevel, Boar
   }
 }
 
-void egtbVerify(const char *combo) {
+void verifyEgtb(const char *combo) {
+  printf("Verifying table %s\n", combo);
   Board b;
   emptyBoard(&b);
   Move m[200];
   string fileName = string(EGTB_PATH) + "/" + combo + ".egt";
   egtbVerifyHelper(combo, WHITE, 0, strlen(combo), &b, m);
+}
+
+/* Converts a combination between 0 and choose(k + 5, k) to a string of k piece names */
+string comboEnumerate(int comb, int k) {
+  u64 mask = unrankCombination(comb, k, 0ull);
+  string result = "";
+  int piece = KING;
+  while (mask) {
+    if (mask & 1) {
+      result += PIECE_INITIALS[piece];
+    } else {
+      piece--;
+    }
+    mask >>= 1;
+  }
+  return result;
+}
+
+void generateAllEgtb(int wc, int bc) {
+  for (int i = 0; i < choose[wc + 5][wc]; i++) {
+    string ws = comboEnumerate(i, wc);
+    for (int j = 0; j < choose[bc + 5][bc]; j++) {
+      string bs = comboEnumerate(j, bc);
+      if ((wc > bc) || (i <= j)) {
+        string combo = ws + "v" + bs;
+        generateEgtb(combo.c_str());
+      }
+    }
+  }
 }
