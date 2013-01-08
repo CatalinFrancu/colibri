@@ -43,6 +43,15 @@ void emptyBoard(Board *b) {
   b->bb[BB_EMPTY] = 0xffffffffffffffffull;
 }
 
+bool equalBoard(Board *b1, Board *b2) {
+  for (int i = 0; i < BB_COUNT; i++) {
+    if (b1->bb[i] != b2->bb[i]) {
+      return false;
+    }
+  }
+  return (b1->side == b2->side);
+}
+
 int getPieceCount(Board *b) {
   return popCount(b->bb[BB_WALL] ^ b->bb[BB_BALL]);
 }

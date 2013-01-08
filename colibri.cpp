@@ -22,15 +22,13 @@ int main(int argc, char **argv) {
     startServer();
   }
 
-  string destName = string(EGTB_PATH) + "/PvP.egt";
-  unlink(destName.c_str());
-  generateEgtb("PvP");
-
-  Board b;
-  int score;
-
-  b = fenToBoard("8/8/8/5p2/P7/8/8/8 w - f6 0 0");
-  score = egtbLookup(&b);
-  printf("SCORE %d\n", score);
-  return 0;
+//  generateEgtb("PPvP");
+//  Board b = fenToBoard("K7/8/8/8/8/8/8/K1k5 b - - 0 0");
+//  PieceSet ps[EGTB_MEN];
+//  int nps = comboToPieceSets("KKvK", ps);
+//  int score = egtbLookup(&b);
+//  int index = getEgtbIndex(ps, nps, &b);
+//  printf("Score %d index %d:\n", score, index);
+  //printBoard(&b);
+  generateAllEgtb(2, 1);
 }
