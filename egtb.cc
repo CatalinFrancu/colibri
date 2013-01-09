@@ -34,7 +34,6 @@ int readFromCache(char *combo, int index) {
   u64 key = egtbGetKey(combo, chunkNo);
   char *data = (char*)lruCacheGet(&egtbCache, key);
   if (!data) {
-    printf("Caching combo %s / chunk %d under key %llu\n", combo, chunkNo, key);
     int startPos = chunkNo * EGTB_CHUNK_SIZE;
     data = (char*)malloc(EGTB_CHUNK_SIZE);
     string fileName = getFileNameForCombo(combo);
@@ -433,6 +432,7 @@ void iterateEpEgtb(PieceSet *ps, int nps, char *memTable, FILE *tmpBoards) {
     b.bb[BB_EP] = ((b.side == WHITE) ? 0x0000010000000000ull : 0x0000000000010000ull) << file;
     b.bb[allSntm + PAWN] = b.bb[allSntm] = (b.side == WHITE) ? (b.bb[BB_EP] >> 8) : (b.bb[BB_EP] << 8);
     b.bb[allStm + PAWN] = b.bb[allStm] = (index & 1) ? (b.bb[allSntm] >> 1) : (b.bb[allSntm] << 1);
+    b.bb[BB_EMPTY] = ~(b.bb[allStm] ^ b.bb[allSntm]);
     u64 occupied = b.bb[allStm] | b.bb[BB_EP] | (b.bb[BB_EP] << 8) | (b.bb[BB_EP] >> 8);
     iterateEpEgtbHelper(ps, nps, 0, &b, m, occupied, memTable, tmpBoards);
   }
