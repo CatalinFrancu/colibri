@@ -26,10 +26,23 @@ void changeSides(Board *b);
  * 1. Naturally, the EP bit must be set
  * 2. There needs to be a pawn that can execute the EP capture. We don't index boards where this isn't the case,
  * because the result is identical to the non-EP position. */
-bool epCapturePossible(Board *b);
+inline bool epCapturePossible(Board *b) {
+  if (!b->bb[BB_EP]) {
+    return false;
+  }
+  if (b->side == WHITE) {
+    return b->bb[BB_WP] & RANK_5 & ((b->bb[BB_EP] >> 9) ^ (b->bb[BB_EP] >> 7));
+  } else {
+    return b->bb[BB_BP] & RANK_4 & ((b->bb[BB_EP] << 9) ^ (b->bb[BB_EP] << 7));
+  }
+}
 
-/* Rotate the board as needed to bring it into canonical orientation */
-void canonicalizeBoard(PieceSet *ps, int nps, Board *b);
+/* Returns true iff m is a capture on b (in which case any legal move on b is a capture) */
+bool isCapture(Board *b, Move m);
+
+/* Rotate the board as needed to bring it into canonical orientation.
+ * Returns true if the board was already canonical, false if it was rotated */
+bool canonicalizeBoard(PieceSet *ps, int nps, Board *b);
 
 /* Construct a board from a FEN notation */
 Board fenToBoard(const char *fen);

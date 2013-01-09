@@ -12,7 +12,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-O2" />
+					<Add option="-O3" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -34,7 +34,7 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
-			<Add option="-fexceptions" />
+			<Add option="-fexceptions -std=gnu++0x" />
 		</Compiler>
 		<Unit filename="../bitmanip.cpp" />
 		<Unit filename="../bitmanip.h" />
@@ -48,6 +48,8 @@
 		<Unit filename="../egtb.h" />
 		<Unit filename="../fileutil.cpp" />
 		<Unit filename="../fileutil.h" />
+		<Unit filename="../lrucache.cpp" />
+		<Unit filename="../lrucache.h" />
 		<Unit filename="../movegen.cpp" />
 		<Unit filename="../movegen.h" />
 		<Unit filename="../precomp.cpp" />

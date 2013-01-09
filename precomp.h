@@ -36,9 +36,27 @@ extern int numCanonical64[EGTB_MEN / 2 + 1];
 extern int* canonical48[EGTB_MEN];
 extern int numCanonical48[EGTB_MEN];
 
+/* Egtb files are numbered sequentially starting from 0. There are 2,646 files for 5-men EGTB.
+ * egtbFileSegment[i][j] gives the starting index of file numbers for configurations with i White pieces and j Black pieces.
+ * Several key points:
+ * - there are (n + 5) choose n ways of selecting n men, for example there are 56 ways of selecting 3 men, from KKK, KKQ, ... down to PPP;
+ * - for i White pieces versus j Black pieces, where i > j, there are ((i + 5) choose i) * ((j + 5) choose i) files
+ * - for i White pieces versus j Black pieces, there are sum of k from k = 1 to ((i + 5) choose i) files. */
+extern int egtbFileSegment[EGTB_MEN][EGTB_MEN / 2 + 1];
+
 /* given a mask with k bits set and an occupancy mask with o bits occupied, returns the rank of the
  * mask, i.e. a number between 0 and choose[64 - o][k] - 1 */
-int rankCombination(u64 mask, u64 occupied);
+inline int rankCombination(u64 mask, u64 occupied) {
+  int i = 0;
+  byte square;
+  int result = 0;
+  while (mask) {
+    GET_BIT_AND_CLEAR(mask, square);
+    square -= popCount(((1ull << square) - 1) & occupied);
+    result += choose[square][++i];
+  }
+  return result;
+}
 
 /* given the rank of a combination of 64 choose k, construct the corresponding set (mask) */
 u64 unrankCombination(int rank, int k, u64 occupied);

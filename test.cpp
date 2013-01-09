@@ -4,6 +4,7 @@
 #include "bitmanip.h"
 #include "egtb.h"
 #include "fileutil.h"
+#include "lrucache.h"
 #include "movegen.h"
 #include "precomp.h"
 
@@ -1029,54 +1030,33 @@ BOOST_AUTO_TEST_CASE(testGetFileSize) {
   BOOST_CHECK_EQUAL(getFileSize("/tmp/foo.dat"), 0);
 }
 
-BOOST_AUTO_TEST_CASE(testCreateFile) {
-  char buf[10000];
-  FILE *f;
+BOOST_AUTO_TEST_CASE(testBoardToFileNumber) {
+  Board b;
 
-  createFile("/tmp/foo.dat", 10000, 'x');
-  BOOST_CHECK_EQUAL(getFileSize("/tmp/foo.dat"), 10000);
-  f = fopen("/tmp/foo.dat", "r");
-  fread(buf, 10000, 1, f);
-  for (int i = 0; i < 10000; i++) {
-    BOOST_CHECK_EQUAL(buf[i], 'x');
-  }
-  fclose(f);
-  BOOST_CHECK_EQUAL(unlink("/tmp/foo.dat"), 0);
-
-  createFile("/tmp/foo2.dat", 5000, EGTB_DRAW);
-  BOOST_CHECK_EQUAL(getFileSize("/tmp/foo2.dat"), 5000);
-  f = fopen("/tmp/foo2.dat", "r");
-  fread(buf, 5000, 1, f);
-  for (int i = 0; i < 5000; i++) {
-    BOOST_CHECK_EQUAL(buf[i], 0);
-  }
-  fclose(f);
-  BOOST_CHECK_EQUAL(unlink("/tmp/foo2.dat"), 0);
+  b = fenToBoard("8/8/8/8/8/8/8/Kr6 w - - 0 0");
+  BOOST_CHECK_EQUAL(boardToFileNumber(&b), 3);
 }
 
-BOOST_AUTO_TEST_CASE(testWriteChar) {
-  char buf[10];
-  createFile("/tmp/foo.dat", 10, 'a');
-  FILE *f = fopen("/tmp/foo.dat", "r+");
-  writeChar(f, 2, 'b');
-  writeChar(f, 0, 'c');
-  writeChar(f, 9, 'd');
-  writeChar(f, 2, 'e');
-  writeChar(f, 4, 0);
-  fclose(f);
+BOOST_AUTO_TEST_CASE(testComboToFileNumber) {
+  BOOST_CHECK_EQUAL(comboToFileNumber("KvR"), 3);
+  BOOST_CHECK_EQUAL(comboToFileNumber("KQvR"), 29);
+  BOOST_CHECK_EQUAL(comboToFileNumber("QvQ"), 2);
+}
 
-  f = fopen("/tmp/foo.dat", "r");
-  fread(buf, 10, 1, f);
-  fclose(f);
+/************************* Tests for lruCache.cpp *************************/
 
-  BOOST_CHECK_EQUAL(buf[0], 'c');
-  BOOST_CHECK_EQUAL(buf[1], 'a');
-  BOOST_CHECK_EQUAL(buf[2], 'e');
-  BOOST_CHECK_EQUAL(buf[3], 'a');
-  BOOST_CHECK_EQUAL(buf[4], 0);
-  BOOST_CHECK_EQUAL(buf[5], 'a');
-  BOOST_CHECK_EQUAL(buf[6], 'a');
-  BOOST_CHECK_EQUAL(buf[7], 'a');
-  BOOST_CHECK_EQUAL(buf[8], 'a');
-  BOOST_CHECK_EQUAL(buf[9], 'd');
+BOOST_AUTO_TEST_CASE(testLruCache) {
+  char *x = (char*)malloc(3);
+  char *y = (char*)malloc(3);
+  char *z = (char*)malloc(3);
+  LruCache cache = lruCacheCreate(2);
+  lruCachePut(&cache, 17, x);
+  BOOST_CHECK_EQUAL(lruCacheGet(&cache, 17), x);
+  lruCachePut(&cache, 103, y);
+
+  // Now x is the LRU and should be evicted when we insert one more element
+  lruCachePut(&cache, 294, z);
+  BOOST_CHECK_EQUAL(lruCacheGet(&cache, 103), y);
+  BOOST_CHECK_EQUAL(lruCacheGet(&cache, 294), z);
+  BOOST_CHECK(!lruCacheGet(&cache, 17));
 }

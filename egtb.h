@@ -2,6 +2,12 @@
 #define __EGTB_H__
 #include <string>
 #include "defines.h"
+#include "lrucache.h"
+
+extern LruCache egtbCache;
+
+/* Initializes the endgame tables */
+void initEgtb();
 
 /* Convert a combo to an array of PieceSet's in the order in which they should be placed on the board (and indexed) */
 int comboToPieceSets(const char *combo, PieceSet *ps);

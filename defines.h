@@ -85,6 +85,12 @@ using namespace std;
 #define EGTB_PATH "/home/cata/public_html/colibri/egtb"
 #define QUERY_SERVER_PORT 2359
 
+/* Cache EGTB files in 8 KB chunks */
+#define EGTB_CHUNK_SIZE 8192
+
+/* Total EGTB cache memory = 16 MB */
+#define EGTB_CHUNKS 2048
+
 /* The square between 0 and 63 corresponding to a rank and file between 0 and 7 */
 #define SQUARE(rank, file) (((rank) << 3) + (file))
 
@@ -116,7 +122,7 @@ typedef struct {
 
 /* There is some redundancy in our Move structure. The aim is not to save space, since we don't store moves during our algorithms.
  * The aim is to print moves easily. */
-typedef struct Mmove {
+typedef struct {
   byte piece;     /* Type of piece being moved */
   byte from;      /* Square of origin */
   byte to;        /* Destination square */
@@ -124,7 +130,7 @@ typedef struct Mmove {
 } Move;
 
 /* For EGTB, use PieceSet's in the order in which they are placed on the board */
-typedef struct PieceSet {
+typedef struct {
   bool side;
   byte piece;
   byte count;
