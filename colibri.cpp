@@ -7,6 +7,7 @@
 
 int main(int argc, char **argv) {
   precomputeAll();
+  initEgtb();
 
   int opt, command = 0;
   while ((opt = getopt(argc, argv, "s")) != -1) {
@@ -30,6 +31,6 @@ int main(int argc, char **argv) {
 //  int index = getEgtbIndex(ps, nps, &b);
 //  printf("Score %d index %d:\n", score, index);
   //printBoard(&b);
-  //generateAllEgtb(3, 1);
-  verifyEgtb("KKvP");
+//  generateAllEgtb(2, 1);
+  verifyEgtb("PPvP");
 }

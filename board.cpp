@@ -72,26 +72,19 @@ void changeSides(Board *b) {
   b->side = WHITE + BLACK - b->side;
 }
 
-bool epCapturePossible(Board *b) {
-  if (!b->bb[BB_EP]) {
-    return false;
-  }
-  u64 captor;
-  if (b->side == WHITE) {
-    captor = b->bb[BB_WP] & RANK_5 & ((b->bb[BB_EP] >> 9) ^ (b->bb[BB_EP] >> 7));
-  } else {
-    captor = b->bb[BB_BP] & RANK_4 & ((b->bb[BB_EP] << 9) ^ (b->bb[BB_EP] << 7));
-  }
-  return (captor != 0ull);
+bool isCapture(Board *b, Move m) {
+  u64 toMask = 1ull << m.to;
+  return ((m.piece == PAWN) && (toMask == b->bb[BB_EP])) || (toMask & ~b->bb[BB_EMPTY]);
 }
 
-void canonicalizeBoard(PieceSet *ps, int nps, Board *b) {
+bool canonicalizeBoard(PieceSet *ps, int nps, Board *b) {
   // Boards where en passant capture is possible are first indexed by the EP square, which must be on the left-hand side.
   if (epCapturePossible(b)) {
     if (b->bb[BB_EP] & 0xf0f0f0f0f0f0f0f0ull) {
       rotateBoard(b, ORI_FLIP_EW);
+      return false;
     }
-    return;
+    return true;
   } else {
     b->bb[BB_EP] = 0ull;
   }
@@ -109,7 +102,9 @@ void canonicalizeBoard(PieceSet *ps, int nps, Board *b) {
   }
   if (canonical < 0) {
     rotateBoard(b, -canonical);
+    return false;
   }
+  return true;
 }
 
 Board fenToBoard(const char *fen) {
