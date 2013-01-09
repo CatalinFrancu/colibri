@@ -30,5 +30,6 @@ int main(int argc, char **argv) {
 //  int index = getEgtbIndex(ps, nps, &b);
 //  printf("Score %d index %d:\n", score, index);
   //printBoard(&b);
-  generateAllEgtb(2, 1);
+  //generateAllEgtb(3, 1);
+  verifyEgtb("KKvP");
 }

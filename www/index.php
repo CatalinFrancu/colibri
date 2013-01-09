@@ -8,7 +8,7 @@ $fen = isset($_GET['fen']) ? $_GET['fen'] : null;
 if ($fen) {
   list($board, $stm) = fenToBoard($fen);
 } else {
-  list($board, $stm) = randomBoard(2);
+  list($board, $stm) = randomBoard(3);
   $fen = boardToFen($board, $stm);
 }
 colorBoard($board);
