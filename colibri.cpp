@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     startServer();
   }
 
-  generateEgtb("PPvP");
+//  generateEgtb("PPvP");
 //  Board b = fenToBoard("K7/8/8/8/8/8/8/K1k5 b - - 0 0");
 //  PieceSet ps[EGTB_MEN];
 //  int nps = comboToPieceSets("KKvK", ps);
@@ -31,6 +31,6 @@ int main(int argc, char **argv) {
 //  int index = getEgtbIndex(ps, nps, &b);
 //  printf("Score %d index %d:\n", score, index);
   //printBoard(&b);
-//  generateAllEgtb(2, 1);
+  generateAllEgtb(2, 2);
 //  verifyEgtb("PPvP");
 }
