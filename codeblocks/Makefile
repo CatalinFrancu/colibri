@@ -12,14 +12,14 @@ LD = g++
 WINDRES = windres
 
 INC = 
-CFLAGS =  -Wall -fexceptions
+CFLAGS =  -Wall -fexceptions -std=gnu++0x
 RESINC = 
 LIBDIR = 
 LIB = 
 LDFLAGS = 
 
 INC_RELEASE =  $(INC)
-CFLAGS_RELEASE =  $(CFLAGS) -O2
+CFLAGS_RELEASE =  $(CFLAGS) -O3
 RESINC_RELEASE =  $(RESINC)
 RCFLAGS_RELEASE =  $(RCFLAGS)
 LIBDIR_RELEASE =  $(LIBDIR)
@@ -51,11 +51,11 @@ OBJDIR_EGTBESTIMATOR = ../obj/EgtbEstimator
 DEP_EGTBESTIMATOR = 
 OUT_EGTBESTIMATOR = ../bin/EgtbEstimator/egtbEstimator
 
-OBJ_RELEASE = $(OBJDIR_RELEASE)/__/queryserver.o $(OBJDIR_RELEASE)/__/precomp.o $(OBJDIR_RELEASE)/__/movegen.o $(OBJDIR_RELEASE)/__/bitmanip.o $(OBJDIR_RELEASE)/__/fileutil.o $(OBJDIR_RELEASE)/__/egtb.o $(OBJDIR_RELEASE)/__/colibri.o $(OBJDIR_RELEASE)/__/board.o
+OBJ_RELEASE = $(OBJDIR_RELEASE)/__/lrucache.o $(OBJDIR_RELEASE)/__/queryserver.o $(OBJDIR_RELEASE)/__/precomp.o $(OBJDIR_RELEASE)/__/movegen.o $(OBJDIR_RELEASE)/__/bitmanip.o $(OBJDIR_RELEASE)/__/fileutil.o $(OBJDIR_RELEASE)/__/egtb.o $(OBJDIR_RELEASE)/__/colibri.o $(OBJDIR_RELEASE)/__/board.o
 
-OBJ_TESTING = $(OBJDIR_TESTING)/__/test.o $(OBJDIR_TESTING)/__/precomp.o $(OBJDIR_TESTING)/__/movegen.o $(OBJDIR_TESTING)/__/bitmanip.o $(OBJDIR_TESTING)/__/fileutil.o $(OBJDIR_TESTING)/__/egtb.o $(OBJDIR_TESTING)/__/board.o
+OBJ_TESTING = $(OBJDIR_TESTING)/__/lrucache.o $(OBJDIR_TESTING)/__/test.o $(OBJDIR_TESTING)/__/precomp.o $(OBJDIR_TESTING)/__/movegen.o $(OBJDIR_TESTING)/__/bitmanip.o $(OBJDIR_TESTING)/__/fileutil.o $(OBJDIR_TESTING)/__/egtb.o $(OBJDIR_TESTING)/__/board.o
 
-OBJ_EGTBESTIMATOR = $(OBJDIR_EGTBESTIMATOR)/__/tools/egtbEstimator.o $(OBJDIR_EGTBESTIMATOR)/__/precomp.o $(OBJDIR_EGTBESTIMATOR)/__/movegen.o $(OBJDIR_EGTBESTIMATOR)/__/bitmanip.o $(OBJDIR_EGTBESTIMATOR)/__/fileutil.o $(OBJDIR_EGTBESTIMATOR)/__/egtb.o $(OBJDIR_EGTBESTIMATOR)/__/board.o
+OBJ_EGTBESTIMATOR = $(OBJDIR_EGTBESTIMATOR)/__/lrucache.o $(OBJDIR_EGTBESTIMATOR)/__/tools/egtbEstimator.o $(OBJDIR_EGTBESTIMATOR)/__/precomp.o $(OBJDIR_EGTBESTIMATOR)/__/movegen.o $(OBJDIR_EGTBESTIMATOR)/__/bitmanip.o $(OBJDIR_EGTBESTIMATOR)/__/fileutil.o $(OBJDIR_EGTBESTIMATOR)/__/egtb.o $(OBJDIR_EGTBESTIMATOR)/__/board.o
 
 all: release testing egtbestimator
 
@@ -71,6 +71,9 @@ release: before_release out_release after_release
 
 out_release: $(OBJ_RELEASE) $(DEP_RELEASE)
 	$(LD) $(LDFLAGS_RELEASE) $(LIBDIR_RELEASE) $(OBJ_RELEASE) $(LIB_RELEASE) -o $(OUT_RELEASE)
+
+$(OBJDIR_RELEASE)/__/lrucache.o: ../lrucache.cpp
+	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c ../lrucache.cpp -o $(OBJDIR_RELEASE)/__/lrucache.o
 
 $(OBJDIR_RELEASE)/__/queryserver.o: ../queryserver.cpp
 	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c ../queryserver.cpp -o $(OBJDIR_RELEASE)/__/queryserver.o
@@ -112,6 +115,9 @@ testing: before_testing out_testing after_testing
 out_testing: $(OBJ_TESTING) $(DEP_TESTING)
 	$(LD) $(LDFLAGS_TESTING) $(LIBDIR_TESTING) $(OBJ_TESTING) $(LIB_TESTING) -o $(OUT_TESTING)
 
+$(OBJDIR_TESTING)/__/lrucache.o: ../lrucache.cpp
+	$(CXX) $(CFLAGS_TESTING) $(INC_TESTING) -c ../lrucache.cpp -o $(OBJDIR_TESTING)/__/lrucache.o
+
 $(OBJDIR_TESTING)/__/test.o: ../test.cpp
 	$(CXX) $(CFLAGS_TESTING) $(INC_TESTING) -c ../test.cpp -o $(OBJDIR_TESTING)/__/test.o
 
@@ -140,8 +146,8 @@ clean_testing:
 
 before_egtbestimator: 
 	test -d ../bin/EgtbEstimator || mkdir -p ../bin/EgtbEstimator
-	test -d $(OBJDIR_EGTBESTIMATOR)/__/tools || mkdir -p $(OBJDIR_EGTBESTIMATOR)/__/tools
 	test -d $(OBJDIR_EGTBESTIMATOR)/__ || mkdir -p $(OBJDIR_EGTBESTIMATOR)/__
+	test -d $(OBJDIR_EGTBESTIMATOR)/__/tools || mkdir -p $(OBJDIR_EGTBESTIMATOR)/__/tools
 
 after_egtbestimator: 
 
@@ -149,6 +155,9 @@ egtbestimator: before_egtbestimator out_egtbestimator after_egtbestimator
 
 out_egtbestimator: $(OBJ_EGTBESTIMATOR) $(DEP_EGTBESTIMATOR)
 	$(LD) $(LDFLAGS_EGTBESTIMATOR) $(LIBDIR_EGTBESTIMATOR) $(OBJ_EGTBESTIMATOR) $(LIB_EGTBESTIMATOR) -o $(OUT_EGTBESTIMATOR)
+
+$(OBJDIR_EGTBESTIMATOR)/__/lrucache.o: ../lrucache.cpp
+	$(CXX) $(CFLAGS_EGTBESTIMATOR) $(INC_EGTBESTIMATOR) -c ../lrucache.cpp -o $(OBJDIR_EGTBESTIMATOR)/__/lrucache.o
 
 $(OBJDIR_EGTBESTIMATOR)/__/tools/egtbEstimator.o: ../tools/egtbEstimator.cpp
 	$(CXX) $(CFLAGS_EGTBESTIMATOR) $(INC_EGTBESTIMATOR) -c ../tools/egtbEstimator.cpp -o $(OBJDIR_EGTBESTIMATOR)/__/tools/egtbEstimator.o
@@ -174,8 +183,8 @@ $(OBJDIR_EGTBESTIMATOR)/__/board.o: ../board.cpp
 clean_egtbestimator: 
 	rm -f $(OBJ_EGTBESTIMATOR) $(OUT_EGTBESTIMATOR)
 	rm -rf ../bin/EgtbEstimator
-	rm -rf $(OBJDIR_EGTBESTIMATOR)/__/tools
 	rm -rf $(OBJDIR_EGTBESTIMATOR)/__
+	rm -rf $(OBJDIR_EGTBESTIMATOR)/__/tools
 
 .PHONY: before_release after_release clean_release before_testing after_testing clean_testing before_egtbestimator after_egtbestimator clean_egtbestimator
 
