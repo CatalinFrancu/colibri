@@ -67,8 +67,8 @@ using namespace std;
 #define NEW_BOARD "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 /* Clears the rightmost set bit of x and returns its index in square */
-#define GET_BIT_AND_CLEAR(x, square)            \
-  square = ctz(x);      \
+#define GET_BIT_AND_CLEAR(x, square) \
+  square = ctz(x);                   \
   x &= x - 1;
 
 /* Maximum number of pieces in the endgame tables */
