@@ -812,17 +812,19 @@ void verifyEgtb(const char *combo) {
 
 /* Converts a combination between 0 and choose(k + 5, k) to a string of k piece names */
 string comboEnumerate(int comb, int k) {
+  comb = choose[k + 5][k] - 1 - comb;
   u64 mask = unrankCombination(comb, k, 0ull);
   string result = "";
-  int piece = KING;
+  int piece = PAWN;
   while (mask) {
     if (mask & 1) {
       result += PIECE_INITIALS[piece];
     } else {
-      piece--;
+      piece++;
     }
     mask >>= 1;
   }
+  result = string(result.rbegin(), result.rend());
   return result;
 }
 
