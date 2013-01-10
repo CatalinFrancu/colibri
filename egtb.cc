@@ -11,15 +11,14 @@
 #include "precomp.h"
 
 LruCache egtbCache;
-u64 egtbLookupCount = 0ull, egtbLookupMiss = 0ull;
 
 void initEgtb() {
   egtbCache = lruCacheCreate(EGTB_CHUNKS);
 }
 
-inline u64 egtbGetKey(char *combo, int index) {
+inline u64 egtbGetKey(const char *combo, int index) {
   u64 result = 0ull;
-  for (char *s = combo; *s; s++) {
+  for (const char *s = combo; *s; s++) {
     result <<= 3;
     if (*s != 'v') {
       result ^= PIECE_BY_NAME[*s - 'A'];
@@ -28,8 +27,7 @@ inline u64 egtbGetKey(char *combo, int index) {
   return (result << 30) + index;
 }
 
-int readFromCache(char *combo, int index) {
-  egtbLookupCount++;
+int readFromCache(const char *combo, int index) {
   int chunkNo = index / EGTB_CHUNK_SIZE, chunkOffset = index % EGTB_CHUNK_SIZE;
   u64 key = egtbGetKey(combo, chunkNo);
   char *data = (char*)lruCacheGet(&egtbCache, key);
@@ -45,7 +43,6 @@ int readFromCache(char *combo, int index) {
     }
     fclose(f);
     lruCachePut(&egtbCache, key, data);
-    egtbLookupMiss++;
   }
   return data[chunkOffset];
 }
@@ -193,7 +190,7 @@ int getEgtbIndex(PieceSet *ps, int nps, Board *b) {
   } else {
     b->bb[BB_EP] = 0ull;
   }
-  u64 occupied = 0ull;
+  u64 occupied = 0ull, occupiedSq = 0;
   int base, result = 0, comb;
 
   for (int i = 0; i < nps; i++) {
@@ -202,17 +199,18 @@ int getEgtbIndex(PieceSet *ps, int nps, Board *b) {
     int freeSquares;
     if (ps[i].piece == PAWN) {
       comb = rankCombination(mask >> 8, occupied >> 8);
-      freeSquares = 48 - popCount(occupied);
+      freeSquares = 48 - occupiedSq;
     } else {
       comb = rankCombination(mask, occupied);
-      freeSquares = 64 - popCount(occupied);
+      freeSquares = 64 - occupiedSq;
     }
     if (i == 0) {
       result = (ps[0].piece == PAWN) ? canonical48[ps[0].count][comb] : canonical64[ps[0].count][comb];
     } else {
       result = result * choose[freeSquares][ps[i].count] + comb;
     }
-    occupied |= mask;
+    occupied ^= mask;
+    occupiedSq += ps[i].count;
   }
   result = result * 2 + ((b->side == WHITE) ? 0 : 1);
   return result;
@@ -553,10 +551,11 @@ void generateEgtb(const char *combo) {
   FILE *fTable = fopen(destName.c_str(), "w");
   fwrite(memTable, size, 1, fTable);
   fclose(fTable);
+  free(memTable);
   printf("Table size: %d, of which non-draws: %d\n", size, solved);
   printf("Longest win/loss:\n");
   printBoard(&b);
-  printf("Number of lookups / misses: %llu %llu\n", egtbLookupCount, egtbLookupMiss);
+  printf("Cache stats: %llu lookups / %llu misses / %llu evictions\n", egtbCache.lookups, egtbCache.misses, egtbCache.evictions);
 
   // Now verify it
   verifyEgtb(combo);
@@ -571,22 +570,7 @@ int egtbLookup(Board *b) {
     return EGTB_DRAW;
   }
 
-  // See if we need to change sides
-  int change = false;
-  if (wp < bp) {
-    change = true;
-  } else if (wp == bp) {
-    int p = KING + 1, whiteGroup, blackGroup;
-    do {
-      p--;
-      whiteGroup = popCount(b->bb[BB_WALL + p]);
-      blackGroup = popCount(b->bb[BB_BALL + p]);
-    } while ((p > PAWN) && (whiteGroup == blackGroup));
-    change = (whiteGroup < blackGroup);
-  }
-  if (change) {
-    changeSides(b);
-  }
+  changeSidesIfNeeded(b);
 
   char combo[EGTB_MEN + 2];
   int len = 0;
@@ -607,6 +591,10 @@ int egtbLookup(Board *b) {
 
   PieceSet ps[EGTB_MEN];
   int nps = comboToPieceSets(combo, ps);
+  return egtbLookupWithInfo(b, combo, ps, nps);
+}
+
+int egtbLookupWithInfo(Board *b, const char *combo, PieceSet *ps, int nps) {
   canonicalizeBoard(ps, nps, b);
   int index = getEgtbIndex(ps, nps, b);
   return readFromCache(combo, index);
@@ -644,9 +632,9 @@ void matchOrDie(bool condition, Board *b, int score, int minNeg, int maxNeg, int
   }
 }
 
-void egtbVerifyPosition(Board *b, Move *m) {
+void egtbVerifyPosition(Board *b, Move *m, const char *combo, PieceSet *ps, int nps) {
   Board bc = *b;
-  int score = egtbLookup(&bc);
+  int score = egtbLookupWithInfo(&bc, combo, ps, nps);
   bc = *b;
   int numMoves = getAllMoves(&bc, m, FORWARD);
 
@@ -665,14 +653,19 @@ void egtbVerifyPosition(Board *b, Move *m) {
   }
 
   int childScore[numMoves]; // child scores
+  int captures = isCapture(b, m[0]);
   for (int i = 0; i < numMoves; i++) {
     Board b2 = bc;
     makeMove(&b2, m[i]);
-    childScore[i] = evalBoard(&b2);
+    if (captures || m[i].promotion) {
+      childScore[i] = evalBoard(&b2);
+    } else {
+      childScore[i] = egtbLookupWithInfo(&b2, combo, ps, nps);
+    }
   }
 
   // If all moves are captures, they all convert, so the score should be 2, 0 or -2.
-  if (isCapture(b, m[0])) {
+  if (captures) {
     int anyNeg = false, allPos = true;
     for (int i = 0; i < numMoves; i++) {
       if (childScore[i] < 0) {
@@ -685,14 +678,6 @@ void egtbVerifyPosition(Board *b, Move *m) {
     if (anyNeg) {
       assert(score == 2); // Convert to a win in 1
     } else if (allPos) {
-      if (score != -2) {
-        printBoard(b);
-        string san[200];
-        getAlgebraicNotation(&bc, m, numMoves, san);
-        for (int j = 0; j < numMoves; j++) {
-          printf("Child: %s %d\n", san[j].c_str(), childScore[j]);
-        }
-      }
       assert(score == -2); // Convert to a loss in 1
     } else {
       assert(score == 0); // Cannot win, but can convert to a draw
@@ -736,7 +721,7 @@ void egtbVerifyPosition(Board *b, Move *m) {
   }
 }
 
-void egtbVerifySideAndEp(Board *b, Move *m) {
+void egtbVerifySideAndEp(Board *b, Move *m, const char *combo, PieceSet *ps, int nps) {
   // Check all the possible epSquares if White is to move
   for (int sq = 40; sq < 48; sq++) {
     u64 mask = 1ull << sq;
@@ -746,7 +731,7 @@ void egtbVerifySideAndEp(Board *b, Move *m) {
         (b->bb[BB_WP] & RANK_5 & ((mask >> 7) ^ (mask >> 9)))) {
       b->bb[BB_EP] = mask;
       b->side = WHITE;
-      egtbVerifyPosition(b, m);
+      egtbVerifyPosition(b, m, combo, ps, nps);
     }
   }
   for (int sq = 16; sq < 24; sq++) {
@@ -757,14 +742,14 @@ void egtbVerifySideAndEp(Board *b, Move *m) {
         (b->bb[BB_BP] & RANK_4 & ((mask << 7) ^ (mask << 9)))) {
       b->bb[BB_EP] = mask;
       b->side = BLACK;
-      egtbVerifyPosition(b, m);
+      egtbVerifyPosition(b, m, combo, ps, nps);
     }
   }
   b->bb[BB_EP] = 0ull;
   b->side = WHITE;
-  egtbVerifyPosition(b, m);
+  egtbVerifyPosition(b, m, combo, ps, nps);
   b->side = BLACK;
-  egtbVerifyPosition(b, m);
+  egtbVerifyPosition(b, m, combo, ps, nps);
 }
 
 /**
@@ -775,12 +760,13 @@ void egtbVerifySideAndEp(Board *b, Move *m) {
  * maxLevel - maximum numer of level (shortcut for strlen(combo))
  * b - board being constructed
  * m - reusable space for move generation during evaluatePlacement()
+ * ps, nps - the piece sets for the combo, to speed up the EGTB lookups
  */
-void egtbVerifyHelper(const char *combo, int side, int level, int maxLevel, Board *b, Move *m) {
+void egtbVerifyHelper(const char *combo, int side, int level, int maxLevel, Board *b, Move *m, PieceSet *ps, int nps) {
   if (level == maxLevel) {
-    egtbVerifySideAndEp(b, m);
+    egtbVerifySideAndEp(b, m, combo, ps, nps);
   } else if (combo[level] == 'v') {
-    egtbVerifyHelper(combo, BLACK, level + 1, maxLevel, b, m);
+    egtbVerifyHelper(combo, BLACK, level + 1, maxLevel, b, m, ps, nps);
   } else {
     int base = (side == WHITE) ? BB_WALL : BB_BALL;
     int piece = PIECE_BY_NAME[combo[level] - 'A'];
@@ -792,7 +778,7 @@ void egtbVerifyHelper(const char *combo, int side, int level, int maxLevel, Boar
         b->bb[base] ^= mask;
         b->bb[base + piece] ^= mask;
         b->bb[BB_EMPTY] ^= mask;
-        egtbVerifyHelper(combo, side, level + 1, maxLevel, b, m);
+        egtbVerifyHelper(combo, side, level + 1, maxLevel, b, m, ps, nps);
         b->bb[base] ^= mask;
         b->bb[base + piece] ^= mask;
         b->bb[BB_EMPTY] ^= mask;
@@ -806,8 +792,9 @@ void verifyEgtb(const char *combo) {
   Board b;
   emptyBoard(&b);
   Move m[200];
-  string fileName = string(EGTB_PATH) + "/" + combo + ".egt";
-  egtbVerifyHelper(combo, WHITE, 0, strlen(combo), &b, m);
+  PieceSet ps[EGTB_MEN];
+  int nps = comboToPieceSets(combo, ps);
+  egtbVerifyHelper(combo, WHITE, 0, strlen(combo), &b, m, ps, nps);
 }
 
 /* Converts a combination between 0 and choose(k + 5, k) to a string of k piece names */
@@ -839,5 +826,4 @@ void generateAllEgtb(int wc, int bc) {
       }
     }
   }
-  printf("Total number of lookups / misses: %llu %llu\n", egtbLookupCount, egtbLookupMiss);
 }

@@ -44,8 +44,14 @@ void generateEgtb(const char *combo);
 
 /* Queries the EGTB for this position. Takes care of canonicalization.
  * Returns the score shifted by 1. Returns INFTY on errors (missing EGTB file, more than EGTB_MEN pieces on the board etc.).
- * Clobbers b */
+ * Clobbers b. */
 int egtbLookup(Board *b);
+
+/* Queries the EGTB for this position. The caller must pass some extra information (this information is identical over large numbers of queries
+ * during EGTB generation / verification). Takes care of canonicalization, but assumes the sides are already correct.
+ * Returns the score shifted by 1. Returns INFTY on errors (missing EGTB file, more than EGTB_MEN pieces on the board etc.).
+ * Clobbers b. */
+int egtbLookupWithInfo(Board *b, const char *combo, PieceSet *ps, int nps);
 
 /* Takes a board and sets/returns four values:
  * - an array of move names listing all the legal moves

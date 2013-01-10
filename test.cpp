@@ -1030,19 +1030,6 @@ BOOST_AUTO_TEST_CASE(testGetFileSize) {
   BOOST_CHECK_EQUAL(getFileSize("/tmp/foo.dat"), 0);
 }
 
-BOOST_AUTO_TEST_CASE(testBoardToFileNumber) {
-  Board b;
-
-  b = fenToBoard("8/8/8/8/8/8/8/Kr6 w - - 0 0");
-  BOOST_CHECK_EQUAL(boardToFileNumber(&b), 3);
-}
-
-BOOST_AUTO_TEST_CASE(testComboToFileNumber) {
-  BOOST_CHECK_EQUAL(comboToFileNumber("KvR"), 3);
-  BOOST_CHECK_EQUAL(comboToFileNumber("KQvR"), 29);
-  BOOST_CHECK_EQUAL(comboToFileNumber("QvQ"), 2);
-}
-
 /************************* Tests for lruCache.cpp *************************/
 
 BOOST_AUTO_TEST_CASE(testLruCache) {
@@ -1059,4 +1046,7 @@ BOOST_AUTO_TEST_CASE(testLruCache) {
   BOOST_CHECK_EQUAL(lruCacheGet(&cache, 103), y);
   BOOST_CHECK_EQUAL(lruCacheGet(&cache, 294), z);
   BOOST_CHECK(!lruCacheGet(&cache, 17));
+  BOOST_CHECK_EQUAL(cache.lookups, 4);
+  BOOST_CHECK_EQUAL(cache.misses, 1);
+  BOOST_CHECK_EQUAL(cache.evictions, 1);
 }

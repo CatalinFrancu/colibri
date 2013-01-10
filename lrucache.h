@@ -20,6 +20,7 @@ typedef struct {
   unordered_map<u64, LruCacheElement> map;
   DoublyLinkedList *sentinel;
   int curSize, maxSize;
+  u64 lookups, misses, evictions;
 } LruCache;
 
 /* Creates an empty LRU Cache */

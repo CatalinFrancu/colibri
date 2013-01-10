@@ -13,7 +13,6 @@ byte isoMove[8][64];
 u64 fileConfiguration[256];
 u64 diagonal[64];
 u64 antidiagonal[64];
-int egtbFileSegment[EGTB_MEN][EGTB_MEN / 2 + 1];
 
 void precomputeNChooseK() {
   for (int n = 0; n <= 64; n++) {
@@ -225,22 +224,6 @@ void precomputeAntidiagonals() {
   }
 }
 
-void precomputeEgtbFileSegments() {
-  int start = 0;
-  for (int men = 2; men <= EGTB_MEN; men++) {
-    for (int bp = men / 2; bp; bp--) {
-      int wp = men - bp;
-      egtbFileSegment[wp][bp] = start;
-      if (wp == bp) {
-        int whiteCombos = choose[wp + 5][wp];
-        start += whiteCombos * (whiteCombos + 1) / 2;
-      } else {
-        start += choose[wp + 5][wp] * choose[bp + 5][bp];
-      }
-    }
-  }
-}
-
 void precomputeAll() {
   precomputeNChooseK();
   precomputeCanonical64();
@@ -251,5 +234,4 @@ void precomputeAll() {
   precomputeFileConfigurations();
   precomputeDiagonals();
   precomputeAntidiagonals();
-  precomputeEgtbFileSegments();
 }
