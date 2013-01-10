@@ -22,6 +22,9 @@ void rotateBoard(Board *b, int orientation);
 /* Changes sides by flipping the board N-S and changing the color of all the pieces */
 void changeSides(Board *b);
 
+/* Changes sides if needed for an EGTB lookup (e.g. Black has more pieces than White) */
+void changeSidesIfNeeded(Board *b);
+
 /* Two things need to happen before we refer to the EP index:
  * 1. Naturally, the EP bit must be set
  * 2. There needs to be a pawn that can execute the EP capture. We don't index boards where this isn't the case,

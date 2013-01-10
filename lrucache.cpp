@@ -10,6 +10,7 @@ LruCache lruCacheCreate(int maxSize) {
   l.sentinel->prev = l.sentinel;
   l.curSize = 0;
   l.maxSize = maxSize;
+  l.lookups = l.misses = l.evictions = 0;
   return l;
 }
 
@@ -25,6 +26,7 @@ void lruCachePut(LruCache *cache, u64 key, void *value) {
     dead->next->prev = dead->prev;
     free(dead);
     cache->curSize--;
+    cache->evictions++;
   }
 
   DoublyLinkedList *l = (DoublyLinkedList*)malloc(sizeof(DoublyLinkedList));
@@ -52,6 +54,9 @@ void* lruCacheGet(LruCache *cache, u64 key) {
     l->next = sent;
     sent->prev->next = l;
     sent->prev = l;
+  } else {
+    cache->misses++;
   }
+  cache->lookups++;
   return elem.data;
 }

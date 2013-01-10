@@ -5,7 +5,7 @@
 #include "fileutil.h"
 #include "precomp.h"
 
-string getFileNameForCombo(char *combo) {
+string getFileNameForCombo(const char *combo) {
   return string(EGTB_PATH) + "/" + combo + ".egt";
 }
 
@@ -30,33 +30,4 @@ inline int bitBoardsToComb(u64 *pawn, u64 *king) {
   }
   mask >>= 1;
   return rankCombination(mask, 0ull);
-}
-
-int boardToFileNumber(Board *b) {
-  int wp = popCount(b->bb[BB_WALL]), bp = popCount(b->bb[BB_BALL]);
-  int wComb = bitBoardsToComb(b->bb + BB_WP, b->bb + BB_WK);
-  int bComb = bitBoardsToComb(b->bb + BB_BP, b->bb + BB_BK);
-  if (wp == bp) {
-    return egtbFileSegment[wp][bp] + choose[bComb + 1][2] + wComb;
-  } else {
-    return egtbFileSegment[wp][bp] + wComb * choose[bp + 5][bp] + bComb;
-  }
-}
-
-int comboToFileNumber(const char *combo) {
-  Board b;
-  emptyBoard(&b);
-  int base = BB_WALL, mask = 1ull << 8;
-  for (const char *s = combo; *s; s++) {
-    if (*s == 'v') {
-      base = BB_BALL;
-    } else {
-      int piece = PIECE_BY_NAME[*s - 'A'];
-      b.bb[base] ^= mask;
-      b.bb[base + piece] ^= mask;
-      b.bb[BB_EMPTY] ^= mask;
-      mask <<= 1;
-    }
-  }
-  return boardToFileNumber(&b);
 }

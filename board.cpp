@@ -72,6 +72,25 @@ void changeSides(Board *b) {
   b->side = WHITE + BLACK - b->side;
 }
 
+void changeSidesIfNeeded(Board *b) {
+  bool change = false;
+  int wp = popCount(b->bb[BB_WALL]), bp = popCount(b->bb[BB_BALL]);
+  if (wp < bp) {
+    change = true;
+  } else if (wp == bp) {
+    int p = KING + 1, whiteGroup, blackGroup;
+    do {
+      p--;
+      whiteGroup = popCount(b->bb[BB_WALL + p]);
+      blackGroup = popCount(b->bb[BB_BALL + p]);
+    } while ((p > PAWN) && (whiteGroup == blackGroup));
+    change = (whiteGroup < blackGroup);
+  }
+  if (change) {
+    changeSides(b);
+  }
+}
+
 bool isCapture(Board *b, Move m) {
   u64 toMask = 1ull << m.to;
   return ((m.piece == PAWN) && (toMask == b->bb[BB_EP])) || (toMask & ~b->bb[BB_EMPTY]);
