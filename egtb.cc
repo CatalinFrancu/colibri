@@ -544,6 +544,7 @@ void generateEgtb(const char *combo) {
     solved += solvedStep;
     printf("Discovered %d boards at score ±%d\n", solvedStep, targetScore);
   }
+  assert(targetScore < 127); // Otherwise it won't fit in one byte
 
   // Done! Dump the generated table in the EGTB folder and delete the temp files
   unlink(tmpBoardName1);
