@@ -60,3 +60,7 @@ void* lruCacheGet(LruCache *cache, u64 key) {
   cache->lookups++;
   return elem.data;
 }
+
+void printCacheStats(LruCache *cache, const char *msg) {
+  printf("%s cache stats: %llu lookups / %llu misses / %llu evictions\n", msg, cache->lookups, cache->misses, cache->evictions);
+}

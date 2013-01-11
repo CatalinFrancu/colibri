@@ -88,8 +88,8 @@ using namespace std;
 /* Cache EGTB files in 8 KB chunks */
 #define EGTB_CHUNK_SIZE 8192
 
-/* Total EGTB cache memory = 16 MB */
-#define EGTB_CHUNKS 2048
+/* Total EGTB cache memory = 512 MB */
+#define EGTB_CHUNKS 65536
 
 /* The square between 0 and 63 corresponding to a rank and file between 0 and 7 */
 #define SQUARE(rank, file) (((rank) << 3) + (file))

@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     startServer();
   }
 
-//  generateEgtb("KQvK");
-  generateAllEgtb(3, 1);
+//  generateEgtb("KKKvKK");
+  generateAllEgtb(3, 2);
 //  verifyEgtb("KBNvK");
 }

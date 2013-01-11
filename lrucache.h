@@ -33,4 +33,7 @@ void lruCachePut(LruCache *cache, u64 key, void *value);
 /* Looks up the given key, returns the corresponding value and updates the LRU access order */
 void* lruCacheGet(LruCache *cache, u64 key);
 
+/* Print cache statistics */
+void printCacheStats(LruCache *cache, const char *msg);
+
 #endif
