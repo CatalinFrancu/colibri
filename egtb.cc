@@ -558,7 +558,7 @@ void generateEgtb(const char *combo) {
   printf("Table size: %d, of which non-draws: %d\n", size, solved);
   printf("Longest win/loss:\n");
   printBoard(&b);
-  printf("Cache stats: %llu lookups / %llu misses / %llu evictions\n", egtbCache.lookups, egtbCache.misses, egtbCache.evictions);
+  printCacheStats(&egtbCache, "EGTB");
 
   // Now verify it
   verifyEgtb(combo);
@@ -767,23 +767,30 @@ void egtbVerifySideAndEp(Board *b, Move *m, const char *combo, PieceSet *ps, int
  * m - reusable space for move generation during evaluatePlacement()
  * ps, nps - the piece sets for the combo, to speed up the EGTB lookups
  */
-void egtbVerifyHelper(const char *combo, int side, int level, int maxLevel, Board *b, Move *m, PieceSet *ps, int nps) {
+void egtbVerifyHelper(const char *combo, int side, int level, int maxLevel, int prevSq, Board *b, Move *m, PieceSet *ps, int nps) {
   if (level == maxLevel) {
     egtbVerifySideAndEp(b, m, combo, ps, nps);
   } else if (combo[level] == 'v') {
-    egtbVerifyHelper(combo, BLACK, level + 1, maxLevel, b, m, ps, nps);
+    egtbVerifyHelper(combo, BLACK, level + 1, maxLevel, 0, b, m, ps, nps);
   } else {
     int base = (side == WHITE) ? BB_WALL : BB_BALL;
     int piece = PIECE_BY_NAME[combo[level] - 'A'];
     int startSq = (piece == PAWN) ? 8 : 0;
     int endSq = (piece == PAWN) ? 56 : 64;
+    if (level && (combo[level] == combo[level - 1])) {
+      startSq = prevSq + 1;
+    }
     for (int sq = startSq; sq < endSq; sq++) {
       u64 mask = 1ull << sq;
       if (b->bb[BB_EMPTY] & mask) {
+        if (!level) {
+          printf("  Level %d: placing a %c at %s\n", level, combo[level], SQUARE_NAME(sq).c_str());
+          printCacheStats(&egtbCache, "EGTB");
+        }
         b->bb[base] ^= mask;
         b->bb[base + piece] ^= mask;
         b->bb[BB_EMPTY] ^= mask;
-        egtbVerifyHelper(combo, side, level + 1, maxLevel, b, m, ps, nps);
+        egtbVerifyHelper(combo, side, level + 1, maxLevel, sq, b, m, ps, nps);
         b->bb[base] ^= mask;
         b->bb[base + piece] ^= mask;
         b->bb[BB_EMPTY] ^= mask;
@@ -799,7 +806,7 @@ void verifyEgtb(const char *combo) {
   Move m[200];
   PieceSet ps[EGTB_MEN];
   int nps = comboToPieceSets(combo, ps);
-  egtbVerifyHelper(combo, WHITE, 0, strlen(combo), &b, m, ps, nps);
+  egtbVerifyHelper(combo, WHITE, 0, strlen(combo), 0, &b, m, ps, nps);
 }
 
 /* Converts a combination between 0 and choose(k + 5, k) to a string of k piece names */
