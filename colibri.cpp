@@ -25,5 +25,5 @@ int main(int argc, char **argv) {
 
 //  generateEgtb("KQvK");
   generateAllEgtb(3, 1);
-//  verifyEgtb("PPvP");
+//  verifyEgtb("KBNvK");
 }

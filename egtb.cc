@@ -525,7 +525,7 @@ void generateEgtb(const char *combo) {
 
   int targetScore = 1;
   Move mf[200], mb[200]; // Storage space for forward and backward moves
-  while (getFileSize(tmpBoardName1)) {
+  while (getFileSize(tmpBoardName1) && targetScore < 126) {
     targetScore++;
     fBoards1 = fopen(tmpBoardName1, "r");
     fBoards2 = fopen(tmpBoardName2, "w");
@@ -544,7 +544,9 @@ void generateEgtb(const char *combo) {
     solved += solvedStep;
     printf("Discovered %d boards at score ±%d\n", solvedStep, targetScore);
   }
-  assert(targetScore < 127); // Otherwise it won't fit in one byte
+  if (targetScore == 126 && getFileSize(tmpBoardName1)) {
+    appendEgtbNote("Table reached score 127", combo);
+  }
 
   // Done! Dump the generated table in the EGTB folder and delete the temp files
   unlink(tmpBoardName1);
@@ -718,7 +720,9 @@ void egtbVerifyPosition(Board *b, Move *m, const char *combo, PieceSet *ps, int 
   } else if (score < 0) {
     matchOrDie((maxPos == -score - 1) && (maxNeg == -INFTY) && !anyDraws, &bc, score, minNeg, maxNeg, minPos, maxPos, anyDraws, childScore, numMoves);
   } else {
-    matchOrDie(anyDraws && (maxNeg == -INFTY), &bc, score, minNeg, maxNeg, minPos, maxPos, anyDraws, childScore, numMoves);
+    // Either there isn't a win/loss or we can't prove it in one byte.
+    matchOrDie((anyDraws && (maxNeg == -INFTY)) || (maxPos == 127) || (minPos == -127),
+               &bc, score, minNeg, maxNeg, minPos, maxPos, anyDraws, childScore, numMoves);
   }
 }
 
