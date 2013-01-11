@@ -31,3 +31,10 @@ inline int bitBoardsToComb(u64 *pawn, u64 *king) {
   mask >>= 1;
   return rankCombination(mask, 0ull);
 }
+
+void appendEgtbNote(const char *note, const char *combo) {
+  string fileName = string(EGTB_PATH) + "/notes.txt";
+  FILE *f = fopen(fileName.c_str(), "at");
+  fprintf(f, "Combo %s: %s\n", combo, note);
+  fclose(f);
+}
