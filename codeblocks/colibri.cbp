@@ -16,8 +16,6 @@
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
-					<Add library="lzma" />
-					<Add library="pthread" />
 				</Linker>
 			</Target>
 			<Target title="Testing">
@@ -37,6 +35,10 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions -std=gnu++0x" />
 		</Compiler>
+		<Linker>
+			<Add library="lzma" />
+			<Add library="pthread" />
+		</Linker>
 		<Unit filename="../bitmanip.cpp" />
 		<Unit filename="../bitmanip.h" />
 		<Unit filename="../board.cpp" />
