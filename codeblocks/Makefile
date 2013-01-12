@@ -15,7 +15,7 @@ INC =
 CFLAGS =  -Wall -fexceptions -std=gnu++0x
 RESINC = 
 LIBDIR = 
-LIB = 
+LIB =  -llzma -lpthread
 LDFLAGS = 
 
 INC_RELEASE =  $(INC)
@@ -23,7 +23,7 @@ CFLAGS_RELEASE =  $(CFLAGS) -O3
 RESINC_RELEASE =  $(RESINC)
 RCFLAGS_RELEASE =  $(RCFLAGS)
 LIBDIR_RELEASE =  $(LIBDIR)
-LIB_RELEASE = $(LIB) -llzma -lpthread
+LIB_RELEASE = $(LIB)
 LDFLAGS_RELEASE =  $(LDFLAGS) -s
 OBJDIR_RELEASE = ../obj/Release
 DEP_RELEASE = 
