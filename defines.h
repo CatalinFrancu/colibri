@@ -85,11 +85,11 @@ using namespace std;
 #define EGTB_PATH "/home/cata/public_html/colibri/egtb"
 #define QUERY_SERVER_PORT 2359
 
-/* Cache EGTB files in 8 KB chunks */
-#define EGTB_CHUNK_SIZE 8192
+/* Cache EGTB files in 32 KB chunks */
+#define EGTB_CHUNK_SIZE 32768
 
 /* Total EGTB cache memory = 512 MB */
-#define EGTB_CHUNKS 65536
+#define EGTB_CHUNKS 16384
 
 /* The square between 0 and 63 corresponding to a rank and file between 0 and 7 */
 #define SQUARE(rank, file) (((rank) << 3) + (file))
