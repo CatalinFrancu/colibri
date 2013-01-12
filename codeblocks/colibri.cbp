@@ -16,6 +16,7 @@
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add library="lzma" />
 					<Add library="pthread" />
 				</Linker>
 			</Target>

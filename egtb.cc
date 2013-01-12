@@ -27,24 +27,43 @@ inline u64 egtbGetKey(const char *combo, int index) {
   return (result << 30) + index;
 }
 
+char* readEgtbChunkFromFile(const char *combo, int chunkNo) {
+  // Look up the compressed file and index
+  string compressedFile = getCompressedFileNameForCombo(combo).c_str();
+  string idxFile = getIndexFileNameForCombo(combo).c_str();
+  char *data = decompressBlock(compressedFile.c_str(), idxFile.c_str(), chunkNo);
+  if (data) {
+    return data;
+  }
+
+  // Look up the uncompressed file
+  string fileName = getFileNameForCombo(combo).c_str();
+  FILE *f = fopen(fileName.c_str(), "r");
+  if (f) {
+    int startPos = chunkNo * EGTB_CHUNK_SIZE;
+    data = (char*)malloc(EGTB_CHUNK_SIZE);
+    fseek(f, startPos, SEEK_SET);
+    if (!fread(data, 1, EGTB_CHUNK_SIZE, f)) {
+      printf("Warning: no bytes read from EGTB combo %s chunk %d\n", combo, chunkNo);
+      free(data);
+      return NULL;
+    }
+    fclose(f);
+    return data;
+  }
+
+  return NULL;
+}
+
 int readFromCache(const char *combo, int index) {
   int chunkNo = index / EGTB_CHUNK_SIZE, chunkOffset = index % EGTB_CHUNK_SIZE;
   u64 key = egtbGetKey(combo, chunkNo);
   char *data = (char*)lruCacheGet(&egtbCache, key);
   if (!data) {
-    int startPos = chunkNo * EGTB_CHUNK_SIZE;
-    data = (char*)malloc(EGTB_CHUNK_SIZE);
-    string fileName = getFileNameForCombo(combo);
-    FILE *f = fopen(fileName.c_str(), "r");
-    fseek(f, startPos, SEEK_SET);
-    if (!fread(data, 1, EGTB_CHUNK_SIZE, f)) {
-      printf("Warning: no bytes read from EGTB combo %s chunk %d (index %d)\n", combo, chunkNo, index);
-      return INFTY;
-    }
-    fclose(f);
+    data = readEgtbChunkFromFile(combo, chunkNo);
     lruCachePut(&egtbCache, key, data);
   }
-  return data[chunkOffset];
+  return data ? data[chunkOffset] : INFTY;
 }
 
 void comboToPieceCounts(const char *combo, int counts[2][KING + 1]) {
@@ -495,8 +514,9 @@ void retrograde(PieceSet *ps, int nps, Board *b, int targetScore, char *memTable
 }
 
 void generateEgtb(const char *combo) {
-  string destName = getFileNameForCombo((char*)combo);
-  if (!access(destName.c_str(), F_OK)) {
+  string destName = getFileNameForCombo(combo);
+  string compressedName = getCompressedFileNameForCombo(combo);
+  if (fileExists(destName.c_str()) || fileExists(compressedName.c_str())) {
     printf("Table %s already exists, skipping\n", combo);
     return;
   }
@@ -827,6 +847,16 @@ string comboEnumerate(int comb, int k) {
   return result;
 }
 
+void compressEgtb(const char *combo) {
+  string name = getFileNameForCombo(combo);
+  string compressedName = getCompressedFileNameForCombo(combo);
+  string idxName = getIndexFileNameForCombo(combo);
+  if (fileExists(compressedName.c_str()) && fileExists(idxName.c_str())) {
+    return;
+  }
+  compressFile(name.c_str(), compressedName.c_str(), idxName.c_str(), EGTB_CHUNK_SIZE, true);
+}
+
 void generateAllEgtb(int wc, int bc) {
   for (int i = 0; i < choose[wc + 5][wc]; i++) {
     string ws = comboEnumerate(i, wc);
@@ -834,7 +864,9 @@ void generateAllEgtb(int wc, int bc) {
       string bs = comboEnumerate(j, bc);
       if ((wc > bc) || (i <= j)) {
         string combo = ws + "v" + bs;
-        generateEgtb((char*)combo.c_str());
+
+        generateEgtb(combo.c_str());
+        compressEgtb(combo.c_str());
       }
     }
   }
