@@ -19,6 +19,9 @@ int getPieceCount(Board *b);
 /* Rotate the board as specified. Does not change the side to move. */
 void rotateBoard(Board *b, int orientation);
 
+/* Rotate the from and to squares of a move */
+void rotateMove(Move *m, int orientation);
+
 /* Changes sides by flipping the board N-S and changing the color of all the pieces */
 void changeSides(Board *b);
 
@@ -44,8 +47,8 @@ inline bool epCapturePossible(Board *b) {
 bool isCapture(Board *b, Move m);
 
 /* Rotate the board as needed to bring it into canonical orientation.
- * Returns true if the board was already canonical, false if it was rotated */
-bool canonicalizeBoard(PieceSet *ps, int nps, Board *b);
+ * Returns the rotation performed to canonicalize the board (which can be ORI_NORMAL if the board is already canonical). */
+int canonicalizeBoard(PieceSet *ps, int nps, Board *b);
 
 /* Construct a board from a FEN notation */
 Board fenToBoard(const char *fen);

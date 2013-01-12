@@ -68,6 +68,9 @@ int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int 
  */
 void verifyEgtb(const char *combo);
 
+/* Compresses the combo.egt file into a combo.egt.xz and combo.idx. Does nothing if the table is already compressed. */
+void compressEgtb(const char *combo);
+
 /* Generates all EGTB where white has wc pieces and black has bc pieces */
 void generateAllEgtb(int wc, int bc);
 

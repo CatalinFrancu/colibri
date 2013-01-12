@@ -62,6 +62,11 @@ void rotateBoard(Board *b, int orientation) {
   }
 }
 
+void rotateMove(Move *m, int orientation) {
+  m->from = rotateSquare[m->from][orientation];
+  m->to = rotateSquare[m->to][orientation];
+}
+
 void changeSides(Board *b) {
   rotateBoard(b, ORI_FLIP_NS);
   for (int p = 0; p <= KING; p++) {
@@ -96,14 +101,14 @@ bool isCapture(Board *b, Move m) {
   return ((m.piece == PAWN) && (toMask == b->bb[BB_EP])) || (toMask & ~b->bb[BB_EMPTY]);
 }
 
-bool canonicalizeBoard(PieceSet *ps, int nps, Board *b) {
+int canonicalizeBoard(PieceSet *ps, int nps, Board *b) {
   // Boards where en passant capture is possible are first indexed by the EP square, which must be on the left-hand side.
   if (epCapturePossible(b)) {
     if (b->bb[BB_EP] & 0xf0f0f0f0f0f0f0f0ull) {
       rotateBoard(b, ORI_FLIP_EW);
-      return false;
+      return ORI_FLIP_EW;
     }
-    return true;
+    return ORI_NORMAL;
   } else {
     b->bb[BB_EP] = 0ull;
   }
@@ -121,9 +126,9 @@ bool canonicalizeBoard(PieceSet *ps, int nps, Board *b) {
   }
   if (canonical < 0) {
     rotateBoard(b, -canonical);
-    return false;
+    return -canonical;
   }
-  return true;
+  return ORI_NORMAL;
 }
 
 Board fenToBoard(const char *fen) {

@@ -3,6 +3,9 @@
 #include "bitmanip.h"
 #include "board.h"
 
+/* rotateSquare[sq][orientation] rotates a given square in the given mode (flip/rotate) */
+extern int rotateSquare[64][8];
+
 // choose[n][k] just holds {n choose k}
 extern int choose[65][EGTB_MEN];
 

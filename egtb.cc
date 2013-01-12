@@ -471,8 +471,7 @@ void scoreAllRotations(PieceSet *ps, int nps, Board *b, int index, int score, ch
   for (int ori = 0; ori < oriCount; ori++) {
     Board bc = *b;
     rotateBoard(&bc, legalOri[ori]);
-    bool isCanonical = canonicalizeBoard(ps, nps, &bc);
-    if (isCanonical) {
+    if (canonicalizeBoard(ps, nps, &bc) == ORI_NORMAL) {
       index = getEgtbIndex(ps, nps, &bc);
       if (memTable[index] == EGTB_DRAW) {
         code = encodeEgtbBoard(ps, nps, &bc);
@@ -490,17 +489,18 @@ void retrograde(PieceSet *ps, int nps, Board *b, int targetScore, char *memTable
     Board br = *b; // Retro-board
     makeBackwardMove(&br, mb[i]);
 
-    // First make sure that one of the forward moves is symmetric to mb[i]. See the comments for getAllMoves() for details.
+    // Making a move may cause br to become non-canonical. Rotate it and the move that took us to it.
+    int orientation = canonicalizeBoard(ps, nps, &br);
+    Move mcopy = mb[i];
+    rotateMove(&mcopy, orientation);
+
+    // Make sure that one of the forward moves is symmetric to mb[i]. See the comments for getAllMoves() for details.
     int nf = getAllMoves(&br, mf, FORWARD);
     int sym = 0;
-    while ((sym < nf) && ((mf[sym].piece != mb[i].piece) || (mf[sym].from != mb[i].to) || (mf[sym].to != mb[i].from))) {
+    while ((sym < nf) && ((mf[sym].piece != mcopy.piece) || (mf[sym].from != mcopy.to) || (mf[sym].to != mcopy.from))) {
       sym++;
     }
     if (sym < nf) {
-      // Canonicalize the board and therefore recompute the forward move list
-      canonicalizeBoard(ps, nps, &br);
-      nf = getAllMoves(&br, mf, FORWARD);
-
       // Don't look at this position if we've already scored it
       int index = getEgtbIndex(ps, nps, &br);
       if (memTable[index] == EGTB_DRAW) {
