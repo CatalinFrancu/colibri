@@ -24,11 +24,8 @@ int main(int argc, char **argv) {
     startServer();
   }
 
-//  string name = getFileNameForCombo("RRvNN");
-//  string compressedName = getCompressedFileNameForCombo("RRvNN");
-//  string idxName = getIndexFileNameForCombo("RRvNN");
-//  compressFile(name.c_str(), compressedName.c_str(), idxName.c_str(), EGTB_CHUNK_SIZE, false);
-//  generateEgtb("KKKvKK");
+//  generateEgtb("KQvNP");
+//  compressEgtb("KQvNP");
   generateAllEgtb(4, 1);
 //  verifyEgtb("KBNvK");
 }

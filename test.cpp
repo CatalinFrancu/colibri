@@ -66,8 +66,19 @@ BOOST_AUTO_TEST_CASE(tetGetBitAndClear) {
 
 /************************* Tests for precomp.cpp *************************/
 
-BOOST_AUTO_TEST_CASE(testNChooseK) {
+BOOST_AUTO_TEST_CASE(testRotateSquare) {
   precomputeAll();
+  BOOST_CHECK_EQUAL(rotateSquare[11][ORI_NORMAL], 11);
+  BOOST_CHECK_EQUAL(rotateSquare[11][ORI_ROT_CCW], 30);
+  BOOST_CHECK_EQUAL(rotateSquare[11][ORI_ROT_180], 52);
+  BOOST_CHECK_EQUAL(rotateSquare[11][ORI_ROT_CW], 33);
+  BOOST_CHECK_EQUAL(rotateSquare[11][ORI_FLIP_NS], 51);
+  BOOST_CHECK_EQUAL(rotateSquare[11][ORI_FLIP_DIAG], 25);
+  BOOST_CHECK_EQUAL(rotateSquare[11][ORI_FLIP_EW], 12);
+  BOOST_CHECK_EQUAL(rotateSquare[11][ORI_FLIP_ANTIDIAG], 38);
+}
+
+BOOST_AUTO_TEST_CASE(testNChooseK) {
   BOOST_CHECK_EQUAL(choose[4][1], 4);
   if (EGTB_MEN > 3) {
     BOOST_CHECK_EQUAL(choose[6][2], 15);
