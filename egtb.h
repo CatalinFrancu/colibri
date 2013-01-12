@@ -39,8 +39,9 @@ int getEgtbIndex(PieceSet *ps, int nps, Board *b);
  * EP positions are appended after all the non-EP ones, so this function adds getEgtbSize() to its result. */
 int getEpEgtbIndex(PieceSet *ps, int nps, Board *b);
 
-/* Generate and write to file the endgame tablebase for the given combo */
-void generateEgtb(const char *combo);
+/* Generate and write to file the endgame tablebase for the given combo.
+ * Returns true if it actually generated something, false if the file was already there. */
+bool generateEgtb(const char *combo);
 
 /* Queries the EGTB for this position. Takes care of canonicalization.
  * Returns the score shifted by 1. Returns INFTY on errors (missing EGTB file, more than EGTB_MEN pieces on the board etc.).

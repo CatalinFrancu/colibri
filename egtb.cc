@@ -310,11 +310,11 @@ int forwardStep(Board *b, Move *m, int numMoves, PieceSet *ps, int nps, char *me
     for (int i = 0; i < numMoves; i++) {
       memcpy(&b2, b, sizeof(Board));
       makeMove(&b2, m[i]);
-      canonicalizeBoard(ps, nps, &b2);
       int childScore;
       if (m[i].promotion) {
         childScore = sgn(evalBoard(&b2));
       } else if (memTable) {
+        canonicalizeBoard(ps, nps, &b2);
         int index = getEgtbIndex(ps, nps, &b2);
         childScore = memTable[index];
       } else if (captures) {
@@ -513,12 +513,12 @@ void retrograde(PieceSet *ps, int nps, Board *b, int targetScore, char *memTable
   }
 }
 
-void generateEgtb(const char *combo) {
+bool generateEgtb(const char *combo) {
   string destName = getFileNameForCombo(combo);
   string compressedName = getCompressedFileNameForCombo(combo);
   if (fileExists(destName.c_str()) || fileExists(compressedName.c_str())) {
     printf("Table %s already exists, skipping\n", combo);
-    return;
+    return false;
   }
   printf("Generating table %s into file %s\n", combo, destName.c_str());
   const char *tmpBoardName1 = "/tmp/egtb-gen-boards1";
@@ -579,9 +579,7 @@ void generateEgtb(const char *combo) {
   printf("Longest win/loss:\n");
   printBoard(&b);
   printCacheStats(&egtbCache, "EGTB");
-
-  // Now verify it
-  verifyEgtb(combo);
+  return true;
 }
 
 int egtbLookup(Board *b) {
@@ -864,9 +862,10 @@ void generateAllEgtb(int wc, int bc) {
       string bs = comboEnumerate(j, bc);
       if ((wc > bc) || (i <= j)) {
         string combo = ws + "v" + bs;
-
-        generateEgtb(combo.c_str());
-        compressEgtb(combo.c_str());
+        if (generateEgtb(combo.c_str())) {
+          verifyEgtb(combo.c_str());
+          compressEgtb(combo.c_str());
+        }
       }
     }
   }
