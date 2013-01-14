@@ -222,7 +222,7 @@ void genBlackTables(int *whiteCount, int *blackCount, int blackMen, int level) {
   }
 }
 
-u64 genWhiteTables(int *whiteCount, int whiteMen, int *blackCount, int blackMen, int level) {
+void genWhiteTables(int *whiteCount, int whiteMen, int *blackCount, int blackMen, int level) {
   if (whiteMen == 0) {
     genBlackTables(whiteCount, blackCount, blackMen, 0);
   } else if (level == PIECE_TYPES - 1) {
