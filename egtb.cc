@@ -864,8 +864,8 @@ void generateAllEgtb(int wc, int bc) {
         string combo = ws + "v" + bs;
         if (generateEgtb(combo.c_str())) {
           verifyEgtb(combo.c_str());
-          compressEgtb(combo.c_str());
         }
+        compressEgtb(combo.c_str());
       }
     }
   }
