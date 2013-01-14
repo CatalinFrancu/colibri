@@ -12,21 +12,29 @@
 #include "egtb.h"
 #include "queryserver.h"
 
+/* Reads a board in FEN notation. Outputs an error message on one line and returns on all input errors.
+ * Outputs a blank first line, then the score / number of moves / details for each move.
+ */
 void handleEgtbQuery(FILE *fin, FILE *fout) {
   char s[200];
   if (!fgets(s, 200, fin)) {
     fprintf(fout, "%d %d\n", INFTY, 0);
     return;
   }
-  Board b = fenToBoard(s);
-  string moveNames[200];
-  string fens[200];
-  int scores[200];
-  int numMoves;
-  int score = batchEgtbLookup(&b, moveNames, fens, scores, &numMoves);
-  fprintf(fout, "%d %d\n", score, numMoves);
-  for (int i = 0; i < numMoves; i++) {
-    fprintf(fout, "%s %d %s\n", moveNames[i].c_str(), scores[i], fens[i].c_str());
+  Board *b = fenToBoard(s);
+  if (!b) {
+    fprintf(fout, "Please make sure your FEN string is correct.\n");
+  } else {
+    string moveNames[200];
+    string fens[200];
+    int scores[200];
+    int numMoves;
+    int score = batchEgtbLookup(b, moveNames, fens, scores, &numMoves);
+    fprintf(fout, "\n%d %d\n", score, numMoves);
+    for (int i = 0; i < numMoves; i++) {
+      fprintf(fout, "%s %d %s\n", moveNames[i].c_str(), scores[i], fens[i].c_str());
+    }
+    free(b);
   }
 }
 
@@ -37,7 +45,7 @@ void* handleConnection(void* arg) {
   char s[100];
 
   // Read a command
-  if (fscanf(fin, "%100s", s) == 1) {
+  if (fscanf(fin, "%100s ", s) == 1) {
     if (!strcmp("egtb", s)) {
       handleEgtbQuery(fin, fout);
     }

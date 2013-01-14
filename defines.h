@@ -64,7 +64,7 @@ using namespace std;
 #define DIAG_MAGIC 0x0101010101010101ull
 
 /* The board at the start of a new game */
-#define NEW_BOARD "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+#define NEW_BOARD "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1"
 
 /* Clears the rightmost set bit of x and returns its index in square */
 #define GET_BIT_AND_CLEAR(x, square) \
@@ -99,9 +99,6 @@ using namespace std;
 
 /* Return a square given its algebraic coordinates, e.g. "a1" -> 0, "h8" -> 63 */
 #define SQUARE_BY_NAME(s) ((((s).at(1) - '1') << 3) + ((s).at(0) - 'a'))
-
-/* Return a 64-bit mask with one bit set given its algebraic coordinates e.g. "h8" -> 0x8000000000000000 */
-#define BIT_BY_NAME(s) (1ull << SQUARE_BY_NAME((s)))
 
 /* Return a 1-character string naming the file (column) of the given square */
 #define FILE_NAME(sq) (string(1, 'a' + (sq & 7)))
