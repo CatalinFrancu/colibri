@@ -12,7 +12,7 @@ if ($fen) {
   $fen = boardToFen($board, $stm);
 }
 colorBoard($board);
-list($score, $moves) = serverQuery($fen);
+list($score, $moves, $error) = serverQuery($fen);
 
 $smarty = new Smarty();
 $smarty->template_dir = 'templates';
@@ -22,6 +22,7 @@ $smarty->assign('board', $board);
 $smarty->assign('stm', $stm);
 $smarty->assign('score', $score);
 $smarty->assign('moves', $moves);
+$smarty->assign('error', $error);
 $smarty->assign('template', 'index.tpl');
 $smarty->display('layout.tpl');
 
@@ -41,7 +42,8 @@ function randomBoard($numPieces) {
       $j = chr(ord('a') + rand(0, 7));
     } while ($board[$i][$j]['piece']);
     $color = ($k < 2) ? $k : rand(0, 1); // First two pieces to be placed are of opposite colors
-    $piece = $pieceNames[rand(0, 5)];
+    $maxPiece = ($i == 1 || $i == 8) ? 4 : 5; // No pawns on first/last rank
+    $piece =  $pieceNames[rand(0, $maxPiece)];
     $board[$i][$j]['piece'] = ($color ? 'w' : 'b') . $piece;
   }
   $stm = (rand(0, 1) == 1) ? 'w' : 'b';
@@ -119,6 +121,10 @@ function serverQuery($fen) {
     die("Backend server not responding");
   }
   fprintf($sock, "egtb $fen\n");
+  $error = trim(fgets($sock));
+  if ($error) {
+    return array(null, null, $error);
+  }
   list($score, $numMoves) = fscanf($sock, "%d %d");
   $children = array();
   for ($i = 0; $i < $numMoves; $i++) {
@@ -128,7 +134,7 @@ function serverQuery($fen) {
   }
   fclose($sock);
   usort($children, "cmpChildren");
-  return array($score, $children);
+  return array($score, $children, null);
 }
 
 function cmpChildren($a, $b) {

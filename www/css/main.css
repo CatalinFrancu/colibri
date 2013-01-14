@@ -20,10 +20,14 @@ div.title {
   margin-bottom: 0px;
 }
 
+span.plug {
+  color: #ff7700;
+}
+
 div.menu {
   border: 1px solid #444;
   margin-bottom: 10px;
-  padding: 3px 10px;
+  padding: 1px 10px;
 }
 
 div.menu ul {
@@ -39,16 +43,21 @@ div.menu li {
 
 div.menu a {
   color: black;
-  font-size: 85%;
+  font-size: 90%;
 }
 
-span.plug {
-  color: #ff7700;
+div.errorNotice {
+  background: #fdd;
+  border: 1px solid red;
+  color: red;
+  margin: 10px auto;
+  padding: 5px;
+  text-align: center;
+  width: 400px;
 }
 
 #leftColumn {
   float: left;
-  margin-left: 5px;
   width: 425px;
 }
 
@@ -71,10 +80,12 @@ span.plug {
 }
 
 #fen {
-  font-size: 20px;
-  font-weight: bold;
   margin-bottom: 5px;
   text-align: center;
+}
+
+#fenDirectEdit {
+  width: 200px;
 }
 
 #board {
@@ -183,6 +194,10 @@ span.plug {
 
 #editForm {
   float: right;
+}
+
+#moves {
+  margin-top: 30px;
 }
 
 #moves td {

@@ -9,6 +9,10 @@
 #include "precomp.h"
 
 void printBoard(Board *b) {
+  if (!b) {
+    printf("null board pointer\n");
+    return;
+  }
   for (int row = 7; row >= 0; row--) {
     printf("  +---+---+---+---+---+---+---+---+\n");
     printf("%d |", row + 1);
@@ -131,70 +135,132 @@ int canonicalizeBoard(PieceSet *ps, int nps, Board *b) {
   return ORI_NORMAL;
 }
 
-Board fenToBoard(const char *fen) {
-  istringstream ins;
-  ins.str(fen);
+Board* fenToBoard(const char *fen) {
+  // Use a static board, then allocate it on the heap and copy it if all goes well
+  // This way we can return NULL on errors and not worry about deallocation.
   Board b;
-  memset(&b, 0, sizeof(b));
+  memset(&b, 0, sizeof(Board));
 
-  string pieces;
-  ins >> pieces;
-
-  int square = 56;
-  for (string::iterator it = pieces.begin(); it != pieces.end(); it++ ) {
-    char c = *it;
-    if (c == 'K') {
-      b.bb[BB_WK] |= 1ull << square;
-    } else if (c == 'Q') {
-      b.bb[BB_WQ] |= 1ull << square;
-    } else if (c == 'R') {
-      b.bb[BB_WR] |= 1ull << square;
-    } else if (c == 'B') {
-      b.bb[BB_WB] |= 1ull << square;
-    } else if (c == 'N') {
-      b.bb[BB_WN] |= 1ull << square;
-    } else if (c == 'P') {
-      b.bb[BB_WP] |= 1ull << square;
-    } else if (c == 'k') {
-      b.bb[BB_BK] |= 1ull << square;
-    } else if (c == 'q') {
-      b.bb[BB_BQ] |= 1ull << square;
-    } else if (c == 'r') {
-      b.bb[BB_BR] |= 1ull << square;
-    } else if (c == 'b') {
-      b.bb[BB_BB] |= 1ull << square;
-    } else if (c == 'n') {
-      b.bb[BB_BN] |= 1ull << square;
-    } else if (c == 'p') {
-      b.bb[BB_BP] |= 1ull << square;
+  // Expect 64 squares' worth of pieces and empty spaces, with slashes every 8 squares
+  int rank = 7, file = 0, bitboard;
+  const char *s = fen;
+  while (rank > 0 || file != 8) {
+    switch (*s) {
+      case 'K': case 'Q': case 'R': case 'B': case 'N': case 'P':
+      case 'k': case 'q': case 'r': case 'b': case 'n': case 'p':
+        if (file == 8) {
+          return NULL;
+        }
+        bitboard = isupper(*s) ? (BB_WALL + PIECE_BY_NAME[*s - 'A']) : (BB_BALL + PIECE_BY_NAME[*s - 'a']);
+        b.bb[bitboard] |= 1ull << (8 * rank + file);
+        file++;
+        break;
+      case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8':
+        file += *s - '0';
+        if (file > 8) {
+          return NULL;
+        }
+        break;
+      case '/':
+        if (file != 8 || rank == 0) {
+          return NULL;
+        }
+        rank--;
+        file = 0;
+        break;
+      default: return NULL;
     }
-
-    if (isdigit(c)) {
-      square += (c - '0');
-    } else if (isalpha(c)) {
-      square++;
-    }
-
-    if (c == '/') {
-      assert(square % 8 == 0);
-      square -= 16;
-    }
+    s++;
   }
-  assert(square == 8);
+
+  // Consume a space
+  if (*s != ' ') {
+    return NULL;
+  }
+  s++;
+
+  // Consume the stm
+  if (*s == 'w') {
+    b.side = WHITE;
+  } else if (*s == 'b') {
+    b.side = BLACK;
+  } else {
+    return NULL;
+  }
+  s++;
+
+  // Consume a space, castling ability (-) and a space
+  if (*s != ' ' || *(s + 1) != '-' || *(s + 2) != ' ') {
+    return NULL;
+  }
+  s += 3;
+
+  // Consume the en passant info (- or square)
+  int epSquare;
+  if (*s == '-') {
+    b.bb[BB_EP] = 0ull;
+    s++;
+  } else if (*s >= 'a' && *s <= 'h') {
+    file = *s - 'a';
+    s++;
+    if (*s < '1' || *s > '8') {
+      return NULL;
+    }
+    rank = *s - '1';
+    epSquare = SQUARE(rank, file);
+    b.bb[BB_EP] = 1ull << epSquare;
+    s++;
+  } else {
+    return NULL;
+  }
+
+  // Consume a space
+  if (*s != ' ') {
+    return NULL;
+  }
+  s++;
+
+  // Ignore the rest of the string (halfmove clock, space, fullmove number)
+
+  // Construct the remaining fields
   b.bb[BB_WALL] = b.bb[BB_WK] | b.bb[BB_WQ] | b.bb[BB_WR] | b.bb[BB_WB] | b.bb[BB_WN] | b.bb[BB_WP];
   b.bb[BB_BALL] = b.bb[BB_BK] | b.bb[BB_BQ] | b.bb[BB_BR] | b.bb[BB_BB] | b.bb[BB_BN] | b.bb[BB_BP];
-  b.bb[BB_EMPTY] = 0xffffffffffffffffull ^ b.bb[BB_WALL] ^ b.bb[BB_BALL];
+  b.bb[BB_EMPTY] = ~(b.bb[BB_WALL] ^ b.bb[BB_BALL]);
 
-  string s;
-  ins >> s;
-  b.side = (s == "w") ? WHITE : BLACK;
+  // Integrity check: pawns on the 1st or 8th rank
+  if ((b.bb[BB_WP] ^ b.bb[BB_BP]) & (RANK_1 ^ RANK_8)) {
+    return NULL;
+  }
 
-  ins >> s; // ignore castling ability
-  ins >> s;
-  b.bb[BB_EP] = (s == "-") ? 0ull : BIT_BY_NAME(s);
+  if (b.bb[BB_EP]) {
+    u64 epRank = (b.side == WHITE) ? RANK_6 : RANK_3;
+    u64 behindEp = (b.side == WHITE) ? (b.bb[BB_EP] << 8) : (b.bb[BB_EP] >> 8);
+    u64 inFrontOfEp = (b.side == WHITE) ? (b.bb[BB_EP] >> 8) : (b.bb[BB_EP] << 8);
+    u64 pawnSet = (b.side == WHITE) ? b.bb[BB_BP] : b.bb[BB_WP]; // Piece that should be in front of the en passant square
+    // Hee hee, I said pawn set
 
-  // ins >> b.halfMove; // Ignore this
-  return b;
+    // Integrity check: en passant square must be empty
+    if (b.bb[BB_EP] & ~b.bb[BB_EMPTY]) {
+      return NULL;
+    }
+    // Integrity check: en passant square must be on the 3rd or 6th rank
+    if (!(b.bb[BB_EP] & epRank)) {
+      return NULL;
+    }
+    // Integrity check: square behind ep square must be empty
+    if (!(behindEp & b.bb[BB_EMPTY])) {
+      return NULL;
+    }
+    // Integrity check: square in front of ep square must be a pawn
+    if (!(inFrontOfEp & pawnSet)) {
+      return NULL;
+    }
+  }
+
+  Board *result = (Board*)malloc(sizeof(Board));
+  memcpy(result, &b, sizeof(Board));
+  return result;
 }
 
 string boardToFen(Board *b) {

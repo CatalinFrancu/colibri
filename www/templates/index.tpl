@@ -1,5 +1,16 @@
+{if $error}
+  <div class="errorNotice">{$error}</div>
+{/if}
+
 <div id="leftColumn">
-  <div id="fen">FEN: {$fen}</div>
+  <div id="fen">
+    <form action="index.php">
+      <label for="fenDirectEdit">FEN:</label>
+      <input id="fenDirectEdit" type="text" name="fen" value="{$fen}"/>
+      <input type="button" value="Go!"/>
+    </form>
+  </div>
+
   <table id="board">
     <tr>
       <th class="lr tb"></th>
@@ -73,7 +84,6 @@
 </div>
   
 <div id="rightColumn">
-  Score: {$score}
   <table id="moves">
     {foreach from=$moves item=m}
       <tr>
