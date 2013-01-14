@@ -22,7 +22,8 @@ $smarty->assign('board', $board);
 $smarty->assign('stm', $stm);
 $smarty->assign('score', $score);
 $smarty->assign('moves', $moves);
-$smarty->display('index.tpl');
+$smarty->assign('template', 'index.tpl');
+$smarty->display('layout.tpl');
 
 /***************************************************************************/
 
