@@ -8,7 +8,7 @@ $fen = isset($_GET['fen']) ? $_GET['fen'] : null;
 if ($fen) {
   list($board, $stm) = fenToBoard($fen);
 } else {
-  list($board, $stm) = randomBoard(3);
+  list($board, $stm) = randomBoard(4);
   $fen = boardToFen($board, $stm);
 }
 colorBoard($board);
@@ -29,7 +29,7 @@ $smarty->display('layout.tpl');
 /***************************************************************************/
 
 function randomBoard($numPieces) {
-  $pieceNames = array('k', 'q', 'r', 'b', 'n', 'p');
+  $pieceNames = array('p', 'n', 'b', 'r', 'k'); // No queens -- they generate boring convert-in-2 positions.
   $board = array();
   for ($i = 8; $i >= 1; $i--) {
     for ($j = 'a'; $j <= 'h'; $j++) {
@@ -42,8 +42,8 @@ function randomBoard($numPieces) {
       $j = chr(ord('a') + rand(0, 7));
     } while ($board[$i][$j]['piece']);
     $color = ($k < 2) ? $k : rand(0, 1); // First two pieces to be placed are of opposite colors
-    $maxPiece = ($i == 1 || $i == 8) ? 4 : 5; // No pawns on first/last rank
-    $piece =  $pieceNames[rand(0, $maxPiece)];
+    $minPiece = ($i == 1 || $i == 8) ? 1 : 0; // No pawns on first/last rank
+    $piece =  $pieceNames[rand($minPiece, count($pieceNames) - 1)];
     $board[$i][$j]['piece'] = ($color ? 'w' : 'b') . $piece;
   }
   $stm = (rand(0, 1) == 1) ? 'w' : 'b';

@@ -63,6 +63,7 @@ function goButtonClick() {
       numEmpty++;
     } else if (cl == 'epSquare') {
       epSquare += $(this).attr('id');
+      numEmpty++;
     } else {
       if (numEmpty) {
         fen += numEmpty;
