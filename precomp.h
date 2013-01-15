@@ -43,11 +43,25 @@ extern int numCanonical48[EGTB_MEN];
  * mask, i.e. a number between 0 and choose[64 - o][k] - 1 */
 inline int rankCombination(u64 mask, u64 occupied) {
   int i = 0;
-  byte square;
+  int square;
+  int result = 0;
+  u64 dMask;
+  while (mask) {
+    square = ctz(mask);
+    mask &= (dMask = mask - 1);
+    square -= popCount((mask ^ dMask) & occupied);
+    result += choose[square][++i];
+  }
+  return result;
+}
+
+/* Same as rankCombination(), but the board is clear */
+inline int rankCombinationFree(u64 mask) {
+  int i = 0;
+  int square;
   int result = 0;
   while (mask) {
     GET_BIT_AND_CLEAR(mask, square);
-    square -= popCount(((1ull << square) - 1) & occupied);
     result += choose[square][++i];
   }
   return result;
