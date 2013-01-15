@@ -61,8 +61,44 @@ int getPieceCount(Board *b) {
 }
 
 void rotateBoard(Board *b, int orientation) {
-  for (int i = 0; i < BB_COUNT; i++) {
-    b->bb[i] = rotate(b->bb[i], orientation);
+  switch (orientation) {
+    case ORI_NORMAL:
+      return;
+    case ORI_ROT_CCW:
+      for (int i = 0; i < BB_COUNT; i++) {
+        b->bb[i] = flipDiagA1H8(reverseBytes(b->bb[i]));
+      }
+      return;
+    case ORI_ROT_180:
+      for (int i = 0; i < BB_COUNT; i++) {
+        b->bb[i] = reverseBytes(mirrorEW(b->bb[i]));
+      }
+      return;
+    case ORI_ROT_CW:
+      for (int i = 0; i < BB_COUNT; i++) {
+        b->bb[i] = reverseBytes(flipDiagA1H8(b->bb[i]));
+      }
+      return;
+    case ORI_FLIP_NS:
+      for (int i = 0; i < BB_COUNT; i++) {
+        b->bb[i] = reverseBytes(b->bb[i]);
+      }
+      return;
+    case ORI_FLIP_DIAG:
+      for (int i = 0; i < BB_COUNT; i++) {
+        b->bb[i] = flipDiagA1H8(b->bb[i]);
+      }
+      return;
+    case ORI_FLIP_EW:
+      for (int i = 0; i < BB_COUNT; i++) {
+        b->bb[i] = mirrorEW(b->bb[i]);
+      }
+      return;
+    case ORI_FLIP_ANTIDIAG:
+      for (int i = 0; i < BB_COUNT; i++) {
+        b->bb[i] = flipDiagA8H1(b->bb[i]);
+      }
+      return;
   }
 }
 
@@ -121,7 +157,7 @@ int canonicalizeBoard(PieceSet *ps, int nps, Board *b) {
   if (ps[0].piece == PAWN) {
     mask >>= 8;
   }
-  int comb = rankCombination(mask, 0);
+  int comb = rankCombinationFree(mask);
   int canonical;
   if (ps[0].piece == PAWN) {
     canonical = canonical48[ps[0].count][comb];
