@@ -11,6 +11,7 @@
 #include "configfile.h"
 #include "defines.h"
 #include "egtb.h"
+#include "logging.h"
 #include "queryserver.h"
 
 /* Reads a board in FEN notation. Outputs an error message on one line and returns on all input errors.
@@ -70,7 +71,7 @@ void startServer() {
   sin.sin_addr.s_addr = INADDR_ANY;
   assert(!bind(sock, (struct sockaddr*)&sin, sizeof(sin)));
   assert(!listen(sock, 10));
-  printf("Listening for connections on port %d\n", cfgQueryServerPort);
+  log(LOG_INFO, "Listening for connections on port %d", cfgQueryServerPort);
   while (true) {
     int conn = accept(sock, NULL, NULL);
     assert(conn != -1);

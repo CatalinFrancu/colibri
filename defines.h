@@ -1,5 +1,6 @@
 #ifndef __DEFINES_H__
 #define __DEFINES_H__
+#include <stddef.h>
 using namespace std;
 
 /* Config file name, without the directory. The file is assumed to reside in the colibri/ installation directory. */

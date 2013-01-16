@@ -5,6 +5,8 @@ using namespace std;
 
 extern int cfgEgtbChunks;
 extern string cfgEgtbPath;
+extern string cfgLogFile;
+extern int cfgLogLevel;
 extern int cfgQueryServerPort;
 
 /* Loads options from an INI file. Exits on errors. */

@@ -34,6 +34,6 @@ void lruCachePut(LruCache *cache, u64 key, void *value);
 void* lruCacheGet(LruCache *cache, u64 key);
 
 /* Print cache statistics */
-void printCacheStats(LruCache *cache, const char *msg);
+void logCacheStats(LruCache *cache, const char *msg);
 
 #endif

@@ -1,6 +1,7 @@
-#include <stddef.h>
 #include <stdio.h>
+#include <string>
 #include "bitmanip.h"
+#include "logging.h"
 
 u64 rotate(u64 x, int orientation) {
   switch (orientation) {
@@ -17,12 +18,13 @@ u64 rotate(u64 x, int orientation) {
 }
 
 void printBitboard(const char *msg, u64 x) {
-  printf("%s: h8 ", msg);
+  string s = string(msg) + ": h8 ";
   for (int i = 63; i >= 0; i--) {
-    printf("%d", (x & (1ull << i)) ? 1 : 0);
+    s += ((x & (1ull << i)) ? '1' : '0');
     if (i && (i % 8 == 0)) {
-      printf(" | ");
+      s += " | ";
     }
   }
-  printf(" a1\n");
+  s += " a1";
+  log(LOG_DEBUG, s.c_str());
 }

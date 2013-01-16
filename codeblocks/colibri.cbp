@@ -49,6 +49,8 @@
 		<Unit filename="../egtb.h" />
 		<Unit filename="../fileutil.cpp" />
 		<Unit filename="../fileutil.h" />
+		<Unit filename="../logging.cpp" />
+		<Unit filename="../logging.h" />
 		<Unit filename="../lrucache.cpp" />
 		<Unit filename="../lrucache.h" />
 		<Unit filename="../movegen.cpp" />
@@ -66,6 +68,8 @@
 		<Unit filename="../test.cpp">
 			<Option target="Testing" />
 		</Unit>
+		<Unit filename="../timer.cpp" />
+		<Unit filename="../timer.h" />
 		<Unit filename="../tools/egtbEstimator.cpp">
 			<Option target="EgtbEstimator" />
 		</Unit>

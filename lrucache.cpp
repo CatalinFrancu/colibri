@@ -1,6 +1,6 @@
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "logging.h"
 #include "lrucache.h"
 
 LruCache lruCacheCreate(int maxSize) {
@@ -61,6 +61,6 @@ void* lruCacheGet(LruCache *cache, u64 key) {
   return elem.data;
 }
 
-void printCacheStats(LruCache *cache, const char *msg) {
-  printf("%s cache stats: %llu lookups / %llu misses / %llu evictions\n", msg, cache->lookups, cache->misses, cache->evictions);
+void logCacheStats(LruCache *cache, const char *msg) {
+  log(LOG_INFO, "%s cache stats: %llu lookups / %llu misses / %llu evictions", msg, cache->lookups, cache->misses, cache->evictions);
 }
