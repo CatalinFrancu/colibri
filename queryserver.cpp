@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "board.h"
+#include "configfile.h"
 #include "defines.h"
 #include "egtb.h"
 #include "queryserver.h"
@@ -65,11 +66,11 @@ void startServer() {
 
   struct sockaddr_in sin;
   sin.sin_family = AF_INET;
-  sin.sin_port = htons(QUERY_SERVER_PORT);
+  sin.sin_port = htons(cfgQueryServerPort);
   sin.sin_addr.s_addr = INADDR_ANY;
   assert(!bind(sock, (struct sockaddr*)&sin, sizeof(sin)));
   assert(!listen(sock, 10));
-  printf("Listening for connections on port %d\n", QUERY_SERVER_PORT);
+  printf("Listening for connections on port %d\n", cfgQueryServerPort);
   while (true) {
     int conn = accept(sock, NULL, NULL);
     assert(conn != -1);

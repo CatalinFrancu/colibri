@@ -1,0 +1,13 @@
+; Configuration file for Colibri
+
+; Number of chunks to store in the EGTB cache.
+; The size of each chunk is fixed when the EGTB are generated (default 32 KB).
+; For example, if egtbChunks = 16384, the total EGTB cache memory is 512 MB.
+egtbChunks = 16384
+
+; Absolute path to the EGTB
+egtbPath = "/home/cata/public_html/colibri/egtb"
+
+; Port on which the query server is listening for connections.
+; This is used in conjunction with the web-based query frontend.
+queryServerPort = 2359
