@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "configfile.h"
 #include "egtb.h"
 #include "fileutil.h"
 #include "precomp.h"
 #include "queryserver.h"
 
 int main(int argc, char **argv) {
+  loadConfigFile(CONFIG_FILE);
   precomputeAll();
   initEgtb();
 
@@ -24,8 +26,14 @@ int main(int argc, char **argv) {
     startServer();
   }
 
-//  generateEgtb("KQvNP");
-//  compressEgtb("KQvNP");
-  generateAllEgtb(4, 1);
-//  verifyEgtb("KBNvK");
+//  generateEgtb("KQBNvK");
+//  verifyEgtb("KQBNvK");
+//  compressEgtb("KQBNvK");
+//  generateEgtb("KQBNvQ");
+//  verifyEgtb("KQBNvQ");
+//  compressEgtb("KQBNvQ");
+//  generateEgtb("KQBNvR");
+//  verifyEgtb("KQBNvR");
+//  compressEgtb("KQBNvR");
+//  generateAllEgtb(2, 2);
 }

@@ -7,6 +7,7 @@
 #include "lrucache.h"
 #include "movegen.h"
 #include "precomp.h"
+#include "stringutil.h"
 
 /************************* Tests for bitmanip.cpp *************************/
 
@@ -1130,4 +1131,49 @@ BOOST_AUTO_TEST_CASE(testLruCache) {
   BOOST_CHECK_EQUAL(cache.lookups, 4);
   BOOST_CHECK_EQUAL(cache.misses, 1);
   BOOST_CHECK_EQUAL(cache.evictions, 1);
+}
+
+/************************* Tests for stringutil.cpp *************************/
+
+BOOST_AUTO_TEST_CASE(testEndsWith) {
+  BOOST_CHECK(endsWith("mama", "a"));
+  BOOST_CHECK(endsWith("mama", "mama"));
+  BOOST_CHECK(endsWith("mama", ""));
+  BOOST_CHECK(!endsWith("mama", "b"));
+  BOOST_CHECK(!endsWith("", "a"));
+}
+
+BOOST_AUTO_TEST_CASE(testTrim) {
+  const char s1[5] = "mama";
+  BOOST_CHECK_EQUAL(trim((char*)s1), "mama");
+
+  const char s2[15] = "   mama\t\t \n  ";
+  BOOST_CHECK_EQUAL(trim((char*)s2), "mama");
+
+  const char s3[1] = "";
+  BOOST_CHECK_EQUAL(trim((char*)s3), "");
+}
+
+BOOST_AUTO_TEST_CASE(testSplit) {
+  const char s1[8] = "foo=bar";
+  BOOST_CHECK_EQUAL(split((char*)s1, '='), "bar");
+  BOOST_CHECK_EQUAL(s1, "foo");
+
+  const char s2[8] = "foo0bar";
+  BOOST_CHECK(!split((char*)s2, '='));
+  BOOST_CHECK_EQUAL(s2, "foo0bar");
+}
+
+BOOST_AUTO_TEST_CASE(testUnquote) {
+  const char s1[5] = "mama";
+  BOOST_CHECK_EQUAL(unquote((char*)s1), "mama");
+
+  const char s2[7] = "\"mama\"";
+  BOOST_CHECK_EQUAL(unquote((char*)s2), "mama");
+
+  const char s3[6] = "\"mama";
+  BOOST_CHECK_EQUAL(unquote((char*)s3), "\"mama");
+
+  const char s4[2] = "m";
+  BOOST_CHECK_EQUAL(unquote((char*)s4), "m");
 }

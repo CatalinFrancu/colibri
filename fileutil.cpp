@@ -3,20 +3,21 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include "bitmanip.h"
+#include "configfile.h"
 #include "defines.h"
 #include "fileutil.h"
 #include "precomp.h"
 
 string getFileNameForCombo(const char *combo) {
-  return string(EGTB_PATH) + "/" + combo + ".egt";
+  return cfgEgtbPath + "/" + combo + ".egt";
 }
 
 string getCompressedFileNameForCombo(const char *combo) {
-  return string(EGTB_PATH) + "/" + combo + ".egt.xz";
+  return cfgEgtbPath + "/" + combo + ".egt.xz";
 }
 
 string getIndexFileNameForCombo(const char *combo) {
-  return string(EGTB_PATH) + "/" + combo + ".idx";
+  return cfgEgtbPath + "/" + combo + ".idx";
 }
 
 bool fileExists(const char *fileName) {
@@ -30,7 +31,7 @@ unsigned getFileSize(const char *fileName) {
 }
 
 void appendEgtbNote(const char *note, const char *combo) {
-  string fileName = string(EGTB_PATH) + "/notes.txt";
+  string fileName = string(cfgEgtbPath) + "/notes.txt";
   FILE *f = fopen(fileName.c_str(), "at");
   fprintf(f, "Combo %s: %s\n", combo, note);
   fclose(f);

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "board.h"
+#include "configfile.h"
 #include "defines.h"
 #include "egtb.h"
 #include "fileutil.h"
@@ -13,7 +14,7 @@
 LruCache egtbCache;
 
 void initEgtb() {
-  egtbCache = lruCacheCreate(EGTB_CHUNKS);
+  egtbCache = lruCacheCreate(cfgEgtbChunks);
 }
 
 inline u64 egtbGetKey(const char *combo, int index) {
