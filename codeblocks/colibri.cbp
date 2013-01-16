@@ -61,6 +61,8 @@
 		<Unit filename="../queryserver.h">
 			<Option target="Release" />
 		</Unit>
+		<Unit filename="../stringutil.cpp" />
+		<Unit filename="../stringutil.h" />
 		<Unit filename="../test.cpp">
 			<Option target="Testing" />
 		</Unit>
