@@ -28,14 +28,14 @@ int main(int argc, char **argv) {
     startServer();
   }
 
-  generateEgtb("NNvNN");
-  verifyEgtb("NNvNN");
-  compressEgtb("NNvNN");
+//  generateEgtb("KQBNvK");
+//  verifyEgtb("KQBNvK");
+//  compressEgtb("KQBNvK");
 //  generateEgtb("KQBNvQ");
 //  verifyEgtb("KQBNvQ");
 //  compressEgtb("KQBNvQ");
 //  generateEgtb("KQBNvR");
 //  verifyEgtb("KQBNvR");
 //  compressEgtb("KQBNvR");
-//  generateAllEgtb(3, 2);
+  generateAllEgtb(3, 2);
 }
