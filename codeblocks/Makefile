@@ -12,19 +12,19 @@ LD = g++
 WINDRES = windres
 
 INC = 
-CFLAGS =  -Wall -fexceptions -std=gnu++0x
+CFLAGS =  -O3 -Wall -fexceptions -std=gnu++0x
 RESINC = 
 LIBDIR = 
 LIB =  -llzma -lpthread
-LDFLAGS = 
+LDFLAGS =  -s
 
 INC_RELEASE =  $(INC)
-CFLAGS_RELEASE =  $(CFLAGS) -O3
+CFLAGS_RELEASE =  $(CFLAGS)
 RESINC_RELEASE =  $(RESINC)
 RCFLAGS_RELEASE =  $(RCFLAGS)
 LIBDIR_RELEASE =  $(LIBDIR)
 LIB_RELEASE = $(LIB)
-LDFLAGS_RELEASE =  $(LDFLAGS) -s
+LDFLAGS_RELEASE =  $(LDFLAGS)
 OBJDIR_RELEASE = ../obj/Release
 DEP_RELEASE = 
 OUT_RELEASE = ../bin/Release/colibri
@@ -51,11 +51,11 @@ OBJDIR_EGTBESTIMATOR = ../obj/EgtbEstimator
 DEP_EGTBESTIMATOR = 
 OUT_EGTBESTIMATOR = ../bin/EgtbEstimator/egtbEstimator
 
-OBJ_RELEASE = $(OBJDIR_RELEASE)/__/lrucache.o $(OBJDIR_RELEASE)/__/queryserver.o $(OBJDIR_RELEASE)/__/precomp.o $(OBJDIR_RELEASE)/__/movegen.o $(OBJDIR_RELEASE)/__/bitmanip.o $(OBJDIR_RELEASE)/__/fileutil.o $(OBJDIR_RELEASE)/__/egtb.o $(OBJDIR_RELEASE)/__/colibri.o $(OBJDIR_RELEASE)/__/board.o
+OBJ_RELEASE = $(OBJDIR_RELEASE)/__/lrucache.o $(OBJDIR_RELEASE)/__/timer.o $(OBJDIR_RELEASE)/__/stringutil.o $(OBJDIR_RELEASE)/__/queryserver.o $(OBJDIR_RELEASE)/__/precomp.o $(OBJDIR_RELEASE)/__/movegen.o $(OBJDIR_RELEASE)/__/bitmanip.o $(OBJDIR_RELEASE)/__/logging.o $(OBJDIR_RELEASE)/__/fileutil.o $(OBJDIR_RELEASE)/__/egtb.o $(OBJDIR_RELEASE)/__/configfile.o $(OBJDIR_RELEASE)/__/colibri.o $(OBJDIR_RELEASE)/__/board.o
 
-OBJ_TESTING = $(OBJDIR_TESTING)/__/lrucache.o $(OBJDIR_TESTING)/__/test.o $(OBJDIR_TESTING)/__/precomp.o $(OBJDIR_TESTING)/__/movegen.o $(OBJDIR_TESTING)/__/bitmanip.o $(OBJDIR_TESTING)/__/fileutil.o $(OBJDIR_TESTING)/__/egtb.o $(OBJDIR_TESTING)/__/board.o
+OBJ_TESTING = $(OBJDIR_TESTING)/__/lrucache.o $(OBJDIR_TESTING)/__/timer.o $(OBJDIR_TESTING)/__/test.o $(OBJDIR_TESTING)/__/stringutil.o $(OBJDIR_TESTING)/__/precomp.o $(OBJDIR_TESTING)/__/movegen.o $(OBJDIR_TESTING)/__/bitmanip.o $(OBJDIR_TESTING)/__/logging.o $(OBJDIR_TESTING)/__/fileutil.o $(OBJDIR_TESTING)/__/egtb.o $(OBJDIR_TESTING)/__/configfile.o $(OBJDIR_TESTING)/__/board.o
 
-OBJ_EGTBESTIMATOR = $(OBJDIR_EGTBESTIMATOR)/__/lrucache.o $(OBJDIR_EGTBESTIMATOR)/__/tools/egtbEstimator.o $(OBJDIR_EGTBESTIMATOR)/__/precomp.o $(OBJDIR_EGTBESTIMATOR)/__/movegen.o $(OBJDIR_EGTBESTIMATOR)/__/bitmanip.o $(OBJDIR_EGTBESTIMATOR)/__/fileutil.o $(OBJDIR_EGTBESTIMATOR)/__/egtb.o $(OBJDIR_EGTBESTIMATOR)/__/board.o
+OBJ_EGTBESTIMATOR = $(OBJDIR_EGTBESTIMATOR)/__/lrucache.o $(OBJDIR_EGTBESTIMATOR)/__/tools/egtbEstimator.o $(OBJDIR_EGTBESTIMATOR)/__/timer.o $(OBJDIR_EGTBESTIMATOR)/__/stringutil.o $(OBJDIR_EGTBESTIMATOR)/__/precomp.o $(OBJDIR_EGTBESTIMATOR)/__/movegen.o $(OBJDIR_EGTBESTIMATOR)/__/bitmanip.o $(OBJDIR_EGTBESTIMATOR)/__/logging.o $(OBJDIR_EGTBESTIMATOR)/__/fileutil.o $(OBJDIR_EGTBESTIMATOR)/__/egtb.o $(OBJDIR_EGTBESTIMATOR)/__/configfile.o $(OBJDIR_EGTBESTIMATOR)/__/board.o
 
 all: release testing egtbestimator
 
@@ -75,6 +75,12 @@ out_release: $(OBJ_RELEASE) $(DEP_RELEASE)
 $(OBJDIR_RELEASE)/__/lrucache.o: ../lrucache.cpp
 	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c ../lrucache.cpp -o $(OBJDIR_RELEASE)/__/lrucache.o
 
+$(OBJDIR_RELEASE)/__/timer.o: ../timer.cpp
+	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c ../timer.cpp -o $(OBJDIR_RELEASE)/__/timer.o
+
+$(OBJDIR_RELEASE)/__/stringutil.o: ../stringutil.cpp
+	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c ../stringutil.cpp -o $(OBJDIR_RELEASE)/__/stringutil.o
+
 $(OBJDIR_RELEASE)/__/queryserver.o: ../queryserver.cpp
 	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c ../queryserver.cpp -o $(OBJDIR_RELEASE)/__/queryserver.o
 
@@ -87,11 +93,17 @@ $(OBJDIR_RELEASE)/__/movegen.o: ../movegen.cpp
 $(OBJDIR_RELEASE)/__/bitmanip.o: ../bitmanip.cpp
 	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c ../bitmanip.cpp -o $(OBJDIR_RELEASE)/__/bitmanip.o
 
+$(OBJDIR_RELEASE)/__/logging.o: ../logging.cpp
+	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c ../logging.cpp -o $(OBJDIR_RELEASE)/__/logging.o
+
 $(OBJDIR_RELEASE)/__/fileutil.o: ../fileutil.cpp
 	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c ../fileutil.cpp -o $(OBJDIR_RELEASE)/__/fileutil.o
 
-$(OBJDIR_RELEASE)/__/egtb.o: ../egtb.cc
-	$(CC) $(CFLAGS_RELEASE) $(INC_RELEASE) -c ../egtb.cc -o $(OBJDIR_RELEASE)/__/egtb.o
+$(OBJDIR_RELEASE)/__/egtb.o: ../egtb.cpp
+	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c ../egtb.cpp -o $(OBJDIR_RELEASE)/__/egtb.o
+
+$(OBJDIR_RELEASE)/__/configfile.o: ../configfile.cpp
+	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c ../configfile.cpp -o $(OBJDIR_RELEASE)/__/configfile.o
 
 $(OBJDIR_RELEASE)/__/colibri.o: ../colibri.cpp
 	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c ../colibri.cpp -o $(OBJDIR_RELEASE)/__/colibri.o
@@ -118,8 +130,14 @@ out_testing: $(OBJ_TESTING) $(DEP_TESTING)
 $(OBJDIR_TESTING)/__/lrucache.o: ../lrucache.cpp
 	$(CXX) $(CFLAGS_TESTING) $(INC_TESTING) -c ../lrucache.cpp -o $(OBJDIR_TESTING)/__/lrucache.o
 
+$(OBJDIR_TESTING)/__/timer.o: ../timer.cpp
+	$(CXX) $(CFLAGS_TESTING) $(INC_TESTING) -c ../timer.cpp -o $(OBJDIR_TESTING)/__/timer.o
+
 $(OBJDIR_TESTING)/__/test.o: ../test.cpp
 	$(CXX) $(CFLAGS_TESTING) $(INC_TESTING) -c ../test.cpp -o $(OBJDIR_TESTING)/__/test.o
+
+$(OBJDIR_TESTING)/__/stringutil.o: ../stringutil.cpp
+	$(CXX) $(CFLAGS_TESTING) $(INC_TESTING) -c ../stringutil.cpp -o $(OBJDIR_TESTING)/__/stringutil.o
 
 $(OBJDIR_TESTING)/__/precomp.o: ../precomp.cpp
 	$(CXX) $(CFLAGS_TESTING) $(INC_TESTING) -c ../precomp.cpp -o $(OBJDIR_TESTING)/__/precomp.o
@@ -130,11 +148,17 @@ $(OBJDIR_TESTING)/__/movegen.o: ../movegen.cpp
 $(OBJDIR_TESTING)/__/bitmanip.o: ../bitmanip.cpp
 	$(CXX) $(CFLAGS_TESTING) $(INC_TESTING) -c ../bitmanip.cpp -o $(OBJDIR_TESTING)/__/bitmanip.o
 
+$(OBJDIR_TESTING)/__/logging.o: ../logging.cpp
+	$(CXX) $(CFLAGS_TESTING) $(INC_TESTING) -c ../logging.cpp -o $(OBJDIR_TESTING)/__/logging.o
+
 $(OBJDIR_TESTING)/__/fileutil.o: ../fileutil.cpp
 	$(CXX) $(CFLAGS_TESTING) $(INC_TESTING) -c ../fileutil.cpp -o $(OBJDIR_TESTING)/__/fileutil.o
 
-$(OBJDIR_TESTING)/__/egtb.o: ../egtb.cc
-	$(CC) $(CFLAGS_TESTING) $(INC_TESTING) -c ../egtb.cc -o $(OBJDIR_TESTING)/__/egtb.o
+$(OBJDIR_TESTING)/__/egtb.o: ../egtb.cpp
+	$(CXX) $(CFLAGS_TESTING) $(INC_TESTING) -c ../egtb.cpp -o $(OBJDIR_TESTING)/__/egtb.o
+
+$(OBJDIR_TESTING)/__/configfile.o: ../configfile.cpp
+	$(CXX) $(CFLAGS_TESTING) $(INC_TESTING) -c ../configfile.cpp -o $(OBJDIR_TESTING)/__/configfile.o
 
 $(OBJDIR_TESTING)/__/board.o: ../board.cpp
 	$(CXX) $(CFLAGS_TESTING) $(INC_TESTING) -c ../board.cpp -o $(OBJDIR_TESTING)/__/board.o
@@ -162,6 +186,12 @@ $(OBJDIR_EGTBESTIMATOR)/__/lrucache.o: ../lrucache.cpp
 $(OBJDIR_EGTBESTIMATOR)/__/tools/egtbEstimator.o: ../tools/egtbEstimator.cpp
 	$(CXX) $(CFLAGS_EGTBESTIMATOR) $(INC_EGTBESTIMATOR) -c ../tools/egtbEstimator.cpp -o $(OBJDIR_EGTBESTIMATOR)/__/tools/egtbEstimator.o
 
+$(OBJDIR_EGTBESTIMATOR)/__/timer.o: ../timer.cpp
+	$(CXX) $(CFLAGS_EGTBESTIMATOR) $(INC_EGTBESTIMATOR) -c ../timer.cpp -o $(OBJDIR_EGTBESTIMATOR)/__/timer.o
+
+$(OBJDIR_EGTBESTIMATOR)/__/stringutil.o: ../stringutil.cpp
+	$(CXX) $(CFLAGS_EGTBESTIMATOR) $(INC_EGTBESTIMATOR) -c ../stringutil.cpp -o $(OBJDIR_EGTBESTIMATOR)/__/stringutil.o
+
 $(OBJDIR_EGTBESTIMATOR)/__/precomp.o: ../precomp.cpp
 	$(CXX) $(CFLAGS_EGTBESTIMATOR) $(INC_EGTBESTIMATOR) -c ../precomp.cpp -o $(OBJDIR_EGTBESTIMATOR)/__/precomp.o
 
@@ -171,11 +201,17 @@ $(OBJDIR_EGTBESTIMATOR)/__/movegen.o: ../movegen.cpp
 $(OBJDIR_EGTBESTIMATOR)/__/bitmanip.o: ../bitmanip.cpp
 	$(CXX) $(CFLAGS_EGTBESTIMATOR) $(INC_EGTBESTIMATOR) -c ../bitmanip.cpp -o $(OBJDIR_EGTBESTIMATOR)/__/bitmanip.o
 
+$(OBJDIR_EGTBESTIMATOR)/__/logging.o: ../logging.cpp
+	$(CXX) $(CFLAGS_EGTBESTIMATOR) $(INC_EGTBESTIMATOR) -c ../logging.cpp -o $(OBJDIR_EGTBESTIMATOR)/__/logging.o
+
 $(OBJDIR_EGTBESTIMATOR)/__/fileutil.o: ../fileutil.cpp
 	$(CXX) $(CFLAGS_EGTBESTIMATOR) $(INC_EGTBESTIMATOR) -c ../fileutil.cpp -o $(OBJDIR_EGTBESTIMATOR)/__/fileutil.o
 
-$(OBJDIR_EGTBESTIMATOR)/__/egtb.o: ../egtb.cc
-	$(CC) $(CFLAGS_EGTBESTIMATOR) $(INC_EGTBESTIMATOR) -c ../egtb.cc -o $(OBJDIR_EGTBESTIMATOR)/__/egtb.o
+$(OBJDIR_EGTBESTIMATOR)/__/egtb.o: ../egtb.cpp
+	$(CXX) $(CFLAGS_EGTBESTIMATOR) $(INC_EGTBESTIMATOR) -c ../egtb.cpp -o $(OBJDIR_EGTBESTIMATOR)/__/egtb.o
+
+$(OBJDIR_EGTBESTIMATOR)/__/configfile.o: ../configfile.cpp
+	$(CXX) $(CFLAGS_EGTBESTIMATOR) $(INC_EGTBESTIMATOR) -c ../configfile.cpp -o $(OBJDIR_EGTBESTIMATOR)/__/configfile.o
 
 $(OBJDIR_EGTBESTIMATOR)/__/board.o: ../board.cpp
 	$(CXX) $(CFLAGS_EGTBESTIMATOR) $(INC_EGTBESTIMATOR) -c ../board.cpp -o $(OBJDIR_EGTBESTIMATOR)/__/board.o
