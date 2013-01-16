@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -8,6 +7,8 @@
 
 int cfgEgtbChunks;
 string cfgEgtbPath;
+string cfgLogFile;
+int cfgLogLevel;
 int cfgQueryServerPort;
 
 void loadConfigFile(const char *fileName) {
@@ -35,11 +36,14 @@ void loadConfigFile(const char *fileName) {
       trim(key); // Should only be a right trim
       value = trim(value);
       value = unquote(value);
-      printf("Key: [%s] Value: [%s]\n", key, value);
       if (!strcmp(key, "egtbChunks")) {
         cfgEgtbChunks = atoi(value);
       } else if (!strcmp(key, "egtbPath")) {
         cfgEgtbPath = string(value);
+      } else if (!strcmp(key, "logFile")) {
+        cfgLogFile = string(value);
+      } else if (!strcmp(key, "logLevel")) {
+        cfgLogLevel = atoi(value);
       } else if (!strcmp(key, "queryServerPort")) {
         cfgQueryServerPort = atoi(value);
       }

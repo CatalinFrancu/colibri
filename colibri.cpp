@@ -4,11 +4,13 @@
 #include "configfile.h"
 #include "egtb.h"
 #include "fileutil.h"
+#include "logging.h"
 #include "precomp.h"
 #include "queryserver.h"
 
 int main(int argc, char **argv) {
   loadConfigFile(CONFIG_FILE);
+  logInit(cfgLogFile.c_str());
   precomputeAll();
   initEgtb();
 
@@ -17,7 +19,7 @@ int main(int argc, char **argv) {
     switch (opt) {
       case 's': command = 1; break; // Query server
       default:
-        fprintf(stderr, "Unknown switch -%c\n", opt);
+        log(LOG_ERROR, "Unknown switch -%c", opt);
         exit(1);
      }
   }
@@ -26,14 +28,14 @@ int main(int argc, char **argv) {
     startServer();
   }
 
-//  generateEgtb("KQBNvK");
-//  verifyEgtb("KQBNvK");
-//  compressEgtb("KQBNvK");
+  generateEgtb("NNvNN");
+  verifyEgtb("NNvNN");
+  compressEgtb("NNvNN");
 //  generateEgtb("KQBNvQ");
 //  verifyEgtb("KQBNvQ");
 //  compressEgtb("KQBNvQ");
 //  generateEgtb("KQBNvR");
 //  verifyEgtb("KQBNvR");
 //  compressEgtb("KQBNvR");
-//  generateAllEgtb(2, 2);
+//  generateAllEgtb(3, 2);
 }

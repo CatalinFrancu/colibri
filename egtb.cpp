@@ -7,6 +7,7 @@
 #include "defines.h"
 #include "egtb.h"
 #include "fileutil.h"
+#include "logging.h"
 #include "lrucache.h"
 #include "movegen.h"
 #include "precomp.h"
@@ -45,7 +46,7 @@ char* readEgtbChunkFromFile(const char *combo, int chunkNo) {
     data = (char*)malloc(EGTB_CHUNK_SIZE);
     fseek(f, startPos, SEEK_SET);
     if (!fread(data, 1, EGTB_CHUNK_SIZE, f)) {
-      printf("Warning: no bytes read from EGTB combo %s chunk %d\n", combo, chunkNo);
+      log(LOG_WARNING, "No bytes read from EGTB combo %s chunk %d", combo, chunkNo);
       free(data);
       return NULL;
     }
@@ -518,10 +519,10 @@ bool generateEgtb(const char *combo) {
   string destName = getFileNameForCombo(combo);
   string compressedName = getCompressedFileNameForCombo(combo);
   if (fileExists(destName.c_str()) || fileExists(compressedName.c_str())) {
-    printf("Table %s already exists, skipping\n", combo);
+    log(LOG_INFO, "Table %s already exists, skipping", combo);
     return false;
   }
-  printf("Generating table %s into file %s\n", combo, destName.c_str());
+  log(LOG_INFO, "Generating table %s into file %s", combo, destName.c_str());
   const char *tmpBoardName1 = "/tmp/egtb-gen-boards1";
   const char *tmpBoardName2 = "/tmp/egtb-gen-boards2";
   PieceSet ps[EGTB_MEN];
@@ -542,7 +543,7 @@ bool generateEgtb(const char *combo) {
   }
   fclose(fBoards1);
   int solved = getFileSize(tmpBoardName1) / sizeof(unsigned);
-  printf("Discovered %d boards with wins and losses in 0 or 1 half-moves\n", solved);
+  log(LOG_INFO, "Discovered %d boards with wins and losses in 0 or 1 half-moves", solved);
 
   int targetScore = 1;
   Move mf[200], mb[200]; // Storage space for forward and backward moves
@@ -563,7 +564,7 @@ bool generateEgtb(const char *combo) {
     rename(tmpBoardName2, tmpBoardName1);
     int solvedStep = getFileSize(tmpBoardName1) / sizeof(unsigned);
     solved += solvedStep;
-    printf("Discovered %d boards at score ±%d\n", solvedStep, targetScore);
+    log(LOG_DEBUG, "Discovered %d boards at score ±%d", solvedStep, targetScore);
   }
   if (targetScore == 126 && getFileSize(tmpBoardName1)) {
     appendEgtbNote("Table reached score 127", combo);
@@ -571,15 +572,15 @@ bool generateEgtb(const char *combo) {
 
   // Done! Dump the generated table in the EGTB folder and delete the temp files
   unlink(tmpBoardName1);
-  printf("Dumping table to [%s]\n", destName.c_str());
+  log(LOG_DEBUG, "Dumping table to [%s]\n", destName.c_str());
   FILE *fTable = fopen(destName.c_str(), "w");
   fwrite(memTable, size, 1, fTable);
   fclose(fTable);
   free(memTable);
-  printf("Table size: %d, of which non-draws: %d\n", size, solved);
-  printf("Longest win/loss:\n");
+  log(LOG_INFO, "Table size: %d, of which non-draws: %d", size, solved);
+  log(LOG_DEBUG, "Longest win/loss:");
   printBoard(&b);
-  printCacheStats(&egtbCache, "EGTB");
+  logCacheStats(&egtbCache, "EGTB");
   return true;
 }
 
@@ -643,12 +644,11 @@ int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int 
 
 void matchOrDie(bool condition, Board *b, int score, int minNeg, int maxNeg, int minPos, int maxPos, bool anyDraws, int *childScores, int numMoves) {
   if (!condition) {
-    printf("VERIFICATION ERROR: score %d, minNeg %d, maxNeg %d, minPos %d, maxPos %d, anyDraws %d\n",score, minNeg, maxNeg, minPos, maxPos, anyDraws);
-    printf("Child scores:");
+    log(LOG_ERROR, "VERIFICATION ERROR: score %d, minNeg %d, maxNeg %d, minPos %d, maxPos %d, anyDraws %d",score, minNeg, maxNeg, minPos, maxPos, anyDraws);
+    log(LOG_ERROR, "Child scores:");
     for (int i = 0; i < numMoves; i++) {
-      printf(" %d", childScores[i]);
+      log(LOG_ERROR, "%d", childScores[i]);
     }
-    printf("\n");
     printBoard(b);
     assert(false);
   }
@@ -803,8 +803,8 @@ void egtbVerifyHelper(const char *combo, int side, int level, int maxLevel, int 
       u64 mask = 1ull << sq;
       if (b->bb[BB_EMPTY] & mask) {
         if (!level) {
-          printf("  Level %d: placing a %c at %s\n", level, combo[level], SQUARE_NAME(sq).c_str());
-          printCacheStats(&egtbCache, "EGTB");
+          log(LOG_DEBUG, "  Level %d: placing a %c at %s", level, combo[level], SQUARE_NAME(sq).c_str());
+          logCacheStats(&egtbCache, "EGTB");
         }
         b->bb[base] ^= mask;
         b->bb[base + piece] ^= mask;
@@ -819,7 +819,7 @@ void egtbVerifyHelper(const char *combo, int side, int level, int maxLevel, int 
 }
 
 void verifyEgtb(const char *combo) {
-  printf("Verifying table %s\n", combo);
+  log(LOG_INFO, "Verifying table %s", combo);
   Board b;
   emptyBoard(&b);
   Move m[200];

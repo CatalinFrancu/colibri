@@ -6,6 +6,7 @@
 #include "configfile.h"
 #include "defines.h"
 #include "fileutil.h"
+#include "logging.h"
 #include "precomp.h"
 
 string getFileNameForCombo(const char *combo) {
@@ -101,10 +102,10 @@ void compressBlocks(FILE *fin, FILE *fout, FILE *fidx, int blockSize) {
 void compressFile(const char *name, const char *compressed, const char *index, int blockSize, bool removeOriginal) {
   FILE *fin = fopen(name, "rb");
   if (!fin) {
-    printf("File %s does not exist, so not compressing\n", name);
+    log(LOG_WARNING, "File %s does not exist, so not compressing", name);
     return;
   }
-  printf("Compressing %s to %s and %s\n", name, compressed, index);
+  log(LOG_INFO, "Compressing %s to %s and %s", name, compressed, index);
   FILE *fout = fopen(compressed, "wb");
   FILE *fidx = fopen(index, "wb");
   compressBlocks(fin, fout, fidx, blockSize);
@@ -112,7 +113,7 @@ void compressFile(const char *name, const char *compressed, const char *index, i
   fclose(fout);
   fclose(fidx);
   if (removeOriginal) {
-    printf("Removing uncompressed file %s\n", name);
+    log(LOG_INFO, "Removing uncompressed file %s", name);
     unlink(name);
   }
 }
