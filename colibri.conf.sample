@@ -8,6 +8,19 @@ egtbChunks = 16384
 ; Absolute path to the EGTB
 egtbPath = "/home/cata/public_html/colibri/egtb"
 
+; Absolute path to the log file, or "stdout" or "stderr"
+logFile = stdout
+; logFile = stderr
+; logFile = "/tmp/colibri.log"
+
+; Log levels. Only messages at or below logLevel will be logged to logFile.
+; 0 = no logging
+; 1 = ERROR
+; 2 = WARNING
+; 3 = NOTICE
+; 4 = DEBUG
+logLevel = 4
+
 ; Port on which the query server is listening for connections.
 ; This is used in conjunction with the web-based query frontend.
 queryServerPort = 2359
