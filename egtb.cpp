@@ -11,6 +11,7 @@
 #include "lrucache.h"
 #include "movegen.h"
 #include "precomp.h"
+#include "timer.h"
 
 LruCache egtbCache;
 
@@ -167,6 +168,12 @@ int getEpEgtbSize(PieceSet *ps, int nps) {
     left -= ps[i].count;
   }
   return result;
+}
+
+int getComboSize(const char *combo) {
+  PieceSet ps[EGTB_MEN];
+  int nps = comboToPieceSets(combo, ps);
+  return getEgtbSize(ps, nps) + getEpEgtbSize(ps, nps);
 }
 
 int getEpEgtbIndex(PieceSet *ps, int nps, Board *b) {
@@ -522,6 +529,7 @@ bool generateEgtb(const char *combo) {
     log(LOG_INFO, "Table %s already exists, skipping", combo);
     return false;
   }
+  u64 timer = timerGet();
   log(LOG_INFO, "Generating table %s into file %s", combo, destName.c_str());
   const char *tmpBoardName1 = "/tmp/egtb-gen-boards1";
   const char *tmpBoardName2 = "/tmp/egtb-gen-boards2";
@@ -572,12 +580,14 @@ bool generateEgtb(const char *combo) {
 
   // Done! Dump the generated table in the EGTB folder and delete the temp files
   unlink(tmpBoardName1);
-  log(LOG_DEBUG, "Dumping table to [%s]\n", destName.c_str());
+  log(LOG_DEBUG, "Dumping table to [%s]", destName.c_str());
   FILE *fTable = fopen(destName.c_str(), "w");
   fwrite(memTable, size, 1, fTable);
   fclose(fTable);
   free(memTable);
   log(LOG_INFO, "Table size: %d, of which non-draws: %d", size, solved);
+  u64 delta = timerGet() - timer;
+  log(LOG_INFO, "Generation time: %.3f s (%.3f positions/s)", delta / 1000.0, size / (delta / 1000.0));
   log(LOG_DEBUG, "Longest win/loss:");
   printBoard(&b);
   logCacheStats(&egtbCache, "EGTB");
@@ -819,13 +829,17 @@ void egtbVerifyHelper(const char *combo, int side, int level, int maxLevel, int 
 }
 
 void verifyEgtb(const char *combo) {
+  u64 timer = timerGet();
   log(LOG_INFO, "Verifying table %s", combo);
   Board b;
   emptyBoard(&b);
   Move m[200];
   PieceSet ps[EGTB_MEN];
   int nps = comboToPieceSets(combo, ps);
+  int size = getComboSize(combo);
   egtbVerifyHelper(combo, WHITE, 0, strlen(combo), 0, &b, m, ps, nps);
+  u64 delta = timerGet() - timer;
+  log(LOG_INFO, "Verification time: %.3f s (%.3f positions/s)", delta / 1000.0, size / (delta / 1000.0));
 }
 
 /* Converts a combination between 0 and choose(k + 5, k) to a string of k piece names */
@@ -853,7 +867,11 @@ void compressEgtb(const char *combo) {
   if (fileExists(compressedName.c_str()) && fileExists(idxName.c_str())) {
     return;
   }
+  u64 timer = timerGet();
+  int size = getComboSize(combo);
   compressFile(name.c_str(), compressedName.c_str(), idxName.c_str(), EGTB_CHUNK_SIZE, true);
+  u64 delta = timerGet() - timer;
+  log(LOG_INFO, "Compression time: %.3f s (%.3f positions/s)", delta / 1000.0, size / (delta / 1000.0));
 }
 
 void generateAllEgtb(int wc, int bc) {
@@ -863,10 +881,14 @@ void generateAllEgtb(int wc, int bc) {
       string bs = comboEnumerate(j, bc);
       if ((wc > bc) || (i <= j)) {
         string combo = ws + "v" + bs;
+        int size = getComboSize(combo.c_str());
+        u64 timer = timerGet(), delta;
         if (generateEgtb(combo.c_str())) {
           verifyEgtb(combo.c_str());
         }
         compressEgtb(combo.c_str());
+        delta = timerGet() - timer;
+        log(LOG_INFO, "Total G + V + C time: %.3f s (%.3f positions/s)", delta / 1000.0, size / (delta / 1000.0));
       }
     }
   }
