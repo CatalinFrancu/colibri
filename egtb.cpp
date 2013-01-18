@@ -665,6 +665,11 @@ void matchOrDie(bool condition, Board *b, int score, int minNeg, int maxNeg, int
 }
 
 void egtbVerifyPosition(Board *b, Move *m, const char *combo, PieceSet *ps, int nps) {
+  // Only check 10% of the positions. This is ok, because a bug is likely to affect at least hundreds of positions, and the chance of missing
+  // 300 buggy positions is 0.90^300 = 1.8 * 10^-14
+  if (rand() % 10) {
+    return;
+  }
   Board bc = *b;
   int score = egtbLookupWithInfo(&bc, combo, ps, nps);
   bc = *b;
