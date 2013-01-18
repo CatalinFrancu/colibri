@@ -29,5 +29,6 @@ void log(int level, const char *format, ...) {
     vfprintf(logFile, format, vl);
     va_end(vl);
     fprintf(logFile, "\n");
+    fflush(logFile);
   }
 }
