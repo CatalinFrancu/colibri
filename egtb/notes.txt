@@ -1,2 +1,3 @@
-Combo KBNvK: Table reached 127 score
+Combo KBNvK: Table reached score 127
 Combo KRPvKP: Table reached score 127
+Combo KBNPvK: Table reached score 127
