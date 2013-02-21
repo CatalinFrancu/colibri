@@ -2,6 +2,7 @@
 #include <lzma.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include "bitmanip.h"
 #include "configfile.h"
 #include "defines.h"
