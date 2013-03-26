@@ -14,12 +14,12 @@ probably won't implement an alpha-beta algorithm.</p>
 <h1>Features</h1>
 
 <ul>
-  <li>5-men <a href="http://en.wikipedia.org/wiki/Endgame_tablebase">endgame tablebases</a> (EGTB) with en passant support;</li>
+  <li>5-men <a href="http://en.wikipedia.org/wiki/Endgame_tablebase">endgame tablebases</a> (EGTB) with en passant support (52 GB);</li>
 
-  <li>EGTB compression using <a href="http://tukaani.org/xz/">liblzma</a> (xz format, 32 KB block size, which appears to give a 12% compression);</li>
+  <li>EGTB compression using <a href="http://tukaani.org/xz/">liblzma</a> (xz format, 32 KB block size, which gives an 11% compression rate);</li>
 
   <li>EGTB are computed using retrograde analysis and stored as DTC (distance-to-conversion). Scores are truncated at +/- 127 so they fit on one
-  byte. Hopefully this won't cause Colibri to miss any important wins.</li>
+  byte. The only tables where this happens are KBNvK, KRPvKP and KBNPvK. Hopefully this won't cause Colibri to miss any important wins.</li>
 
   <li>Board representation using <a href="http://en.wikipedia.org/wiki/Bitboard">bitboards</a>.</li>
 </ul>
@@ -27,9 +27,6 @@ probably won't implement an alpha-beta algorithm.</p>
 <h1>TODO list</h1>
 
 <ul>
-  <li>5-men EGTB are still being generated and verified. That should take about a week of CPU time on my two computers. In the end they should require
-  50 to 60 GB of disk space</li>
-
   <li><a href="http://en.wikipedia.org/wiki/Proof-number_search">Proof number search</a> so I can start solving openings.</li>
 </ul>
 
@@ -55,7 +52,7 @@ to give it up and rewrite Colibri from scratch because Nilatac had several short
   svn checkout http://voronet.francu.com/repos/colibri
 </pre>
 
-<p>Once the 5-men EGTB are done, I will seed them on torrents. After that, I can begin work on the proof number search opening solver.</p>
+<p>I will seed the EGTB files on torrents once anybody asks. :-)</p>
 
 <h1>License</h1>
 
