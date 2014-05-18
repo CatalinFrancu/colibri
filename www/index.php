@@ -1,6 +1,6 @@
 <?php
 
-require_once 'smarty/Smarty.class.php';
+require_once 'smarty3/Smarty.class.php';
 define('BACKEND_PORT', 2359);
 
 $fen = isset($_GET['fen']) ? $_GET['fen'] : null;

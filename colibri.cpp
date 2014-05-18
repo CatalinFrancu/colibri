@@ -39,5 +39,5 @@ int main(int argc, char **argv) {
 //  generateEgtb("KQBNvR");
 //  verifyEgtb("KQBNvR");
 //  compressEgtb("KQBNvR");
-  generateAllEgtb(4, 1);
+  generateAllEgtb(3, 2);
 }
