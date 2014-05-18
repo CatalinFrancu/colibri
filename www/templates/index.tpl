@@ -90,7 +90,7 @@
         <td>
           <a href="?fen={$m.fen|escape:url}">{$m.move}</a>
         </td>
-        <td class="{include file=scoreClass.tpl score=$m.score}">{include file=score.tpl score=$m.score}</td>
+        <td class="{include file="scoreClass.tpl" score=$m.score}">{include file="score.tpl" score=$m.score}</td>
       </tr>
     {/foreach}
   </table>
