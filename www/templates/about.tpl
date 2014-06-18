@@ -1,6 +1,6 @@
 <h1>About Colibri</h1>
 
-<p>Colibri is a <a href="http://en.wikipedia.org/wiki/Antichess">suicide chess<a> engine. It plays according to FICS rules (stalemate is a win for the
+<p>Colibri is a <a href="http://en.wikipedia.org/wiki/Antichess">suicide chess</a> engine. It plays according to FICS rules (stalemate is a win for the
 player with the fewer pieces remaining -- variant 5 on Wikipedia).</p>
 
 <p>The fun thing about suicide chess, from a software engineer's point of view, is that it appears to be solvable, which means a computer could
