@@ -135,7 +135,7 @@ const char PIECE_INITIALS[8] = " PNBRQK";
 const int PIECE_BY_NAME[26] = { 0, BISHOP, 0, 0, 0, 0, 0, 0, 0, 0, KING, 0, 0, KNIGHT, 0, PAWN, QUEEN, ROOK, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 inline int sgn(int x) {
-  return (x > 0) ? 1 : ((x < 0) ? -1 : 0);
+  return (x > 0) - (x < 0);
 }
 
 #endif
