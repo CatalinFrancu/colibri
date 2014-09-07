@@ -11,6 +11,12 @@
 
 /************************* Tests for bitmanip.cpp *************************/
 
+BOOST_AUTO_TEST_CASE(testSgn) {
+  BOOST_CHECK_EQUAL(sgn(0), 0);
+  BOOST_CHECK_EQUAL(sgn(23), 1);
+  BOOST_CHECK_EQUAL(sgn(-18), -1);
+}
+
 BOOST_AUTO_TEST_CASE(testReverseBytes) {
   BOOST_CHECK_EQUAL(reverseBytes(0x1011121314151617ull), 0x1716151413121110ull);
 }
