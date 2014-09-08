@@ -55,6 +55,8 @@
 		<Unit filename="../lrucache.h" />
 		<Unit filename="../movegen.cpp" />
 		<Unit filename="../movegen.h" />
+		<Unit filename="../pns.cpp" />
+		<Unit filename="../pns.h" />
 		<Unit filename="../precomp.cpp" />
 		<Unit filename="../precomp.h" />
 		<Unit filename="../queryserver.cpp">
