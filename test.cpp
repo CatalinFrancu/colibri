@@ -89,8 +89,10 @@ BOOST_AUTO_TEST_CASE(testNChooseK) {
   BOOST_CHECK_EQUAL(choose[4][1], 4);
   if (EGTB_MEN > 3) {
     BOOST_CHECK_EQUAL(choose[6][2], 15);
-    BOOST_CHECK_EQUAL(choose[8][4], 70);
     BOOST_CHECK_EQUAL(choose[64][3], 41664);
+  }
+  if (EGTB_MEN > 4) {
+    BOOST_CHECK_EQUAL(choose[8][4], 70);
     BOOST_CHECK_EQUAL(choose[64][4], 635376);
   }
 }
@@ -99,28 +101,28 @@ BOOST_AUTO_TEST_CASE(testRankCombination) {
   BOOST_CHECK_EQUAL(rankCombination(0x8000000000000000ull, 0), 63);
   if (EGTB_MEN > 3) {
     BOOST_CHECK_EQUAL(rankCombination(0x000000000000000full, 0), 0);
-    BOOST_CHECK_EQUAL(rankCombination(0xf000000000000000ull, 0), 635375);
     BOOST_CHECK_EQUAL(rankCombination(0x0000010000400000ull, 0), 802);
-    BOOST_CHECK_EQUAL(rankCombination(0x0000f00000000000ull, 0), 194579);
     BOOST_CHECK_EQUAL(rankCombination(0x0000000001000040ull, 0), 282);
     BOOST_CHECK_EQUAL(rankCombination(0x0000000000000007ull, 0), 0);
 
     // Now some test cases where some squares are already taken, as indicated by the third argument
-    BOOST_CHECK_EQUAL(rankCombination(0x000000000000000full, 0x0000000010101080ull), 0);
     BOOST_CHECK_EQUAL(rankCombination(0x0000000000000c00ull, 0x000000000000000full), 27);
-    BOOST_CHECK_EQUAL(rankCombination(0x0f00000000000000ull, 0xf0f0f0f0f0f0f0f0ull), 35959);
     BOOST_CHECK_EQUAL(rankCombination(0x24ull, 0x11ull), 4);
+  }
+  if (EGTB_MEN > 4) {
+    BOOST_CHECK_EQUAL(rankCombination(0xf000000000000000ull, 0), 635375);
+    BOOST_CHECK_EQUAL(rankCombination(0x0000f00000000000ull, 0), 194579);
+
+    // Now some test cases where some squares are already taken, as indicated by the third argument
+    BOOST_CHECK_EQUAL(rankCombination(0x000000000000000full, 0x0000000010101080ull), 0);
+    BOOST_CHECK_EQUAL(rankCombination(0x0f00000000000000ull, 0xf0f0f0f0f0f0f0f0ull), 35959);
   }
 }
 
 BOOST_AUTO_TEST_CASE(testUnrankCombination) {
   BOOST_CHECK_EQUAL(unrankCombination(63, 1, 0), 0x8000000000000000ull);
   if (EGTB_MEN > 3) {
-    BOOST_CHECK_EQUAL(unrankCombination(0, 4, 0), 0x000000000000000full);
-    BOOST_CHECK_EQUAL(unrankCombination(635375, 4, 0), 0xf000000000000000ull);
     BOOST_CHECK_EQUAL(unrankCombination(802, 2, 0), 0x0000010000400000ull);
-
-    BOOST_CHECK_EQUAL(unrankCombination(194579, 4, 0), 0x0000f00000000000ull);
     BOOST_CHECK_EQUAL(unrankCombination(282, 2, 0), 0x0000000001000040ull);
     BOOST_CHECK_EQUAL(unrankCombination(0, 3, 0), 0x0000000000000007ull);
 
@@ -132,6 +134,11 @@ BOOST_AUTO_TEST_CASE(testUnrankCombination) {
     BOOST_CHECK_EQUAL(unrankCombination(1302, 2, 0x0000000010000400ull), 0x0020000020000000ull);
     BOOST_CHECK_EQUAL(unrankCombination(54, 2, 0x0000000000001800ull), 0x0000000000000600ull);
     BOOST_CHECK_EQUAL(unrankCombination(55, 2, 0x0000000000001800ull), 0x0000000000002001ull);
+  }
+  if (EGTB_MEN > 4) {
+    BOOST_CHECK_EQUAL(unrankCombination(0, 4, 0), 0x000000000000000full);
+    BOOST_CHECK_EQUAL(unrankCombination(635375, 4, 0), 0xf000000000000000ull);
+    BOOST_CHECK_EQUAL(unrankCombination(194579, 4, 0), 0x0000f00000000000ull);
   }
 }
 
@@ -695,6 +702,18 @@ BOOST_AUTO_TEST_CASE(testMakeBackwardMove) {
   free(witness);
 }
 
+BOOST_AUTO_TEST_CASE(testMakeMoveSequence) {
+  string s1[4] = { "e3", "e6", "b4", "Bxb4"};
+  Board *b = makeMoveSequence(4, s1);
+  string fen = boardToFen(b);
+  BOOST_CHECK_EQUAL(fen.compare("rnbqk1nr/pppp1ppp/4p3/8/1b6/4P3/P1PP1PPP/RNBQKBNR w - - 0 0"), 0);
+  free(b);
+
+  string s2[4] = { "e3", "e6", "z4", "Bxb4"};
+  b = makeMoveSequence(4, s2);
+ BOOST_CHECK(!b);
+}
+
 /************************* Tests for movegen.cpp *************************/
 
 BOOST_AUTO_TEST_CASE(testGetWhiteMoves) {
@@ -878,7 +897,7 @@ BOOST_AUTO_TEST_CASE(testGetBackwardMoves) {
   free(b);
 }
 
-/************************* Tests for egtb->cpp *************************/
+/************************* Tests for egtb.cpp *************************/
 
 BOOST_AUTO_TEST_CASE(testComboToPieceSets) {
   PieceSet ps[EGTB_MEN];
@@ -1182,4 +1201,11 @@ BOOST_AUTO_TEST_CASE(testUnquote) {
 
   const char s4[2] = "m";
   BOOST_CHECK_EQUAL(unquote((char*)s4), "m");
+}
+
+BOOST_AUTO_TEST_CASE(testIsFen) {
+  BOOST_CHECK_EQUAL(isFen("8/8/8/4N3/8/3b4/8/8 w - - 42 1"), true);
+  BOOST_CHECK_EQUAL(isFen("8/8/8/4N3/8/3b4/8 w - - 42 1"), false); // describes only 7 lines, not 8
+  BOOST_CHECK_EQUAL(isFen("e3 e6 b4 Bxb4"), false);
+  BOOST_CHECK_EQUAL(isFen("mama tata"), false);
 }

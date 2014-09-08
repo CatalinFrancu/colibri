@@ -16,5 +16,8 @@ char* unquote(char *s);
  * If there are no occurrences of the separator, returns null and leaves s unchanged. */
 char* split(char *s, char separator);
 
+/* Returns true iff the string represents a board in FEN notation. */
+bool isFen(const char * s);
+
 #endif
 

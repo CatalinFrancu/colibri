@@ -1,4 +1,6 @@
+#include <assert.h>
 #include <ctype.h>
+#include <regex.h>
 #include <string.h>
 #include "stringutil.h"
 
@@ -45,4 +47,11 @@ char* split(char *s, char separator) {
   }
   *t = '\0';
   return t + 1;
+}
+
+bool isFen(const char *s) {
+  regex_t r;
+
+  assert(!regcomp(&r, "([a-z1-8]+/){7}[a-z1-8]+ [bw] [-kq]+ [-a-h1-8]+ [0-9]+ [0-9]+", REG_EXTENDED | REG_ICASE | REG_NOSUB));
+  return !regexec(&r, s, 0, NULL, 0);
 }

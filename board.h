@@ -61,10 +61,14 @@ string boardToFen(Board *b);
 void getAlgebraicNotation(Board *b, Move *m, int numMoves, string *san);
 
 /* Make move m on the board b, modifying b */
-void makeMove(Board* b, Move m);
+void makeMove(Board *b, Move m);
 
 /* Make backward move m on the board b, modifying b. See the remarks for getAllMoves() (no un-captures, no un-promotions etc.) */
 void makeBackwardMove(Board *b, Move m);
+
+/* Make several moves beginning at the starting position. Checks legality.
+ *  Returns the resulting board or NULL on all errors. */
+Board* makeMoveSequence(int numMoveStrings, string *moveStrings);
 
 /* Statically evaluates a board:
  * - if one side has no pieces left, it wins

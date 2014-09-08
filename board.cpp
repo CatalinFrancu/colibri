@@ -6,6 +6,8 @@
 #include <string.h>
 #include "board.h"
 #include "egtb.h"
+#include "logging.h"
+#include "movegen.h"
 #include "precomp.h"
 
 void printBoard(Board *b) {
@@ -387,7 +389,7 @@ void getAlgebraicNotation(Board *b, Move *m, int numMoves, string *san) {
   }
 }
 
-void makeMoveForSide(Board* b, Move m, int allMe, int allYou) {
+void makeMoveForSide(Board *b, Move m, int allMe, int allYou) {
   u64 fromMask = 1ull << m.from;
   u64 toMask = 1ull << m.to;
 
@@ -443,6 +445,31 @@ void makeBackwardMove(Board *b, Move m) {
   b->side = WHITE + BLACK - b->side;
 }
 
+Board* makeMoveSequence(int numMoveStrings, string *moveStrings) {
+  Board *b = fenToBoard(NEW_BOARD);
+  Move m[200];
+  string san[200];
+  int numLegalMoves;
+  int i = 0;
+  while ((i < numMoveStrings) && b) {
+    numLegalMoves = getAllMoves(b, m, FORWARD);
+    // Get the SAN for every legal move in this position
+    getAlgebraicNotation(b, m, numLegalMoves, san);
+    int j = 0;
+    while ((j < numLegalMoves) && (san[j] != moveStrings[i])) {
+      j++;
+    }
+    if (j < numLegalMoves) {
+      makeMove(b, m[j]);
+    } else {
+      free(b);
+      b = NULL;
+      log(LOG_ERROR, "Bad move: %s", moveStrings[i].c_str());
+    }
+    i++;
+  }
+  return b;
+}
 
 int evalBoard(Board *b) {
   if (!b->bb[BB_WALL]) {

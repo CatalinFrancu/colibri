@@ -6,6 +6,7 @@
 #include "egtb.h"
 #include "fileutil.h"
 #include "logging.h"
+#include "pns.h"
 #include "precomp.h"
 #include "queryserver.h"
 
@@ -16,18 +17,15 @@ int main(int argc, char **argv) {
   initEgtb();
   srand(time(NULL));
 
-  int opt, command = 0;
-  while ((opt = getopt(argc, argv, "s")) != -1) {
+  int opt;
+  while ((opt = getopt(argc, argv, "a:s")) != -1) {
     switch (opt) {
-      case 's': command = 1; break; // Query server
+      case 'a': pnsAnalyzeString(optarg); break;  // Book research
+      case 's': startServer(); break;      // Query server
       default:
         log(LOG_ERROR, "Unknown switch -%c", opt);
         exit(1);
      }
-  }
-
-  if (command == 1) {
-    startServer();
   }
 
 //  generateEgtb("KQBNvK");
@@ -39,5 +37,5 @@ int main(int argc, char **argv) {
 //  generateEgtb("KQBNvR");
 //  verifyEgtb("KQBNvR");
 //  compressEgtb("KQBNvR");
-  generateAllEgtb(3, 2);
+//  generateAllEgtb(3, 2);
 }

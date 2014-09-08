@@ -1,0 +1,7 @@
+bin/
+codeblocks/colibri.depend
+codeblocks/colibri.layout
+colibri.conf
+egtb
+obj/
+www/templates_c/*
