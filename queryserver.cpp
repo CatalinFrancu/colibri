@@ -27,9 +27,9 @@ void handleEgtbQuery(FILE *fin, FILE *fout) {
   if (!b) {
     fprintf(fout, "Please make sure your FEN string is correct.\n");
   } else {
-    string moveNames[200];
-    string fens[200];
-    int scores[200];
+    string moveNames[MAX_MOVES];
+    string fens[MAX_MOVES];
+    int scores[MAX_MOVES];
     int numMoves;
     int score = batchEgtbLookup(b, moveNames, fens, scores, &numMoves);
     fprintf(fout, "\n%d %d\n", score, numMoves);

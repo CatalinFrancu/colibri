@@ -448,7 +448,7 @@ void iterateEpEgtbHelper(PieceSet *ps, int nps, int level, Board *b, Move *m, u6
 void iterateEpEgtb(PieceSet *ps, int nps, char *memTable, FILE *tmpBoards) {
   // Generate the 14 canonical placements for the pair of pawns.
   Board b;
-  Move m[200];
+  Move m[MAX_MOVES];
   for (int i = 0; i < 14; i++) {
     emptyBoard(&b);
     b.side = (i < 7) ? WHITE : BLACK;
@@ -537,7 +537,7 @@ bool generateEgtb(const char *combo) {
   PieceSet ps[EGTB_MEN];
   int numPieceSets = comboToPieceSets((char*)combo, ps);
   Board b;
-  Move m[200];
+  Move m[MAX_MOVES];
 
   // First populate all the immediate wins / losses (no legal moves) and immediate conversions (win/loss in 1).
   // Collect all the positions thus evaluated, in encoded form, in a temporary file.
@@ -555,7 +555,7 @@ bool generateEgtb(const char *combo) {
   log(LOG_INFO, "Discovered %d boards with wins and losses in 0 or 1 half-moves", solved);
 
   int targetScore = 1;
-  Move mf[200], mb[200]; // Storage space for forward and backward moves
+  Move mf[MAX_MOVES], mb[MAX_MOVES]; // Storage space for forward and backward moves
   while (getFileSize(tmpBoardName1) && targetScore < 126) {
     targetScore++;
     fBoards1 = fopen(tmpBoardName1, "r");
@@ -601,12 +601,13 @@ int egtbLookup(Board *b) {
     return EGTB_DRAW; // You're looking in the wrong place, buddy -- evalBoard() should catch this
   }
   if (wp + bp > EGTB_MEN) {
-    return EGTB_DRAW;
+    return EGTB_UNKNOWN;
   }
 
   changeSidesIfNeeded(b);
 
-  char combo[EGTB_MEN + 2];
+  // EGTB_MEN + 2 suffices here, but it raises a spurious warning from gcc: "array subscript is above array bounds".
+  char combo[17];
   int len = 0;
 
   // Construct the combo name
@@ -640,7 +641,7 @@ int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int 
   if (result == INFTY) {
     *numMoves = 0;
   } else {
-    Move m[200];
+    Move m[MAX_MOVES];
     *numMoves = getAllMoves(b, m, FORWARD);
     getAlgebraicNotation(b, m, *numMoves, moveNames);
     for (int i = 0; i < *numMoves; i++) {
@@ -839,7 +840,7 @@ void verifyEgtb(const char *combo) {
   log(LOG_INFO, "Verifying table %s", combo);
   Board b;
   emptyBoard(&b);
-  Move m[200];
+  Move m[MAX_MOVES];
   PieceSet ps[EGTB_MEN];
   int nps = comboToPieceSets(combo, ps);
   int size = getComboSize(combo);

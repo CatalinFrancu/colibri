@@ -60,6 +60,7 @@ using namespace std;
 
 /* For assorted purposes */
 #define INFTY 1000000000
+#define INFTY64 1000000000000000000ull
 
 /* If a bitboard is mutiplied by FILE_MAGIC, all the bits on the 'a' file will end up on the 8-th rank. */
 #define FILE_MAGIC 0x8040201008040201ull
@@ -75,11 +76,16 @@ using namespace std;
   square = ctz(x);                   \
   x &= x - 1;
 
+/* Maximum number of legal moves in a position */
+#define MAX_MOVES 200
+
 /* Maximum number of pieces in the endgame tables */
 #define EGTB_MEN 5
 
 /* EGTB scores are shifted by 1, e.g. -1 means "lost now", +1 means "won now", -7 means "losing in 6 half-moves */
 #define EGTB_DRAW 0
+
+#define EGTB_UNKNOWN 1000000000
 
 /* Directions of move generation. BACKWARD is used for retrograde analysis during EGTB generation */
 #define FORWARD true
@@ -105,6 +111,11 @@ using namespace std;
 
 /* Return a 2-character string naming the given square */
 #define SQUARE_NAME(sq) (FILE_NAME(sq) + RANK_NAME(sq))
+
+#define MIN(a,b) \
+  ({ __typeof__ (a) _a = (a); \
+     __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
 
 typedef unsigned long long u64;
 typedef unsigned char byte;
@@ -133,6 +144,17 @@ typedef struct {
 /* Piece names for move notation */
 const char PIECE_INITIALS[8] = " PNBRQK";
 const int PIECE_BY_NAME[26] = { 0, BISHOP, 0, 0, 0, 0, 0, 0, 0, 0, KING, 0, 0, KNIGHT, 0, PAWN, QUEEN, ROOK, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+/* A PN search tree node (it's really a DAG). */
+typedef struct PnsNode {
+  u64 proof;
+  u64 disproof;
+  struct PnsNode **child;
+  Move *move;
+  struct PnsNode **parent; // To handle transpositions, we need pointers to all the node's parents in the DAG.
+  byte numChildren;
+  byte numParents;
+} PnsTree;
 
 inline int sgn(int x) {
   return (x > 0) - (x < 0);

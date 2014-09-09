@@ -2,10 +2,12 @@
 #include <boost/test/included/unit_test.hpp>
 #include <unistd.h>
 #include "bitmanip.h"
+#include "configfile.h"
 #include "egtb.h"
 #include "fileutil.h"
 #include "lrucache.h"
 #include "movegen.h"
+#include "pns.h"
 #include "precomp.h"
 #include "stringutil.h"
 
@@ -673,7 +675,7 @@ BOOST_AUTO_TEST_CASE(testMakeBlackMove) {
 BOOST_AUTO_TEST_CASE(testMakeBackwardMove) {
   const char *fen = "3r1q2/2pb2k1/5n2/8/8/2N5/1K2BP2/2Q1R3 w - - 0 0";
   Board *witness = fenToBoard(fen);
-  Move m[200];
+  Move m[MAX_MOVES];
 
   Board *b = fenToBoard(fen);
   int numMoves = getAllMoves(b, m, FORWARD);
@@ -1208,4 +1210,37 @@ BOOST_AUTO_TEST_CASE(testIsFen) {
   BOOST_CHECK_EQUAL(isFen("8/8/8/4N3/8/3b4/8 w - - 42 1"), false); // describes only 7 lines, not 8
   BOOST_CHECK_EQUAL(isFen("e3 e6 b4 Bxb4"), false);
   BOOST_CHECK_EQUAL(isFen("mama tata"), false);
+}
+
+/************************* Tests for stringutil.cpp *************************/
+
+BOOST_AUTO_TEST_CASE(testPnsExpand) {
+  loadConfigFile(CONFIG_FILE);
+  initEgtb();
+  PnsTree *t;
+  Board *b;
+
+  t = pnsMakeLeaf();
+  b = fenToBoard("7r/8/8/8/8/8/8/K7 w - - 0 0"); // KvR: EGTB loss
+  pnsExpand(t, b);
+  BOOST_CHECK_EQUAL(t->proof, INFTY64);
+  BOOST_CHECK_EQUAL(t->disproof, 0);
+  free(t);
+  free(b);
+
+  t = pnsMakeLeaf();
+  b = fenToBoard("7r/8/8/8/8/8/8/K7 b - - 0 0");  // RvK: EGTB win
+  pnsExpand(t, b);
+  BOOST_CHECK_EQUAL(t->proof, 0);
+  BOOST_CHECK_EQUAL(t->disproof, INFTY64);
+  free(t);
+  free(b);
+
+  t = pnsMakeLeaf();
+  b = fenToBoard("8/p4p2/P1p2P2/2P5/8/8/8/8 w - - 0 0");  // PPPvPPP with no moves: draw
+  pnsExpand(t, b);
+  BOOST_CHECK_EQUAL(t->proof, INFTY64);
+  BOOST_CHECK_EQUAL(t->disproof, INFTY64);
+  free(t);
+  free(b);
 }

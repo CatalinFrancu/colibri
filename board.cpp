@@ -447,8 +447,8 @@ void makeBackwardMove(Board *b, Move m) {
 
 Board* makeMoveSequence(int numMoveStrings, string *moveStrings) {
   Board *b = fenToBoard(NEW_BOARD);
-  Move m[200];
-  string san[200];
+  Move m[MAX_MOVES];
+  string san[MAX_MOVES];
   int numLegalMoves;
   int i = 0;
   while ((i < numMoveStrings) && b) {
