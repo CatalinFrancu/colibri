@@ -15,6 +15,28 @@ PnsTree* pnsMakeLeaf() {
   return t;
 }
 
+/* Deallocates a PnsTree. */
+void pnsFree(PnsTree *t) {
+  if (t) {
+    for (int i = 0; i < t->numChildren; i++) {
+      // If a child has several parents, free it the last time we visit it
+      if (t == t->child[i]->parent[t->child[i]->numParents - 1]) {
+        pnsFree(t->child[i]);
+      }
+    }
+    if (t->parent) {
+      free(t->parent);
+    }
+    if (t->child) {
+      free(t->child);
+    }
+    if (t->move) {
+      free(t->move);
+    }
+    free(t);
+  }
+}
+
 /* Sets the proof and disproof numbers for a board with no legal moves */
 void pnsSetScoreNoMoves(PnsTree *t, Board *b) {
   int indexMe = (b->side == WHITE) ? BB_WALL : BB_BALL;
@@ -107,6 +129,47 @@ PnsTree* pnsAnalyzeBoard(Board *b, int maxNodes) {
   return root;
 }
 
+/* Encodes a move on 15 bits for saving. */
+void pnsEncondeMove(Move m, FILE*f) {
+  // 6 bits for m.from, 6 bits for m.to, 3 bits for m.promotion
+  unsigned short x = (m.from << 9) | (m.to << 3) | (m.promotion);
+  fwrite(&x, 2, 1, f);
+}
+
+/* Encodes a number of 2, 4, 6 or 8 bytes. Uses the first 2 bits for storing the length.
+ * TODO Assumes the machine is little-endian. */
+void pnsEncodeNumber(u64 x, FILE *f) {
+  if (x < 0x3fffull) { // fits on 2 bytes
+    unsigned short a = x;
+    fwrite(&a, 2, 1, f);
+  } else if (x < 0x3fffffffull) {
+    unsigned a = x & 0x40000000ull;
+    fwrite(&a, 2, 1, f);
+  }
+  // ...
+}
+
+void pnsSaveNode(PnsTree *t, PnsTree *parent, FILE *f) {
+  if (parent && (parent == t->parent[0])) { // do nothing for transpositions
+    fputc(t->numChildren, f);
+    if (t->numChildren) {
+      for (int i = 0; i < t->numChildren; i++) {
+        pnsEncondeMove(t->move[i], f);
+        pnsSaveNode(t->child[i], t, f);
+      }
+    } else {
+      pnsEncodeNumber(t->proof, f);
+      pnsEncodeNumber(t->disproof, f);
+    }
+  }
+}
+
+void pnsSaveTree(PnsTree *t) {
+  FILE *f = fopen("pns.out", "w");
+  pnsSaveNode(t, NULL, f);
+  fclose(f);
+}
+
 void pnsAnalyzeString(char *input) {
   Board *b;
   if (isFen(input)) {
@@ -126,8 +189,10 @@ void pnsAnalyzeString(char *input) {
     b = makeMoveSequence(n, moves);
   }
   if (b) {
-    pnsAnalyzeBoard(b, 1000000);
+    PnsTree *t = pnsAnalyzeBoard(b, 1000000);
+    pnsSaveTree(t);
     free(b);
+    free(t);
   } else {
     log(LOG_ERROR, "Invalid input for PNS analysis");
   }
