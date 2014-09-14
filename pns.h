@@ -4,6 +4,9 @@
 /* Creates a PnsTree node with no children and no parents and proof/disproof values of 1. */
 PnsTree* pnsMakeLeaf();
 
+/* Deallocates a PnsTree. */
+void pnsFree(PnsTree *t);
+
 /* Expands the most proving node and sets its proof and disproof numbers.
  * Does not create child nodes if the node has a known EGTB value or if there are no legal moves. */
 void pnsExpand(PnsTree *t, Board *b);
@@ -13,6 +16,6 @@ void pnsExpand(PnsTree *t, Board *b);
 void pnsAnalyzeString(string input, string fileName);
 
 /* Analyze a board using proof number search */
-void pnsAnalyzeBoard(Board *b);
+PnsTree* pnsAnalyzeBoard(Board *b, int maxNodes);
 
 #endif

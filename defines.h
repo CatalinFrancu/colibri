@@ -1,6 +1,7 @@
 #ifndef __DEFINES_H__
 #define __DEFINES_H__
 #include <stddef.h>
+#include <unordered_map>
 using namespace std;
 
 /* Config file name, without the directory. The file is assumed to reside in the colibri/ installation directory. */
@@ -162,6 +163,9 @@ typedef struct PnsNode {
   byte numChildren;
   byte numParents;
 } PnsTree;
+
+/* A transposition table stores pointers into a PnsTree */
+typedef unordered_map<u64, PnsTree*> TranspositionTable;
 
 inline int sgn(int x) {
   return (x > 0) - (x < 0);

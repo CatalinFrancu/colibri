@@ -6,7 +6,11 @@
 #include "logging.h"
 #include "movegen.h"
 #include "stringutil.h"
+#include "zobrist.h"
 
+TranspositionTable trans;
+
+/* Creates a 1/1 node. */
 PnsTree* pnsMakeLeaf() {
   PnsTree *t = (PnsTree*)malloc(sizeof(PnsTree));
   t->proof = t->disproof = 1;
@@ -16,7 +20,30 @@ PnsTree* pnsMakeLeaf() {
   return t;
 }
 
-/* Deallocates a PnsTree. */
+/* Adds a parent to a PNS node (presumably because we found a transposed path to it). */
+PnsTree* pnsAddParent(PnsTree *t, PnsTree *parent) {
+  t->parent = (PnsTree**)realloc(t->parent, (t->numParents + 1) * sizeof(PnsTree*));
+  t->parent[t->numParents++] = parent;
+}
+
+/* Looks up a Zobrist key in the transposition table. */
+PnsTree* pnsGetTransposition(u64 zobrist) {
+  TranspositionTable::const_iterator lookup = trans.find(zobrist);
+  return (lookup == trans.end()) ? NULL : lookup->second;
+}
+
+void pnsPrintTree(PnsTree *t, int level) {
+  for (int i = 0; i < t->numChildren; i++) {
+    for (int j = 0; j < level; j++) {
+      printf("    ");
+    }
+    string from = SQUARE_NAME(t->move[i].from);
+    string to = SQUARE_NAME(t->move[i].to);
+    printf("%s%s %llu/%llu\n", from.c_str(), to.c_str(), t->child[i]->proof, t->child[i]->disproof);
+    pnsPrintTree(t->child[i], level + 1);
+  }
+}
+
 void pnsFree(PnsTree *t) {
   if (t) {
     for (int i = 0; i < t->numChildren; i++) {
@@ -48,6 +75,20 @@ void pnsSetScoreNoMoves(PnsTree *t, Board *b) {
   t->disproof = (countMe > countOther) ? 0 : INFTY64;
 }
 
+/* Sets the proof and disproof numbers for an EGTB board */
+void pnsSetScoreEgtb(PnsTree *t, int score) {
+  if (score == EGTB_DRAW) { // EGTB draw
+    t->proof = INFTY64;
+    t->disproof = INFTY64;
+  } else if (score > 0) {   // EGTB win
+    t->proof = 0;
+    t->disproof = INFTY64;
+  } else {                  // EGTB loss
+    t->proof = INFTY64;
+    t->disproof = 0;
+  }
+}
+
 /* Finds the most proving node in a PNS tree. Starting with the original board b, also makes the necessary moves
  * modifying b, returning the position corresponding to the MPN. */
 PnsTree* pnsSelectMpn(PnsTree *t, Board *b) {
@@ -64,35 +105,34 @@ PnsTree* pnsSelectMpn(PnsTree *t, Board *b) {
 
 void pnsExpand(PnsTree *t, Board *b) {
   int score = evalBoard(b);
-  if (score == EGTB_UNKNOWN) {
+  if (score != EGTB_UNKNOWN) {
+    pnsSetScoreEgtb(t, score);
+  } else {
     Move m[MAX_MOVES];
     t->numChildren = getAllMoves(b, m, FORWARD);
-    if (t->numChildren) {                                               // Regular node
+    if (!t->numChildren) {                                               // No legal moves
+      t->child = NULL;
+      t->move = NULL;
+      pnsSetScoreNoMoves(t, b);
+    } else {                                                            // Regular node
       t->move = (Move*)malloc(t->numChildren * sizeof(Move));
       memcpy(t->move, m, t->numChildren * sizeof(Move));
       t->proof = 1;
       t->disproof = t->numChildren;
       t->child = (PnsTree**)malloc(t->numChildren * sizeof(PnsTree*));
+      u64 z = getZobrist(b);
       for (int i = 0; i < t->numChildren; i++) {
-        t->child[i] = pnsMakeLeaf();
-        t->child[i]->numParents = 1;
-        t->child[i]->parent = (PnsTree**)malloc(sizeof(PnsTree*));
-        t->child[i]->parent[0] = t;
+        u64 z2 = updateZobrist(z, b, m[i]);
+        PnsTree *orig = pnsGetTransposition(z2);
+        if (orig) {
+          t->child[i] = orig;
+        } else {
+          t->child[i] = pnsMakeLeaf();
+          trans[z2] = t->child[i];
+        }
+        pnsAddParent(t->child[i], t);
       }
-    } else {                                                            // No legal moves
-      t->child = NULL;
-      t->move = NULL;
-      pnsSetScoreNoMoves(t, b);
     }
-  } else if (score == EGTB_DRAW) {                                      // EGTB draw
-    t->proof = INFTY64;
-    t->disproof = INFTY64;
-  } else if (score > 0) {                                               // EGTB win
-    t->proof = 0;
-    t->disproof = INFTY64;
-  } else {                                                              // EGTB loss
-    t->proof = INFTY64;
-    t->disproof = 0;
   }
 }
 
@@ -114,16 +154,13 @@ void pnsUpdate(PnsTree *t) {
 
 PnsTree* pnsAnalyzeBoard(Board *b, int maxNodes) {
   PnsTree *root = pnsMakeLeaf();
-  Board current;
   int treeSize = 1;
   while ((treeSize < maxNodes) && root->proof && root->disproof &&
          (root->proof < INFTY64 || root->disproof < INFTY64)) {
-    memcpy(&current, b, sizeof(Board));
+    Board current = *b;
     PnsTree *mpn = pnsSelectMpn(root, &current);
     pnsExpand(mpn, &current);
-    for (int i = 0; i < mpn->numParents; i++) {
-      pnsUpdate(mpn->parent[i]);
-    }
+    pnsUpdate(mpn);
     treeSize += mpn->numChildren;
   }
   printf("Tree size %d, proof %llu, disproof %llu\n", treeSize, root->proof, root->disproof);
@@ -131,7 +168,7 @@ PnsTree* pnsAnalyzeBoard(Board *b, int maxNodes) {
 }
 
 /* Encodes a move on 16 bits for saving. */
-void pnsEncondeMove(Move m, FILE *f) {
+void pnsEncodeMove(Move m, FILE *f) {
   // 6 bits for from;
   // 6 bits for to;
   // 1 bit for promotion;
@@ -182,23 +219,33 @@ void pnsSaveNode(PnsTree *t, PnsTree *parent, FILE *f) {
       for (int i = 0; i < t->numChildren; i++) {
         // Technically, we don't need to save the moves; we know the order in which getAllMoves() generates them.
         // But we save them anyway, in case we ever change the move ordering.
-        pnsEncondeMove(t->move[i], f);
+        pnsEncodeMove(t->move[i], f);
         pnsSaveNode(t->child[i], t, f);
       }
     } else {
       pnsEncodeNumber(t->proof, f);
       pnsEncodeNumber(t->disproof, f);
     }
+  } else {
+    printf("transposition found\n");
   }
 }
 
-PnsTree* pnsLoadNode(FILE *f, PnsTree *parent, Board *b) {
-  PnsTree *t = (PnsTree*)malloc(sizeof(PnsTree));
-  t->numParents = 1;
-  t->parent = (PnsTree**)malloc(sizeof(PnsTree*));
-  t->parent[0] = parent;
+PnsTree* pnsLoadNode(FILE *f, PnsTree *parent, Board *b, u64 zobrist) {
+  // If the node is a transposition, just add _parent_ to its parent list.
+  PnsTree *orig = pnsGetTransposition(zobrist);
+  if (orig) {
+    pnsAddParent(orig, parent);
+    return orig;
+  }
 
+  // Create a new node and add it to the transposition table
+  PnsTree *t = pnsMakeLeaf();
+  pnsAddParent(t, parent);
+  trans[zobrist] = t;
   t->numChildren = fgetc(f);
+
+  // For internal nodes, update the board and the Zobrist key and recurse
   if (t->numChildren) {
     Move m[MAX_MOVES];
     int numMoves = getAllMoves(b, m, FORWARD);
@@ -209,10 +256,12 @@ PnsTree* pnsLoadNode(FILE *f, PnsTree *parent, Board *b) {
       t->move[i] = pnsDecodeMove(f);
       assert(equalMove(t->move[i], m[i]));
       Board b2 = *b;
+      u64 zobrist2 = updateZobrist(zobrist, &b2, m[i]);
       makeMove(&b2, m[i]);
-      t->child[i] = pnsLoadNode(f, t, &b2);
+      t->child[i] = pnsLoadNode(f, t, &b2, zobrist2);
     }
   } else {
+    // For leaves, just parse the proof / disproof numbers.
     t->move = NULL;
     t->child = NULL;
     t->proof = pnsDecodeNumber(f);
@@ -239,15 +288,17 @@ PnsTree* pnsLoadTree(Board *b, string fileName) {
       printBoard(&b2);
       die("Input file stores a PN^2 tree for a different board (see above).");
     }
-    PnsTree *t = pnsLoadNode(f, NULL, &b2);
+    PnsTree *t = pnsLoadNode(f, NULL, &b2, getZobrist(&b2));
     fclose(f);
     return t;
-  } else if (errno == ENOENT) {
-    // File does not exist
-    return pnsMakeLeaf();
-  } else {
+
+  } else if (errno == ENOENT) { // File does not exist
+    PnsTree *t = pnsMakeLeaf();
+    trans[getZobrist(b)] = t;
+    return t;
+
+  } else { // File exists, but cannot be read for other reasons
     die("Input file [%s] exists, but cannot be read.", fileName.c_str());
-    return NULL; // unreachable, but it suppresses a warning
   }
 }
 
@@ -255,7 +306,7 @@ void pnsAnalyzeString(string input, string fileName) {
   Board *b;
   if (isFen(input)) {
     // Input is a board in FEN notation
-    b = fenToBoard(NEW_BOARD);
+    b = fenToBoard(input.c_str());
   } else {
     // Input is a sequence of moves. Tokenize it.
     stringstream in(input);
@@ -270,8 +321,9 @@ void pnsAnalyzeString(string input, string fileName) {
     b = makeMoveSequence(n, moves);
   }
   pnsLoadTree(b, fileName);
-  PnsTree *t = pnsAnalyzeBoard(b, /*PNS_STEP_SIZE*/ 1000);
+  PnsTree *t = pnsAnalyzeBoard(b, /*PNS_STEP_SIZE*/ 17);
   pnsSaveTree(t, b, fileName);
+  pnsPrintTree(t, 0);
   free(b);
-  free(t);
+  pnsFree(t);
 }

@@ -1228,7 +1228,7 @@ BOOST_AUTO_TEST_CASE(testIsFen) {
   BOOST_CHECK_EQUAL(isFen("mama tata"), false);
 }
 
-/************************* Tests for stringutil.cpp *************************/
+/************************* Tests for pns.cpp *************************/
 
 BOOST_AUTO_TEST_CASE(testPnsExpand) {
   loadConfigFile(CONFIG_FILE);
@@ -1259,6 +1259,37 @@ BOOST_AUTO_TEST_CASE(testPnsExpand) {
   BOOST_CHECK_EQUAL(t->disproof, INFTY64);
   free(t);
   free(b);
+}
+
+BOOST_AUTO_TEST_CASE(testPnsAnalyzeBoard) {
+  zobristInit();
+
+  Board *b = fenToBoard("8/3p4/p7/4P3/8/4PPPP/8/8 b - - 0 0");
+  PnsTree *t = pnsAnalyzeBoard(b, 17); // Just enough to run into the transposition after d5 exd6 and d6 exd6
+
+  BOOST_CHECK_EQUAL(t->proof, 5);
+  BOOST_CHECK_EQUAL(t->disproof, 3);
+  BOOST_CHECK_EQUAL(t->numParents, 0);
+  BOOST_CHECK_EQUAL(t->numChildren, 3);
+  BOOST_CHECK_EQUAL(t->move[0].from, 40);
+  BOOST_CHECK_EQUAL(t->move[0].to, 32);
+  BOOST_CHECK_EQUAL(t->move[1].from, 51);
+  BOOST_CHECK_EQUAL(t->move[1].to, 43);
+  BOOST_CHECK_EQUAL(t->move[2].from, 51);
+  BOOST_CHECK_EQUAL(t->move[2].to, 35);
+
+  PnsTree *g = t->child[1]->child[0]; // This is the transposition
+  BOOST_CHECK_EQUAL(g->proof, 5);
+  BOOST_CHECK_EQUAL(g->disproof, 1);
+  BOOST_CHECK_EQUAL(g->numParents, 2);
+  BOOST_CHECK_EQUAL(g->numChildren, 1);
+  BOOST_CHECK_EQUAL(g->move[0].from, 40);
+  BOOST_CHECK_EQUAL(g->move[0].to, 32);
+  BOOST_CHECK_EQUAL(g->parent[0], t->child[1]);
+  BOOST_CHECK_EQUAL(g->parent[1], t->child[2]);
+
+  free(b);
+  pnsFree(t);
 }
 
 /************************* Tests for zobrist.cpp *************************/
