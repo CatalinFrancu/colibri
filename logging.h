@@ -12,4 +12,7 @@ void logInit(const char *fileName);
 /* Logs a message with the given severity level. Takes a printf-style format string and variable number of arguments. */
 void log(int level, const char *format, ...);
 
+/* Logs an error message and terminates the program. */
+void die(const char *format, ...);
+
 #endif

@@ -21,14 +21,26 @@ void logInit(const char *fileName) {
   timerReset();
 }
 
-void log(int level, const char *format, ...) {
+void vlog(int level, const char *format, va_list vl) {
   if (level <= cfgLogLevel) {
-    va_list vl;
     fprintf(logFile, "[%10llu] [%s] ", timerGet(), LOG_LEVEL_NAMES[level]);
-    va_start(vl, format);
     vfprintf(logFile, format, vl);
-    va_end(vl);
     fprintf(logFile, "\n");
     fflush(logFile);
   }
+}
+
+void log(int level, const char *format, ...) {
+  va_list vl;
+  va_start(vl, format);
+  vlog(level, format, vl);
+  va_end(vl);
+}
+
+void die(const char *format, ...) {
+  va_list vl;
+  va_start(vl, format);
+  vlog(LOG_ERROR, format, vl);
+  va_end(vl);
+  exit(1);
 }

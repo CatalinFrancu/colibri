@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <sstream>
@@ -129,31 +130,58 @@ PnsTree* pnsAnalyzeBoard(Board *b, int maxNodes) {
   return root;
 }
 
-/* Encodes a move on 15 bits for saving. */
-void pnsEncondeMove(Move m, FILE*f) {
-  // 6 bits for m.from, 6 bits for m.to, 3 bits for m.promotion
-  unsigned short x = (m.from << 9) | (m.to << 3) | (m.promotion);
+/* Encodes a move on 16 bits for saving. */
+void pnsEncondeMove(Move m, FILE *f) {
+  // 6 bits for from;
+  // 6 bits for to;
+  // 1 bit for promotion;
+  // 3 bits for piece being moved / being promoted
+  unsigned short x = (m.from << 10) ^ (m.to << 4);
+  if (m.promotion) {
+    x ^= 8 ^ m.promotion;
+  } else {
+    x ^= m.piece;
+  }
   fwrite(&x, 2, 1, f);
 }
 
-/* Encodes a number of 2, 4, 6 or 8 bytes. Uses the first 2 bits for storing the length.
- * TODO Assumes the machine is little-endian. */
-void pnsEncodeNumber(u64 x, FILE *f) {
-  if (x < 0x3fffull) { // fits on 2 bytes
-    unsigned short a = x;
-    fwrite(&a, 2, 1, f);
-  } else if (x < 0x3fffffffull) {
-    unsigned a = x & 0x40000000ull;
-    fwrite(&a, 2, 1, f);
+Move pnsDecodeMove(FILE *f) {
+  unsigned short x;
+  assert(fread(&x, 2, 1, f) == 1);
+  Move m;
+  m.from = x >> 10;
+  m.to = (x >> 4) & 0x3f;
+  if (x & 8) {
+    m.piece = PAWN;
+    m.promotion = x & 7;
+  } else {
+    m.piece = x & 7;
   }
-  // ...
+  return m;
+}
+
+/* Encode INFTY64 as 0 because it is very frequent and it shouldn't take 8 bytes.
+ * Move everything else 1 up. */
+void pnsEncodeNumber(u64 x, FILE *f) {
+  if (x == INFTY64) {
+    varintPut(0, f);
+  } else {
+    varintPut(x + 1, f);
+  }
+}
+
+u64 pnsDecodeNumber(FILE *f) {
+  u64 x = varintGet(f);
+  return x ? (x - 1) : INFTY64;
 }
 
 void pnsSaveNode(PnsTree *t, PnsTree *parent, FILE *f) {
-  if (parent && (parent == t->parent[0])) { // do nothing for transpositions
+  if (!parent || (parent == t->parent[0])) { // do nothing for transpositions
     fputc(t->numChildren, f);
     if (t->numChildren) {
       for (int i = 0; i < t->numChildren; i++) {
+        // Technically, we don't need to save the moves; we know the order in which getAllMoves() generates them.
+        // But we save them anyway, in case we ever change the move ordering.
         pnsEncondeMove(t->move[i], f);
         pnsSaveNode(t->child[i], t, f);
       }
@@ -164,13 +192,66 @@ void pnsSaveNode(PnsTree *t, PnsTree *parent, FILE *f) {
   }
 }
 
-void pnsSaveTree(PnsTree *t) {
-  FILE *f = fopen("pns.out", "w");
+PnsTree* pnsLoadNode(FILE *f, PnsTree *parent, Board *b) {
+  PnsTree *t = (PnsTree*)malloc(sizeof(PnsTree));
+  t->numParents = 1;
+  t->parent = (PnsTree**)malloc(sizeof(PnsTree*));
+  t->parent[0] = parent;
+
+  t->numChildren = fgetc(f);
+  if (t->numChildren) {
+    Move m[MAX_MOVES];
+    int numMoves = getAllMoves(b, m, FORWARD);
+    assert(numMoves == t->numChildren);
+    t->child = (PnsTree**)malloc(t->numChildren * sizeof(PnsTree*));
+    t->move = (Move*)malloc(t->numChildren * sizeof(Move));
+    for (int i = 0; i < t->numChildren; i++) {
+      t->move[i] = pnsDecodeMove(f);
+      assert(equalMove(t->move[i], m[i]));
+      Board b2 = *b;
+      makeMove(&b2, m[i]);
+      t->child[i] = pnsLoadNode(f, t, &b2);
+    }
+  } else {
+    t->move = NULL;
+    t->child = NULL;
+    t->proof = pnsDecodeNumber(f);
+    t->disproof = pnsDecodeNumber(f);
+  }
+  return t;
+}
+
+void pnsSaveTree(PnsTree *t, Board *b, string fileName) {
+  FILE *f = fopen(fileName.c_str(), "w");
+  fwrite(b, sizeof(Board), 1, f);
   pnsSaveNode(t, NULL, f);
   fclose(f);
 }
 
-void pnsAnalyzeString(char *input) {
+/* Loads a PN^2 tree from fileName and checks that it applies to b.
+ * If fileName does not exist, then creates a 1-node tree. */
+PnsTree* pnsLoadTree(Board *b, string fileName) {
+  FILE *f = fopen(fileName.c_str(), "r");
+  if (f) {
+    Board b2;
+    assert(fread(&b2, sizeof(Board), 1, f) == 1);
+    if (!equalBoard(b, &b2)) {
+      printBoard(&b2);
+      die("Input file stores a PN^2 tree for a different board (see above).");
+    }
+    PnsTree *t = pnsLoadNode(f, NULL, &b2);
+    fclose(f);
+    return t;
+  } else if (errno == ENOENT) {
+    // File does not exist
+    return pnsMakeLeaf();
+  } else {
+    die("Input file [%s] exists, but cannot be read.", fileName.c_str());
+    return NULL; // unreachable, but it suppresses a warning
+  }
+}
+
+void pnsAnalyzeString(string input, string fileName) {
   Board *b;
   if (isFen(input)) {
     // Input is a board in FEN notation
@@ -188,12 +269,9 @@ void pnsAnalyzeString(char *input) {
     }
     b = makeMoveSequence(n, moves);
   }
-  if (b) {
-    PnsTree *t = pnsAnalyzeBoard(b, 1000000);
-    pnsSaveTree(t);
-    free(b);
-    free(t);
-  } else {
-    log(LOG_ERROR, "Invalid input for PNS analysis");
-  }
+  pnsLoadTree(b, fileName);
+  PnsTree *t = pnsAnalyzeBoard(b, /*PNS_STEP_SIZE*/ 1000);
+  pnsSaveTree(t, b, fileName);
+  free(b);
+  free(t);
 }

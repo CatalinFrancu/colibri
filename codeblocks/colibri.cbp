@@ -27,7 +27,6 @@
 		</Build>
 		<Compiler>
 			<Add option="-O3" />
-			<Add option="-Wall" />
 			<Add option="-fexceptions -std=gnu++0x" />
 		</Compiler>
 		<Linker>
@@ -75,6 +74,8 @@
 		<Unit filename="../tools/egtbEstimator.cpp">
 			<Option target="EgtbEstimator" />
 		</Unit>
+		<Unit filename="../zobrist.cpp" />
+		<Unit filename="../zobrist.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />

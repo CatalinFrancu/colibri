@@ -1,5 +1,8 @@
 #ifndef __STRINGUTIL_H__
 #define __STRINGUTIL_H__
+#include <string>
+
+using namespace std;
 
 /* Returns true iff "s" has "suffix" as a suffix */
 bool endsWith(const char *s, const char *suffix);
@@ -17,7 +20,7 @@ char* unquote(char *s);
 char* split(char *s, char separator);
 
 /* Returns true iff the string represents a board in FEN notation. */
-bool isFen(const char * s);
+bool isFen(string s);
 
 #endif
 

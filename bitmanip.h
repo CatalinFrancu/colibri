@@ -1,5 +1,6 @@
 #ifndef __BITMANIP_H__
 #define __BITMANIP_H__
+#include <stdio.h>
 #include "defines.h"
 
 /* Returns the number of set bits */
@@ -57,5 +58,11 @@ u64 rotate(u64 x, int orientation);
 
 /* Print a bitboard in the form 00110100 | 01001101 | ... */
 void printBitboard(const char *msg, u64 x);
+
+/* Reads a number in VLQ (Varint) format. */
+u64 varintGet(FILE *f);
+
+/* Writes a number in VLQ (Varint) format. */
+void varintPut(u64 x, FILE *f);
 
 #endif

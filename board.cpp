@@ -58,6 +58,10 @@ bool equalBoard(Board *b1, Board *b2) {
   return (b1->side == b2->side);
 }
 
+bool equalMove(Move m1, Move m2) {
+  return m1.piece == m2.piece && m1.from == m2.from && m1.to == m2.to && m1.promotion == m2.promotion;
+}
+
 int getPieceCount(Board *b) {
   return popCount(b->bb[BB_WALL] ^ b->bb[BB_BALL]);
 }
@@ -424,7 +428,7 @@ void makeMoveForSide(Board *b, Move m, int allMe, int allYou) {
   }
 
   b->bb[BB_EMPTY] = ~(b->bb[BB_WALL] ^ b->bb[BB_BALL]);
-  b->side = WHITE + BLACK - b->side;
+  b->side = 1 - b->side;
 }
 
 void makeMove(Board* b, Move m) {
@@ -442,7 +446,7 @@ void makeBackwardMove(Board *b, Move m) {
   b->bb[base + m.piece] ^= mask;
   b->bb[BB_EMPTY] ^= mask;
   b->bb[BB_EP] = 0ull;
-  b->side = WHITE + BLACK - b->side;
+  b->side = 1 - b->side;
 }
 
 Board* makeMoveSequence(int numMoveStrings, string *moveStrings) {
@@ -462,9 +466,7 @@ Board* makeMoveSequence(int numMoveStrings, string *moveStrings) {
     if (j < numLegalMoves) {
       makeMove(b, m[j]);
     } else {
-      free(b);
-      b = NULL;
-      log(LOG_ERROR, "Bad move: %s", moveStrings[i].c_str());
+      die("Bad move: %s", moveStrings[i].c_str());
     }
     i++;
   }

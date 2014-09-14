@@ -9,23 +9,55 @@
 #include "pns.h"
 #include "precomp.h"
 #include "queryserver.h"
+#include "zobrist.h"
+
+void setCommand(int *oldCmd, int newCmd) {
+  if (*oldCmd) {
+    die("Only one command out of -a and -s may be given.");
+  }
+  *oldCmd = newCmd;
+}
 
 int main(int argc, char **argv) {
+  srand(time(NULL));
   loadConfigFile(CONFIG_FILE);
   logInit(cfgLogFile.c_str());
   precomputeAll();
   initEgtb();
-  srand(time(NULL));
+  zobristInit();
 
+  string fileName = "", position = "";
+  int command = 0;
   int opt;
-  while ((opt = getopt(argc, argv, "a:s")) != -1) {
+  opterr = 0; // Suppresses error messages from getopt()
+  while ((opt = getopt(argc, argv, "a:f:s")) != -1) {
     switch (opt) {
-      case 'a': pnsAnalyzeString(optarg); break;  // Book research
-      case 's': startServer(); break;      // Query server
+      case 'f':
+        fileName = optarg;
+        break;
+      case 'a':
+        setCommand(&command, CMD_ANALYZE);
+        position = optarg;
+        break;
+      case 's':
+        setCommand(&command, CMD_SERVER);
+        break;
       default:
-        log(LOG_ERROR, "Unknown switch -%c", opt);
-        exit(1);
+        die("Unknown switch -%c", optopt);
      }
+  }
+
+  switch (command) {
+    case CMD_ANALYZE:
+      if (fileName.empty()) {
+        die("Please specify and input/output file with -f.");
+      }
+      pnsAnalyzeString(position, fileName);
+      break;
+    case CMD_SERVER:
+      startServer(); break;
+    default:
+      die("No command given.");
   }
 
 //  generateEgtb("KQBNvK");

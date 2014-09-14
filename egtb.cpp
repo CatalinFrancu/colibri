@@ -606,8 +606,7 @@ int egtbLookup(Board *b) {
 
   changeSidesIfNeeded(b);
 
-  // EGTB_MEN + 2 suffices here, but it raises a spurious warning from gcc: "array subscript is above array bounds".
-  char combo[17];
+  char combo[EGTB_MEN + 2];
   int len = 0;
 
   // Construct the combo name

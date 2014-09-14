@@ -10,6 +10,7 @@
 #include "pns.h"
 #include "precomp.h"
 #include "stringutil.h"
+#include "zobrist.h"
 
 /************************* Tests for bitmanip.cpp *************************/
 
@@ -71,6 +72,25 @@ BOOST_AUTO_TEST_CASE(tetGetBitAndClear) {
   GET_BIT_AND_CLEAR(x, sq);
   BOOST_CHECK_EQUAL(x, 0);
   BOOST_CHECK_EQUAL(sq, 47);
+}
+
+BOOST_AUTO_TEST_CASE(testVarint) {
+  FILE *f = fopen("/tmp/varint.tmp", "w");
+  varintPut(0ull, f);
+  varintPut(5ull, f);
+  varintPut(12345ull, f);
+  varintPut(987654321ull, f);
+  varintPut(1000000000000000000ull, f);
+  fclose(f);
+
+  f = fopen("/tmp/varint.tmp", "r");
+  BOOST_CHECK_EQUAL(varintGet(f), 0);
+  BOOST_CHECK_EQUAL(varintGet(f), 5);
+  BOOST_CHECK_EQUAL(varintGet(f), 12345);
+  BOOST_CHECK_EQUAL(varintGet(f), 987654321);
+  BOOST_CHECK_EQUAL(varintGet(f), 1000000000000000000);
+  fclose(f);
+  unlink("/tmp/varint.tmp");
 }
 
 /************************* Tests for precomp.cpp *************************/
@@ -710,10 +730,6 @@ BOOST_AUTO_TEST_CASE(testMakeMoveSequence) {
   string fen = boardToFen(b);
   BOOST_CHECK_EQUAL(fen.compare("rnbqk1nr/pppp1ppp/4p3/8/1b6/4P3/P1PP1PPP/RNBQKBNR w - - 0 0"), 0);
   free(b);
-
-  string s2[4] = { "e3", "e6", "z4", "Bxb4"};
-  b = makeMoveSequence(4, s2);
- BOOST_CHECK(!b);
 }
 
 /************************* Tests for movegen.cpp *************************/
@@ -1242,5 +1258,123 @@ BOOST_AUTO_TEST_CASE(testPnsExpand) {
   BOOST_CHECK_EQUAL(t->proof, INFTY64);
   BOOST_CHECK_EQUAL(t->disproof, INFTY64);
   free(t);
+  free(b);
+}
+
+/************************* Tests for zobrist.cpp *************************/
+
+BOOST_AUTO_TEST_CASE(testGetZobrist) {
+  zobristInit();
+  Board *b = fenToBoard("8/8/2k5/8/4P1Q1/1B6/8/8 w - - 0 1");
+  BOOST_CHECK_EQUAL(getZobrist(b),
+                    zrBoard[42][BLACK][KING] ^
+                    zrBoard[30][WHITE][QUEEN] ^
+                    zrBoard[28][WHITE][PAWN] ^
+                    zrBoard[17][WHITE][BISHOP]);
+  free(b);
+
+  b = fenToBoard("8/8/2k5/8/4P1Q1/1B6/8/8 b - e3 0 1");
+  BOOST_CHECK_EQUAL(getZobrist(b),
+                    zrBoard[42][BLACK][KING] ^
+                    zrBoard[30][WHITE][QUEEN] ^
+                    zrBoard[28][WHITE][PAWN] ^
+                    zrBoard[17][WHITE][BISHOP] ^
+                    zrSide ^
+                    zrEp[4]);
+  free(b);
+}
+
+BOOST_AUTO_TEST_CASE(testUpdateZobrist) {
+  zobristInit();
+  Board *b = fenToBoard("7r/3p4/8/8/8/8/4P3/N7 w - - 0 1");
+  u64 z = getZobrist(b);
+  BOOST_CHECK_EQUAL(z,
+                    zrBoard[63][BLACK][ROOK] ^
+                    zrBoard[51][BLACK][PAWN] ^
+                    zrBoard[12][WHITE][PAWN] ^
+                    zrBoard[0][WHITE][KNIGHT]);
+
+  Move m = { .piece = PAWN, .from = 12, .to = 28, .promotion = 0 }; // e4
+  z = updateZobrist(z, b, m);
+  BOOST_CHECK_EQUAL(z,
+                    zrBoard[63][BLACK][ROOK] ^
+                    zrBoard[51][BLACK][PAWN] ^
+                    zrBoard[28][WHITE][PAWN] ^
+                    zrBoard[0][WHITE][KNIGHT] ^
+                    zrSide ^
+                    zrEp[4]);
+  makeMove(b, m);
+
+  m = { .piece = ROOK, .from = 63, .to = 62, .promotion = 0 };  // Rg8
+  z = updateZobrist(z, b, m);
+  BOOST_CHECK_EQUAL(z,
+                    zrBoard[62][BLACK][ROOK] ^
+                    zrBoard[51][BLACK][PAWN] ^
+                    zrBoard[28][WHITE][PAWN] ^
+                    zrBoard[0][WHITE][KNIGHT]);
+  makeMove(b, m);
+
+  m = { .piece = PAWN, .from = 28, .to = 36, .promotion = 0 }; // e5
+  z = updateZobrist(z, b, m);
+  BOOST_CHECK_EQUAL(z,
+                    zrBoard[62][BLACK][ROOK] ^
+                    zrBoard[51][BLACK][PAWN] ^
+                    zrBoard[36][WHITE][PAWN] ^
+                    zrBoard[0][WHITE][KNIGHT] ^
+                    zrSide);
+  makeMove(b, m);
+
+  m = { .piece = PAWN, .from = 51, .to = 35, .promotion = 0 }; // d5
+  z = updateZobrist(z, b, m);
+  BOOST_CHECK_EQUAL(z,
+                    zrBoard[62][BLACK][ROOK] ^
+                    zrBoard[35][BLACK][PAWN] ^
+                    zrBoard[36][WHITE][PAWN] ^
+                    zrBoard[0][WHITE][KNIGHT] ^
+                    zrEp[3]);
+  makeMove(b, m);
+
+  m = { .piece = PAWN, .from = 36, .to = 43, .promotion = 0 }; // exd6 (e.p.)
+  z = updateZobrist(z, b, m);
+  BOOST_CHECK_EQUAL(z,
+                    zrBoard[62][BLACK][ROOK] ^
+                    zrBoard[43][WHITE][PAWN] ^
+                    zrBoard[0][WHITE][KNIGHT] ^
+                    zrSide);
+  makeMove(b, m);
+
+  m = { .piece = ROOK, .from = 62, .to = 61, .promotion = 0 }; // Rf8
+  z = updateZobrist(z, b, m);
+  BOOST_CHECK_EQUAL(z,
+                    zrBoard[61][BLACK][ROOK] ^
+                    zrBoard[43][WHITE][PAWN] ^
+                    zrBoard[0][WHITE][KNIGHT]);
+  makeMove(b, m);
+
+  m = { .piece = PAWN, .from = 43, .to = 51, .promotion = 0 }; // d7
+  z = updateZobrist(z, b, m);
+  BOOST_CHECK_EQUAL(z,
+                    zrBoard[61][BLACK][ROOK] ^
+                    zrBoard[51][WHITE][PAWN] ^
+                    zrBoard[0][WHITE][KNIGHT] ^
+                    zrSide);
+  makeMove(b, m);
+
+  m = { .piece = ROOK, .from = 61, .to = 58, .promotion = 0 }; // Rc8
+  z = updateZobrist(z, b, m);
+  BOOST_CHECK_EQUAL(z,
+                    zrBoard[58][BLACK][ROOK] ^
+                    zrBoard[51][WHITE][PAWN] ^
+                    zrBoard[0][WHITE][KNIGHT]);
+  makeMove(b, m);
+
+  m = { .piece = PAWN, .from = 51, .to = 58, .promotion = BISHOP }; // dxc8=B
+  z = updateZobrist(z, b, m);
+  BOOST_CHECK_EQUAL(z,
+                    zrBoard[58][WHITE][BISHOP] ^
+                    zrBoard[0][WHITE][KNIGHT] ^
+                    zrSide);
+  makeMove(b, m);
+
   free(b);
 }

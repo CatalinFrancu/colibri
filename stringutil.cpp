@@ -49,9 +49,9 @@ char* split(char *s, char separator) {
   return t + 1;
 }
 
-bool isFen(const char *s) {
+bool isFen(string s) {
   regex_t r;
 
   assert(!regcomp(&r, "([a-z1-8]+/){7}[a-z1-8]+ [bw] [-kq]+ [-a-h1-8]+ [0-9]+ [0-9]+", REG_EXTENDED | REG_ICASE | REG_NOSUB));
-  return !regexec(&r, s, 0, NULL, 0);
+  return !regexec(&r, s.c_str(), 0, NULL, 0);
 }

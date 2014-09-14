@@ -7,8 +7,8 @@ using namespace std;
 #define CONFIG_FILE "colibri.conf"
 
 /* Sides */
-#define WHITE false
-#define BLACK true
+#define WHITE 0
+#define BLACK 1
 
 /* Piece types */
 #define PAWN 1
@@ -94,6 +94,9 @@ using namespace std;
 /* Cache EGTB files in 32 KB chunks */
 #define EGTB_CHUNK_SIZE 32768
 
+/* Size of every PNS^1 step */
+#define PNS_STEP_SIZE 1000000
+
 /* The square between 0 and 63 corresponding to a rank and file between 0 and 7 */
 #define SQUARE(rank, file) (((rank) << 3) + (file))
 
@@ -116,6 +119,10 @@ using namespace std;
   ({ __typeof__ (a) _a = (a); \
      __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
+
+/* Commands given from the command line */
+#define CMD_ANALYZE 1
+#define CMD_SERVER 2
 
 typedef unsigned long long u64;
 typedef unsigned char byte;

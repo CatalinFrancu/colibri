@@ -13,6 +13,9 @@ void emptyBoard(Board *b);
 /* This is expensive -- only use for debugging */
 bool equalBoard(Board *b1, Board *b2);
 
+/* Returns true iff m1 and m2 are the same */
+bool equalMove(Move m1, Move m2);
+
 /* Returns the number of pieces on the board */
 int getPieceCount(Board *b);
 
