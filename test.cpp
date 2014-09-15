@@ -1265,7 +1265,8 @@ BOOST_AUTO_TEST_CASE(testPnsAnalyzeBoard) {
   zobristInit();
 
   Board *b = fenToBoard("8/3p4/p7/4P3/8/4PPPP/8/8 b - - 0 0");
-  PnsTree *t = pnsAnalyzeBoard(b, 17); // Just enough to run into the transposition after d5 exd6 and d6 exd6
+  PnsTree *t = pnsMakeLeaf();
+  pnsAnalyzeBoard(t, b, 17); // Just enough to run into the transposition after d5 exd6 and d6 exd6
 
   BOOST_CHECK_EQUAL(t->proof, 5);
   BOOST_CHECK_EQUAL(t->disproof, 3);

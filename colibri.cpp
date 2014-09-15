@@ -19,7 +19,8 @@ void setCommand(int *oldCmd, int newCmd) {
 }
 
 int main(int argc, char **argv) {
-  srand(time(NULL));
+  //srand(time(NULL));
+  srand(1234);
   loadConfigFile(CONFIG_FILE);
   logInit(cfgLogFile.c_str());
   precomputeAll();
@@ -52,7 +53,7 @@ int main(int argc, char **argv) {
       if (fileName.empty()) {
         die("Please specify and input/output file with -f.");
       }
-      pnsAnalyzeString(position, fileName);
+      pn2AnalyzeString(position, fileName);
       break;
     case CMD_SERVER:
       startServer(); break;

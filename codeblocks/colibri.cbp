@@ -11,6 +11,12 @@
 				<Option object_output="../obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O3" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
 			</Target>
 			<Target title="Testing">
 				<Option output="../bin/Testing/test" prefix_auto="1" extension_auto="1" />
@@ -24,13 +30,21 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 			</Target>
+			<Target title="Debug">
+				<Option output="../bin/Debug/colibri" prefix_auto="1" extension_auto="1" />
+				<Option object_output="../obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option parameters='-a &quot;e3 f6&quot; -f /tmp/test.col' />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
 		</Build>
 		<Compiler>
-			<Add option="-O3" />
 			<Add option="-fexceptions -std=gnu++0x" />
 		</Compiler>
 		<Linker>
-			<Add option="-s" />
 			<Add library="lzma" />
 			<Add library="pthread" />
 		</Linker>
@@ -40,6 +54,7 @@
 		<Unit filename="../board.h" />
 		<Unit filename="../colibri.cpp">
 			<Option target="Release" />
+			<Option target="Debug" />
 		</Unit>
 		<Unit filename="../configfile.cpp" />
 		<Unit filename="../configfile.h" />
@@ -60,9 +75,11 @@
 		<Unit filename="../precomp.h" />
 		<Unit filename="../queryserver.cpp">
 			<Option target="Release" />
+			<Option target="Debug" />
 		</Unit>
 		<Unit filename="../queryserver.h">
 			<Option target="Release" />
+			<Option target="Debug" />
 		</Unit>
 		<Unit filename="../stringutil.cpp" />
 		<Unit filename="../stringutil.h" />

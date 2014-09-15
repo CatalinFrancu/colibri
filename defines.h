@@ -2,6 +2,7 @@
 #define __DEFINES_H__
 #include <stddef.h>
 #include <unordered_map>
+#include <unordered_set>
 using namespace std;
 
 /* Config file name, without the directory. The file is assumed to reside in the colibri/ installation directory. */
@@ -162,10 +163,14 @@ typedef struct PnsNode {
   struct PnsNode **parent; // To handle transpositions, we need pointers to all the node's parents in the DAG.
   byte numChildren;
   byte numParents;
+  byte extra; // extra information for things like saving, loading etc.
 } PnsTree;
 
 /* A transposition table stores pointers into a PnsTree */
 typedef unordered_map<u64, PnsTree*> TranspositionTable;
+
+/* A node set stores a collection of node pointers */
+typedef unordered_set<PnsTree*> NodeSet;
 
 inline int sgn(int x) {
   return (x > 0) - (x < 0);
