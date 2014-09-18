@@ -1233,7 +1233,7 @@ BOOST_AUTO_TEST_CASE(testIsFen) {
 BOOST_AUTO_TEST_CASE(testPnsExpand) {
   loadConfigFile(CONFIG_FILE);
   initEgtb();
-  PnsTree *t;
+  PnsNode *t;
   Board *b;
 
   t = pnsMakeLeaf();
@@ -1265,7 +1265,7 @@ BOOST_AUTO_TEST_CASE(testPnsAnalyzeBoard) {
   zobristInit();
 
   Board *b = fenToBoard("8/3p4/p7/4P3/8/4PPPP/8/8 b - - 0 0");
-  PnsTree *t = pnsMakeLeaf();
+  PnsNode *t = pnsMakeLeaf();
   pnsAnalyzeBoard(t, b, 17); // Just enough to run into the transposition after d5 exd6 and d6 exd6
 
   BOOST_CHECK_EQUAL(t->proof, 5);
@@ -1279,7 +1279,7 @@ BOOST_AUTO_TEST_CASE(testPnsAnalyzeBoard) {
   BOOST_CHECK_EQUAL(t->move[2].from, 51);
   BOOST_CHECK_EQUAL(t->move[2].to, 35);
 
-  PnsTree *g = t->child[1]->child[0]; // This is the transposition
+  PnsNode *g = t->child[1]->child[0]; // This is the transposition
   BOOST_CHECK_EQUAL(g->proof, 5);
   BOOST_CHECK_EQUAL(g->disproof, 1);
   BOOST_CHECK_EQUAL(g->numParents, 2);

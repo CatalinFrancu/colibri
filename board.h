@@ -7,6 +7,9 @@ using namespace std;
 /* Prints a board */
 void printBoard(Board *b);
 
+/* Returns a move in long notation */
+string getMoveName(Move m);
+
 /* Construct an empty board */
 void emptyBoard(Board *b);
 

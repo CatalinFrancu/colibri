@@ -44,6 +44,14 @@ void printBoard(Board *b) {
   printf("\nTo move: %s          En passant square: %s\n\n", (b->side == WHITE) ? "White" : "Black", epSqName.c_str());
 }
 
+string getMoveName(Move m) {
+  string s(PIECE_INITIALS[m.piece] + SQUARE_NAME(m.from) + SQUARE_NAME(m.to));
+  if (m.promotion) {
+    s += '=' + PIECE_INITIALS[m.promotion];
+  }
+  return s;
+}
+
 void emptyBoard(Board *b) {
   memset(b, 0, sizeof(Board));
   b->bb[BB_EMPTY] = 0xffffffffffffffffull;

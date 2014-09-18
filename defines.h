@@ -64,6 +64,9 @@ using namespace std;
 #define INFTY 1000000000
 #define INFTY64 1000000000000000000ull
 
+/* NULL-like value for statically allocated lists */
+#define NIL 1000000000
+
 /* If a bitboard is mutiplied by FILE_MAGIC, all the bits on the 'a' file will end up on the 8-th rank. */
 #define FILE_MAGIC 0x8040201008040201ull
 
@@ -98,6 +101,18 @@ using namespace std;
 
 /* Size of every PNS^1 step */
 #define PNS_STEP_SIZE 1000000
+
+/* Size of the in-memory PN^2 book. */
+#define PNS_BOOK_SIZE 10000000
+
+/* Size of the PN^2 move array */
+#define PNS_MOVE_SIZE 10000000
+
+/* Size of the PN^2 child array */
+#define PNS_CHILD_SIZE 10000000
+
+/* Size of the PN^2 parent array */
+#define PNS_PARENT_SIZE 10000000
 
 /* The square between 0 and 63 corresponding to a rank and file between 0 and 7 */
 #define SQUARE(rank, file) (((rank) << 3) + (file))
@@ -154,23 +169,28 @@ typedef struct {
 const char PIECE_INITIALS[8] = " PNBRQK";
 const int PIECE_BY_NAME[26] = { 0, BISHOP, 0, 0, 0, 0, 0, 0, 0, 0, KING, 0, 0, KNIGHT, 0, PAWN, QUEEN, ROOK, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-/* A PN search tree node (it's really a DAG). */
-typedef struct PnsNode {
+/* A PN search tree node (it's really a DAG). Pointers are statically represented in a preallocated memory area. */
+typedef struct {
   u64 proof;
   u64 disproof;
-  struct PnsNode **child;
-  Move *move;
-  struct PnsNode **parent; // To handle transpositions, we need pointers to all the node's parents in the DAG.
+  int child;     // index in pnsChildren of the first child
+  int move;      // index in pnsMove of the first move
+  int parent;    // index in pnsParent of the first parent (transpositions have multiple parents in the DAG)
   byte numChildren;
-  byte numParents;
   byte extra; // extra information for things like saving, loading etc.
-} PnsTree;
+} PnsNode;
 
-/* A transposition table stores pointers into a PnsTree */
-typedef unordered_map<u64, PnsTree*> TranspositionTable;
+/* A linked list of PnsNodes. Statically allocated. */
+typedef struct {
+  int node;
+  int next;
+} PnsNodeList;
+
+/* A transposition table stores pointers into a PNS tree */
+typedef unordered_map<u64, int> TranspositionTable;
 
 /* A node set stores a collection of node pointers */
-typedef unordered_set<PnsTree*> NodeSet;
+typedef unordered_set<int> NodeSet;
 
 inline int sgn(int x) {
   return (x > 0) - (x < 0);

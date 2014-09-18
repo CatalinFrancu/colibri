@@ -26,6 +26,7 @@ int main(int argc, char **argv) {
   precomputeAll();
   initEgtb();
   zobristInit();
+  pnsInit();
 
   string fileName = "", position = "";
   int command = 0;

@@ -14,91 +14,111 @@ TranspositionTable trans;
 /* set of nods on any path from the MPN to the root */
 NodeSet pnsAncestors;
 
-/* Creates a 1/1 node. */
-PnsTree* pnsMakeLeaf() {
-  PnsTree *t = (PnsTree*)malloc(sizeof(PnsTree));
-  t->proof = t->disproof = 1;
-  t->numChildren = t->numParents = 0;
-  t->child = t->parent = NULL;
-  t->move = NULL;
-  t->extra = 0;
-  return t;
+/* Statically allocated memory for the PN^2 book */
+PnsNode pnsNode[PNS_BOOK_SIZE];
+int pnsNodeSize;
+
+/* Statically allocated memory for PnsNode move lists */
+Move pnsMove[PNS_MOVE_SIZE];
+int pnsMoveSize;
+
+/* Statically allocated memory for PnsNode child lists */
+int pnsChild[PNS_CHILD_SIZE];
+int pnsChildSize;
+
+/* Statically allocated memory for PnsNode parent pointers */
+PnsNodeList pnsParent[PNS_BOOK_SIZE];
+int pnsParentSize;
+
+void pnsInit() {
+  pnsNodeSize = pnsMoveSize = pnsChildSize = pnsParentSize = 1;
 }
 
-/* Adds a parent to a PNS node (presumably because we found a transposed path to it). */
-PnsTree* pnsAddParent(PnsTree *t, PnsTree *parent) {
-  t->parent = (PnsTree**)realloc(t->parent, (t->numParents + 1) * sizeof(PnsTree*));
-  t->parent[t->numParents++] = parent;
+int pnsMakeLeaf() {
+  assert(pnsNodeSize < PNS_BOOK_SIZE);
+  pnsNode[pnsNodeSize].proof = 1;
+  pnsNode[pnsNodeSize].disproof = 1;
+  pnsNode[pnsNodeSize].numChildren = 0;
+  pnsNode[pnsNodeSize].parent = NIL;
+  pnsNode[pnsNodeSize].extra = 0;
+  pnsNodeSize++;
+  return pnsNodeSize - 1;
 }
 
-void pnsPrintTree(PnsTree *t, int level) {
-  for (int i = 0; i < t->numChildren; i++) {
-    for (int j = 0; j < level; j++) {
-      printf("    ");
-    }
-    string from = SQUARE_NAME(t->move[i].from);
-    string to = SQUARE_NAME(t->move[i].to);
-    printf("%s%s %llu/%llu\n", from.c_str(), to.c_str(), t->child[i]->proof, t->child[i]->disproof);
-    pnsPrintTree(t->child[i], level + 1);
+int pnsGetMoves(Board *b, int t) {
+  int n = getAllMoves(b, pnsMove + pnsMoveSize, FORWARD);
+  pnsNode[t].numChildren = n;
+  pnsNode[t].move = pnsMoveSize;
+  pnsMoveSize += n;
+  assert(pnsMoveSize < PNS_MOVE_SIZE);
+  return n;
+}
+
+/* Creates child pointers in the statically allocated memory */
+int pnsMakeChildren /* huh-huh */ (int n) {
+  pnsChildSize += n;
+  assert(pnsChildSize < PNS_CHILD_SIZE);
+  return pnsChildSize - n;
+}
+
+/* Adds a parent to a PNS node (presumably because we found a transposed path to it).
+ * The new pointer is added at the front of the parent list. */
+void pnsAddParent(int childIndex, int parentIndex) {
+  if (parentIndex != NIL) {
+    assert(pnsParentSize < PNS_PARENT_SIZE);
+    pnsParent[pnsParentSize].node = parentIndex;
+    pnsParent[pnsParentSize].next = pnsNode[childIndex].parent;
+    pnsNode[childIndex].parent = pnsParentSize;
+    pnsParentSize++;
   }
 }
 
-void pnsFree(PnsTree *t) {
-  if (t) {
-    for (int i = 0; i < t->numChildren; i++) {
-      // If a child has several parents, free it the last time we visit it
-      if (t == t->child[i]->parent[t->child[i]->numParents - 1]) {
-        pnsFree(t->child[i]);
-      }
+void pnsPrintTree(int t, int level) {
+  for (int i = 0; i < pnsNode[t].numChildren; i++) {
+    for (int j = 0; j < level; j++) {
+      printf("    ");
     }
-    if (t->parent) {
-      free(t->parent);
-    }
-    if (t->child) {
-      free(t->child);
-    }
-    if (t->move) {
-      free(t->move);
-    }
-    free(t);
+    Move m = pnsMove[pnsNode[t].move + i];
+    int c = pnsChild[pnsNode[t].child + i];
+    string from = SQUARE_NAME(m.from);
+    string to = SQUARE_NAME(m.to);
+    printf("%s%s %llu/%llu\n", from.c_str(), to.c_str(), pnsNode[c].proof, pnsNode[c].disproof);
+    pnsPrintTree(c, level + 1);
   }
 }
 
 /* Clears the extra information field */
-void pnsClearExtra(PnsTree *t) {
-  if (t) {
-    t->extra = 0;
-    for (int i = 0; i < t->numChildren; i++) {
-      // If a child has several parents, clear it the first time we visit it
-      if (t == t->child[i]->parent[0]) {
-        pnsClearExtra(t->child[i]);
-      }
-    }
+void pnsClearExtra() {
+  for (int i = 0; i < pnsNodeSize; i++) {
+    pnsNode[i].extra = 0;
   }
 }
 
-void pnsAddAncestors(PnsTree *t) {
-  if (t) {
-    bool insertSuccess = pnsAncestors.insert(t).second;
-    if (insertSuccess) { // new element
-      for (int i = 0; i < t->numParents; i++) {
-        pnsAddAncestors(t->parent[i]);
-      }
+/* Adds a node's ancestors to the ancestor hash map. */
+void pnsAddAncestors(int t) {
+  bool insertSuccess = pnsAncestors.insert(t).second;
+  if (insertSuccess) { // new element
+    int p = pnsNode[t].parent;
+    while (p != NIL) {
+      pnsAddAncestors(pnsParent[p].node);
+      p = pnsParent[p].next;
     }
   }
 }
 
 /* Finds the most proving node in a PNS tree. Starting with the original board b, also makes the necessary moves
  * modifying b, returning the position corresponding to the MPN. */
-PnsTree* pnsSelectMpn(PnsTree *t, Board *b) {
-  while (t->numChildren) {
-    int i = 0;
-    while (i < t->numChildren && t->child[i]->disproof != t->proof) {
+int pnsSelectMpn(Board *b) {
+  int t = 1; // Start at the root
+  while (pnsNode[t].numChildren) {
+    int i = 0, c = pnsNode[t].child;
+    while ((i < pnsNode[t].numChildren) && (pnsNode[pnsChild[c]].disproof != pnsNode[t].proof)) {
       i++;
+      c++;
     }
-    assert(i < t->numChildren);
-    makeMove(b, t->move[i]);
-    t = t->child[i];
+    assert(i < pnsNode[t].numChildren);
+    makeMove(b, pnsMove[pnsNode[t].move + i]);
+    t = pnsChild[c];
   }
 
   pnsAncestors.clear();
@@ -107,109 +127,106 @@ PnsTree* pnsSelectMpn(PnsTree *t, Board *b) {
 }
 
 /* Sets the proof and disproof numbers for a board with no legal moves */
-void pnsSetScoreNoMoves(PnsTree *t, Board *b) {
+void pnsSetScoreNoMoves(int t, Board *b) {
   int indexMe = (b->side == WHITE) ? BB_WALL : BB_BALL;
   int indexOther = BB_WALL + BB_BALL - indexMe;
   int countMe = popCount(b->bb[indexMe]);
   int countOther = popCount(b->bb[indexOther]);
-  t->proof = (countMe < countOther) ? 0 : INFTY64;
-  t->disproof = (countMe > countOther) ? 0 : INFTY64;
+  pnsNode[t].proof = (countMe < countOther) ? 0 : INFTY64;
+  pnsNode[t].disproof = (countMe > countOther) ? 0 : INFTY64;
 }
 
 /* Sets the proof and disproof numbers for an EGTB board */
-void pnsSetScoreEgtb(PnsTree *t, int score) {
+void pnsSetScoreEgtb(int t, int score) {
   if (score == EGTB_DRAW) { // EGTB draw
-    t->proof = INFTY64;
-    t->disproof = INFTY64;
+    pnsNode[t].proof = INFTY64;
+    pnsNode[t].disproof = INFTY64;
   } else if (score > 0) {   // EGTB win
-    t->proof = 0;
-    t->disproof = INFTY64;
+    pnsNode[t].proof = 0;
+    pnsNode[t].disproof = INFTY64;
   } else {                  // EGTB loss
-    t->proof = INFTY64;
-    t->disproof = 0;
+    pnsNode[t].proof = INFTY64;
+    pnsNode[t].disproof = 0;
   }
 }
 
-void pnsExpand(PnsTree *t, Board *b) {
+void pnsExpand(int t, Board *b) {
   int score = evalBoard(b);
   if (score != EGTB_UNKNOWN) {
     pnsSetScoreEgtb(t, score);                  // EGTB node
   } else {
-    Move m[MAX_MOVES];
-    t->numChildren = getAllMoves(b, m, FORWARD);
-    if (!t->numChildren) {                      // No legal moves
-      t->child = NULL;
-      t->move = NULL;
+    int nc = pnsGetMoves(b, t);
+    if (!nc) {                      // No legal moves
       pnsSetScoreNoMoves(t, b);
     } else {                                    // Regular node
-      t->child = (PnsTree**)malloc(t->numChildren * sizeof(PnsTree*));
-      t->move = (Move*)malloc(t->numChildren * sizeof(Move));
-      memcpy(t->move, m, t->numChildren * sizeof(Move));
+      pnsNode[t].child = pnsMakeChildren(nc);
       u64 z = getZobrist(b);
-      for (int i = 0; i < t->numChildren; i++) {
-        u64 z2 = updateZobrist(z, b, m[i]);
-        PnsTree *orig = trans[z2];
+      for (int i = 0; i < nc; i++) {
+        int c = pnsNode[t].child + i;
+        u64 z2 = updateZobrist(z, b, pnsMove[pnsNode[t].move + i]);
+        int orig = trans[z2];
         if (!orig) {                            // Regular child
-          t->child[i] = pnsMakeLeaf();
-          trans[z2] = t->child[i];
+          pnsChild[c] = pnsMakeLeaf();
+          trans[z2] = pnsChild[c];
         } else if (pnsAncestors.find(orig) == pnsAncestors.end()) { // Transposition
-          t->child[i] = orig;
+          pnsChild[c] = orig;
         } else {                                // Repetition
-          t->child[i] = pnsMakeLeaf();
-          t->child[i]->proof = t->child[i]->disproof = INFTY64;
+          pnsChild[c] = pnsMakeLeaf();
+          pnsNode[pnsChild[c]].proof = pnsNode[pnsChild[c]].disproof = INFTY64;
         }
-        pnsAddParent(t->child[i], t);
+        pnsAddParent(pnsChild[c], t);
       }
     }
   }
 }
 
 /* Propagate this node's values to each of its parents. */
-void pnsUpdate(PnsTree *t) {
-  if (t) {
-    if (t->numChildren) {
-      // If t has no children, then presumably it's a stalemate or EGTB position, so it already has correct P/D values.
-      t->proof = INFTY64;
-      t->disproof = 0;
-      for (int i = 0; i < t->numChildren; i++) {
-        t->proof = MIN(t->proof, t->child[i]->disproof);
-        t->disproof += t->child[i]->proof;
-      }
-      t->disproof = MIN(t->disproof, INFTY64);
+void pnsUpdate(int t) {
+  if (pnsNode[t].numChildren) {
+    // If t has no children, then presumably it's a stalemate or EGTB position, so it already has correct P/D values.
+    u64 p = INFTY64, d = 0;
+    for (int i = 0; i < pnsNode[t].numChildren; i++) {
+      p = MIN(p, pnsNode[pnsChild[pnsNode[t].child + i]].disproof);
+      d += pnsNode[pnsChild[pnsNode[t].child + i]].proof;
     }
-    for (int i = 0; i < t->numParents; i++) {
-      pnsUpdate(t->parent[i]);
-    }
+    pnsNode[t].proof = p;
+    pnsNode[t].disproof = MIN(d, INFTY64);
+  }
+  int u = pnsNode[t].parent;
+  while (u != NIL) {
+    pnsUpdate(pnsParent[u].node);
+    u = pnsParent[u].next;
   }
 }
 
 /* Recalculates the P/D numbers for a freshly loaded tree (since we only store these numbers for leaves).
  * TODO: avoid duplicating effort for transpositions. */
-void pnsRecalculateNumbers(PnsTree *t) {
-  if (t->numChildren) {
-    t->proof = INFTY64;
-    t->disproof = 0;
-    for (int i = 0; i < t->numChildren; i++) {
-      pnsRecalculateNumbers(t->child[i]);
-      t->proof = MIN(t->proof, t->child[i]->disproof);
-      t->disproof += t->child[i]->proof;
+void pnsRecalculateNumbers(int t) {
+  if (pnsNode[t].numChildren) {
+    u64 p = INFTY64, d = 0;
+    for (int i = 0; i < pnsNode[t].numChildren; i++) {
+      int c = pnsChild[pnsNode[t].child + i];
+      pnsRecalculateNumbers(c);
+      p = MIN(p, pnsNode[c].disproof);
+      d += pnsNode[c].proof;
     }
-    t->disproof = MIN(t->disproof, INFTY64);
+    pnsNode[t].proof = p;
+    pnsNode[t].disproof = MIN(d, INFTY64);
   }
 }
 
-void pnsAnalyzeBoard(PnsTree *root, Board *b, int maxNodes) {
+void pnsAnalyzeBoard(Board *b, int maxNodes) {
   int treeSize = 1;
   while ((!maxNodes || (treeSize < maxNodes)) &&
-         root->proof && root->disproof &&
-         (root->proof < INFTY64 || root->disproof < INFTY64)) {
+         pnsNode[1].proof && pnsNode[1].disproof &&
+         (pnsNode[1].proof < INFTY64 || pnsNode[1].disproof < INFTY64)) {
     Board current = *b;
-    PnsTree *mpn = pnsSelectMpn(root, &current);
+    int mpn = pnsSelectMpn(&current);
     pnsExpand(mpn, &current);
     pnsUpdate(mpn);
-    treeSize += mpn->numChildren;
+    treeSize += pnsNode[mpn].numChildren;
   }
-  printf("Tree size %d, proof %llu, disproof %llu\n", treeSize, root->proof, root->disproof);
+  printf("Tree size %d, proof %llu, disproof %llu\n", treeSize, pnsNode[1].proof, pnsNode[1].disproof);
 }
 
 /* Encodes a move on 16 bits for saving. */
@@ -257,82 +274,77 @@ u64 pnsDecodeNumber(FILE *f) {
   return x ? (x - 1) : INFTY64;
 }
 
-void pnsSaveNode(PnsTree *t, PnsTree *parent, FILE *f) {
-  if (t->extra) {
+void pnsSaveNode(int t, int parent, FILE *f) {
+  if (pnsNode[t].extra) {
     // We are a transposition -- write 0xff for numChildren
     fputc(0xff, f);
   } else {
-    t->extra = 1;
-    fputc(t->numChildren, f);
-    if (t->numChildren) {
-      for (int i = 0; i < t->numChildren; i++) {
+    pnsNode[t].extra = 1;
+    fputc(pnsNode[t].numChildren, f);
+    if (pnsNode[t].numChildren) {
+      for (int i = 0; i < pnsNode[t].numChildren; i++) {
         // Technically, we don't need to save the moves; we know the order in which getAllMoves() generates them.
         // But we save them anyway, in case we ever change the move ordering.
-        pnsEncodeMove(t->move[i], f);
-        pnsSaveNode(t->child[i], t, f);
+        pnsEncodeMove(pnsMove[pnsNode[t].move + i], f);
+        pnsSaveNode(pnsChild[pnsNode[t].child + i], t, f);
       }
     } else {
-      pnsEncodeNumber(t->proof, f);
-      pnsEncodeNumber(t->disproof, f);
+      pnsEncodeNumber(pnsNode[t].proof, f);
+      pnsEncodeNumber(pnsNode[t].disproof, f);
     }
   }
 }
 
-PnsTree* pnsLoadNode(FILE *f, PnsTree *parent, Board *b, u64 zobrist) {
+int pnsLoadNode(FILE *f, int parent, Board *b, u64 zobrist) {
   int numChildren = fgetc(f);
   if (numChildren == 0xff) {
     // If the node is a transposition, just add _parent_ to its parent list.
-    PnsTree *orig = trans[zobrist];
+    int orig = trans[zobrist];
     assert(orig);
     pnsAddParent(orig, parent);
     return orig;
   }
 
   // Create a new node and add it to the transposition table
-  PnsTree *t = pnsMakeLeaf();
+  int t = pnsMakeLeaf();
   pnsAddParent(t, parent);
   if (!trans[zobrist]) {
     // Repetition nodes appear multiple times in the tree -- only hash the first one.
     trans[zobrist] = t;
   }
-  t->numChildren = numChildren;
+  pnsNode[t].numChildren = numChildren;
 
   // For internal nodes, update the board and the Zobrist key and recurse
-  if (t->numChildren) {
-    Move m[MAX_MOVES];
-    int numMoves = getAllMoves(b, m, FORWARD);
-    assert(numMoves == t->numChildren);
-    t->child = (PnsTree**)malloc(t->numChildren * sizeof(PnsTree*));
-    t->move = (Move*)malloc(t->numChildren * sizeof(Move));
-    for (int i = 0; i < t->numChildren; i++) {
-      t->move[i] = pnsDecodeMove(f);
-      assert(equalMove(t->move[i], m[i]));
+  if (numChildren) {
+    int numMoves = pnsGetMoves(b, t);
+    assert(numMoves == numChildren);
+    for (int i = 0; i < numChildren; i++) {
+      Move m = pnsDecodeMove(f);
+      assert(equalMove(m, pnsMove[pnsNode[t].move + i]));
       Board b2 = *b;
-      u64 zobrist2 = updateZobrist(zobrist, &b2, m[i]);
-      makeMove(&b2, m[i]);
-      t->child[i] = pnsLoadNode(f, t, &b2, zobrist2);
+      u64 zobrist2 = updateZobrist(zobrist, &b2, m);
+      makeMove(&b2, m);
+      pnsChild[pnsNode[t].child + i] = pnsLoadNode(f, t, &b2, zobrist2);
     }
   } else {
     // For leaves, just parse the proof / disproof numbers.
-    t->move = NULL;
-    t->child = NULL;
-    t->proof = pnsDecodeNumber(f);
-    t->disproof = pnsDecodeNumber(f);
+    pnsNode[t].proof = pnsDecodeNumber(f);
+    pnsNode[t].disproof = pnsDecodeNumber(f);
   }
   return t;
 }
 
-void pnsSaveTree(PnsTree *t, Board *b, string fileName) {
+void pnsSaveTree(Board *b, string fileName) {
+  pnsClearExtra();
   FILE *f = fopen(fileName.c_str(), "w");
   fwrite(b, sizeof(Board), 1, f);
-  pnsSaveNode(t, NULL, f);
+  pnsSaveNode(1, NIL, f);
   fclose(f);
-  pnsClearExtra(t);
 }
 
 /* Loads a PN^2 tree from fileName and checks that it applies to b.
  * If fileName does not exist, then creates a 1-node tree. */
-PnsTree* pnsLoadTree(Board *b, string fileName) {
+void pnsLoadTree(Board *b, string fileName) {
   FILE *f = fopen(fileName.c_str(), "r");
   if (f) {
     Board b2;
@@ -341,17 +353,15 @@ PnsTree* pnsLoadTree(Board *b, string fileName) {
       printBoard(&b2);
       die("Input file stores a PN^2 tree for a different board (see above).");
     }
-    PnsTree *t = pnsLoadNode(f, NULL, &b2, getZobrist(&b2));
+    pnsLoadNode(f, NIL, &b2, getZobrist(&b2));
     fclose(f);
-    pnsRecalculateNumbers(t);
+    pnsRecalculateNumbers(1);
     log(LOG_INFO, "Loaded tree from %s.", fileName.c_str());
-    return t;
 
   } else if (errno == ENOENT) { // File does not exist
     log(LOG_INFO, "File %s does not exist, creating new tree.", fileName.c_str());
-    PnsTree *t = pnsMakeLeaf();
+    int t = pnsMakeLeaf();
     trans[getZobrist(b)] = t;
-    return t;
 
   } else { // File exists, but cannot be read for other reasons
     die("Input file [%s] exists, but cannot be read.", fileName.c_str());
@@ -376,9 +386,9 @@ void pn2AnalyzeString(string input, string fileName) {
     }
     b = makeMoveSequence(n, moves);
   }
-  PnsTree *t = pnsLoadTree(b, fileName);
-  pnsAnalyzeBoard(t, b, PNS_STEP_SIZE);
-  pnsSaveTree(t, b, fileName);
+  pnsLoadTree(b, fileName);
+  pnsAnalyzeBoard(b, PNS_STEP_SIZE);
+  printf("%d/%d %d/%d %d/%d %d/%d\n", pnsNodeSize, PNS_BOOK_SIZE, pnsMoveSize, PNS_MOVE_SIZE, pnsChildSize, PNS_CHILD_SIZE, pnsParentSize, PNS_PARENT_SIZE);
+  pnsSaveTree(b, fileName);
   free(b);
-  pnsFree(t);
 }
