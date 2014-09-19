@@ -45,17 +45,24 @@ int pnsMakeLeaf() {
   return pnsNodeSize - 1;
 }
 
+/* Allocates moves in the statically allocated memory */
+int pnsAllocateMoves(int n) {
+  pnsMoveSize += n;
+  assert(pnsMoveSize < PNS_MOVE_SIZE);
+  return pnsMoveSize - n;
+}
+
+/* Allocates moves and computes the move list */
 int pnsGetMoves(Board *b, int t) {
   int n = getAllMoves(b, pnsMove + pnsMoveSize, FORWARD);
   pnsNode[t].numChildren = n;
   pnsNode[t].move = pnsMoveSize;
-  pnsMoveSize += n;
-  assert(pnsMoveSize < PNS_MOVE_SIZE);
+  pnsAllocateMoves(n);
   return n;
 }
 
 /* Creates child pointers in the statically allocated memory */
-int pnsMakeChildren /* huh-huh */ (int n) {
+int pnsAllocateChildren(int n) {
   pnsChildSize += n;
   assert(pnsChildSize < PNS_CHILD_SIZE);
   return pnsChildSize - n;
@@ -159,7 +166,7 @@ void pnsExpand(int t, Board *b) {
     if (!nc) {                      // No legal moves
       pnsSetScoreNoMoves(t, b);
     } else {                                    // Regular node
-      pnsNode[t].child = pnsMakeChildren(nc);
+      pnsNode[t].child = pnsAllocateChildren(nc);
       u64 z = getZobrist(b);
       for (int i = 0; i < nc; i++) {
         int c = pnsNode[t].child + i;
@@ -255,6 +262,7 @@ Move pnsDecodeMove(FILE *f) {
     m.promotion = x & 7;
   } else {
     m.piece = x & 7;
+    m.promotion = 0;
   }
   return m;
 }
@@ -282,10 +290,12 @@ void pnsSaveNode(int t, int parent, FILE *f) {
     pnsNode[t].extra = 1;
     fputc(pnsNode[t].numChildren, f);
     if (pnsNode[t].numChildren) {
+      // Technically, we don't need to save the moves; we know the order in which getAllMoves() generates them.
+      // But we save them anyway, in case we ever change the move ordering.
       for (int i = 0; i < pnsNode[t].numChildren; i++) {
-        // Technically, we don't need to save the moves; we know the order in which getAllMoves() generates them.
-        // But we save them anyway, in case we ever change the move ordering.
         pnsEncodeMove(pnsMove[pnsNode[t].move + i], f);
+      }
+      for (int i = 0; i < pnsNode[t].numChildren; i++) {
         pnsSaveNode(pnsChild[pnsNode[t].child + i], t, f);
       }
     } else {
@@ -316,14 +326,23 @@ int pnsLoadNode(FILE *f, int parent, Board *b, u64 zobrist) {
 
   // For internal nodes, update the board and the Zobrist key and recurse
   if (numChildren) {
-    int numMoves = pnsGetMoves(b, t);
+    pnsNode[t].child = pnsAllocateChildren(numChildren);
+    pnsNode[t].move = pnsAllocateMoves(numChildren);
+    for (int i = 0; i < numChildren; i++) {
+      pnsMove[pnsNode[t].move + i] = pnsDecodeMove(f);
+    }
+#ifdef ENABLE_SLOW_ASSERTS
+    Move m[MAX_MOVES];
+    int numMoves = getAllMoves(b, m, FORWARD);
     assert(numMoves == numChildren);
     for (int i = 0; i < numChildren; i++) {
-      Move m = pnsDecodeMove(f);
-      assert(equalMove(m, pnsMove[pnsNode[t].move + i]));
+      assert(equalMove(m[i], pnsMove[pnsNode[t].move + i]));
+    }
+#endif // ENABLE_SLOW_ASSERTS
+    for (int i = 0, m = pnsNode[t].move; i < numChildren; i++, m++) {
       Board b2 = *b;
-      u64 zobrist2 = updateZobrist(zobrist, &b2, m);
-      makeMove(&b2, m);
+      u64 zobrist2 = updateZobrist(zobrist, &b2, pnsMove[m]);
+      makeMove(&b2, pnsMove[m]);
       pnsChild[pnsNode[t].child + i] = pnsLoadNode(f, t, &b2, zobrist2);
     }
   } else {
@@ -353,7 +372,9 @@ void pnsLoadTree(Board *b, string fileName) {
       printBoard(&b2);
       die("Input file stores a PN^2 tree for a different board (see above).");
     }
+    log(LOG_INFO, "Calling pnsLoadNode()");
     pnsLoadNode(f, NIL, &b2, getZobrist(&b2));
+    log(LOG_INFO, "Back from pnsLoadNode()");
     fclose(f);
     pnsRecalculateNumbers(1);
     log(LOG_INFO, "Loaded tree from %s.", fileName.c_str());

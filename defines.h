@@ -141,6 +141,9 @@ using namespace std;
 #define CMD_ANALYZE 1
 #define CMD_SERVER 2
 
+/* Whether to run some more expensive asserts */
+//#define ENABLE_SLOW_ASSERTS
+
 typedef unsigned long long u64;
 typedef unsigned char byte;
 
