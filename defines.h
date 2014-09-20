@@ -141,9 +141,6 @@ using namespace std;
 #define CMD_ANALYZE 1
 #define CMD_SERVER 2
 
-/* Whether to run some more expensive asserts */
-//#define ENABLE_SLOW_ASSERTS
-
 typedef unsigned long long u64;
 typedef unsigned char byte;
 
@@ -180,7 +177,6 @@ typedef struct {
   int move;      // index in pnsMove of the first move
   int parent;    // index in pnsParent of the first parent (transpositions have multiple parents in the DAG)
   byte numChildren;
-  byte extra; // extra information for things like saving, loading etc.
 } PnsNode;
 
 /* A linked list of PnsNodes. Statically allocated. */

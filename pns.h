@@ -38,7 +38,7 @@ class Pns {
 
   private:
 
-    /** Memory management and debugging **/
+    /** Memory management, debugging, loading, saving **/
 
     /* Creates a PNS tree node with no children and no parents and proof/disproof values of 1.
      * Returns its index in the preallocated array. */
@@ -60,8 +60,12 @@ class Pns {
     /* Prints a PNS tree node recursively. */
     void printTree(int t, int level);
 
-    /* Clears the extra information field. */
-    void clearExtra();
+    /* Saves the PNS tree. */
+    void saveTree(Board *b, string fileName);
+
+    /* Loads a PN^2 tree from fileName and checks that it applies to b.
+     * If fileName does not exist, then creates a 1-node tree. */
+    void loadTree(Board *b, string fileName);
 
     /** Proof-number search **/
 
@@ -84,34 +88,8 @@ class Pns {
     /* Propagate this node's values to each of its parents. */
     void update(int t);
 
-    /* Recalculates the P/D numbers for a freshly loaded tree (since we only store these numbers for leaves).
-     * TODO: avoid duplicating effort for transpositions. */
-    void recalculateNumbers(int t);
-
     /* Constructs a P/N tree until the position is proved or the tree exceeds nodeMax. */
     void analyzeBoard(Board *b);
-
-    /** Loading / saving **/
-
-    /* Encodes/decodes a move on 16 bits for loading/saving. */
-    void encodeMove(Move m, FILE *f);
-    Move decodeMove(FILE *f);
-
-    /* Encodes/decodes a number as varint for loading/saving.
-     * Encodes INFTY64 as 0 because it is very frequent and it shouldn't take 8 bytes. Moves everything else 1 up. */
-    void encodeNumber(u64 x, FILE *f);
-    u64 decodeNumber(FILE *f);
-
-    /* Loads/saves a node recursively */
-    void saveNode(int t, int parent, FILE *f);
-    int loadNode(FILE *f, int parent, Board *b, u64 zobrist);
-
-    /* Saves the PNS tree. */
-    void saveTree(Board *b, string fileName);
-
-    /* Loads a PN^2 tree from fileName and checks that it applies to b.
-     * If fileName does not exist, then creates a 1-node tree. */
-    void loadTree(Board *b, string fileName);
 };
 
 #endif
