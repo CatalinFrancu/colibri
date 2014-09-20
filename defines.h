@@ -189,12 +189,6 @@ typedef struct {
   int next;
 } PnsNodeList;
 
-/* A transposition table stores pointers into a PNS tree */
-typedef unordered_map<u64, int> TranspositionTable;
-
-/* A node set stores a collection of node pointers */
-typedef unordered_set<int> NodeSet;
-
 inline int sgn(int x) {
   return (x > 0) - (x < 0);
 }

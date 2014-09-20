@@ -11,6 +11,7 @@
 				<Option object_output="../obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
+				<Option parameters='-a &quot;e3 g6&quot; -f /tmp/test.col' />
 				<Compiler>
 					<Add option="-O3" />
 				</Compiler>
@@ -35,7 +36,7 @@
 				<Option object_output="../obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters='-a &quot;e3 f6&quot; -f /tmp/test.col' />
+				<Option parameters='-a &quot;e3 g6&quot; -f /tmp/test.col' />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>

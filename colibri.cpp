@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
   precomputeAll();
   initEgtb();
   zobristInit();
-  pnsInit();
+  //pnsInit();
 
   string fileName = "", position = "";
   int command = 0;
@@ -49,12 +49,13 @@ int main(int argc, char **argv) {
      }
   }
 
+  Pns pns(PNS_STEP_SIZE, PNS_MOVE_SIZE, PNS_CHILD_SIZE, PNS_PARENT_SIZE);
   switch (command) {
     case CMD_ANALYZE:
       if (fileName.empty()) {
         die("Please specify and input/output file with -f.");
       }
-      pn2AnalyzeString(position, fileName);
+      pns.analyzeString(position, fileName);
       break;
     case CMD_SERVER:
       startServer(); break;

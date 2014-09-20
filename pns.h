@@ -1,29 +1,117 @@
 #ifndef PNS_H
 #define PNS_H
 
-/* Initializes PNS-related data structures. */
-void pnsInit();
-
-/* Creates a PnsTree node with no children and no parents and proof/disproof values of 1.
- * Returns its index in the statically allocated array. */
-int pnsMakeLeaf();
-
-/* Deallocates a PnsTree. */
-void pnsFree(PnsNode *t);
-
-/* Expands the most proving node and sets its proof and disproof numbers.
- * Does not create child nodes if the node has a known EGTB value or if there are no legal moves. */
-void pnsExpand(PnsNode *t, Board *b);
-
-/* Takes an input string which can be a FEN board or a sequence of moves. Constructs the board and analyze it.
- * Loads an existing PNS^2 tree from fileName if the file exists. Saves periodically to fileName. */
-void pn2AnalyzeString(string input, string fileName);
-
-/* Analyzes a board using proof number search.
- * @param root -- the tree so far (either loaded from a file or initialized with a single node)
- * @param b -- the board to anayze
- * @param maxNodes -- create this many new nodes (0 for no limit)
+/*
+ * Class that handles proof-number search.
  */
-void pnsAnalyzeBoard(PnsNode *root, Board *b, int maxNodes);
+class Pns {
+  /* Preallocated array of PNS tree nodes */
+  PnsNode *node;
+  int nodeSize, nodeMax;
+
+  /* Preallocated array of moves (links between PNS tree nodes) */
+  Move *move;
+  int moveSize, moveMax;
+
+  /* Preallocated array of child pointers (links between PNS tree nodes) */
+  int *child;
+  int childSize, childMax;
+
+  /* Preallocated array of parent pointers (parents are stored in linked lists) */
+  PnsNodeList *parent;
+  int parentSize, parentMax;
+
+  /* Hash table of positions anywhere in the PNS tree. Maps Zobrist keys to indices in node. */
+  unordered_map<u64, int> trans;
+
+  /* Set of nodes on any path from the MPN to the root. Stores indices in node. */
+  unordered_set<int> ancestors;
+
+  public:
+
+    /* Creates a new Pns with the given size limits. */
+    Pns(int nodeMax, int moveMax, int childMax, int parentMax);
+
+    /* Analyze a string, which can be a sequence of moves or a position in FEN.
+     * Loads a previous PNS tree from fileName, if it exists. */
+    void analyzeString(string input, string fileName);
+
+  private:
+
+    /** Memory management and debugging **/
+
+    /* Creates a PNS tree node with no children and no parents and proof/disproof values of 1.
+     * Returns its index in the preallocated array. */
+    int allocateLeaf();
+
+    /* Allocates n moves in the preallocated memory. */
+    int allocateMoves(int n);
+
+    /* Allocates moves and computes the move list */
+    int getMoves(Board *b, int t);
+
+    /* Allocates n children pointers in the preallocated memory. */
+    int allocateChildren(int n);
+
+    /* Adds a parent to a PNS node (presumably because we found a transposed path to it).
+     * The new pointer is added at the front of the parent list. */
+    void addParent(int childIndex, int parentIndex);
+
+    /* Prints a PNS tree node recursively. */
+    void printTree(int t, int level);
+
+    /* Clears the extra information field. */
+    void clearExtra();
+
+    /** Proof-number search **/
+
+    /* Adds a node's ancestors to the ancestor hash map. */
+    void hashAncestors(int t);
+
+    /* Finds the most proving node in a PNS tree. Starting with the original board b, also makes the necessary moves
+     * modifying b, returning the position corresponding to the MPN. */
+    int selectMpn(Board *b);
+
+    /* Sets the proof and disproof numbers for a board with no legal moves. */
+    void setScoreNoMoves(int t, Board *b);
+
+    /* Sets the proof and disproof numbers for an EGTB board. */
+    void setScoreEgtb(int t, int score);
+
+    /* Expands the given leaf with 1/1 children. If there are no legal moves, sets the P/D numbers accordingly. */
+    void expand(int t, Board *b);
+
+    /* Propagate this node's values to each of its parents. */
+    void update(int t);
+
+    /* Recalculates the P/D numbers for a freshly loaded tree (since we only store these numbers for leaves).
+     * TODO: avoid duplicating effort for transpositions. */
+    void recalculateNumbers(int t);
+
+    /* Constructs a P/N tree until the position is proved or the tree exceeds nodeMax. */
+    void analyzeBoard(Board *b);
+
+    /** Loading / saving **/
+
+    /* Encodes/decodes a move on 16 bits for loading/saving. */
+    void encodeMove(Move m, FILE *f);
+    Move decodeMove(FILE *f);
+
+    /* Encodes/decodes a number as varint for loading/saving.
+     * Encodes INFTY64 as 0 because it is very frequent and it shouldn't take 8 bytes. Moves everything else 1 up. */
+    void encodeNumber(u64 x, FILE *f);
+    u64 decodeNumber(FILE *f);
+
+    /* Loads/saves a node recursively */
+    void saveNode(int t, int parent, FILE *f);
+    int loadNode(FILE *f, int parent, Board *b, u64 zobrist);
+
+    /* Saves the PNS tree. */
+    void saveTree(Board *b, string fileName);
+
+    /* Loads a PN^2 tree from fileName and checks that it applies to b.
+     * If fileName does not exist, then creates a 1-node tree. */
+    void loadTree(Board *b, string fileName);
+};
 
 #endif

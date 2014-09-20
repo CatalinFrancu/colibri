@@ -1290,7 +1290,6 @@ BOOST_AUTO_TEST_CASE(testPnsAnalyzeBoard) {
   BOOST_CHECK_EQUAL(g->parent[1], t->child[2]);
 
   free(b);
-  pnsFree(t);
 }
 
 /************************* Tests for zobrist.cpp *************************/
