@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "bitmanip.h"
 #include "defines.h"
+#include "zobrist.h"
 
 u64 zrBoard[64][2][KING + 1];
 u64 zrSide;
