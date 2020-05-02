@@ -54,6 +54,8 @@ char* readEgtbChunkFromFile(const char *combo, int chunkNo) {
     }
     fclose(f);
     return data;
+  } else {
+    log(LOG_WARNING, "Missing EGTB file for combo %s", combo);
   }
 
   return NULL;
