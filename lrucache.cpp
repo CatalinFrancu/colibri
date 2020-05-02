@@ -61,6 +61,7 @@ void* lruCacheGet(LruCache *cache, u64 key) {
   return elem.data;
 }
 
-void logCacheStats(LruCache *cache, const char *msg) {
-  log(LOG_INFO, "%s cache stats: %llu lookups / %llu misses / %llu evictions", msg, cache->lookups, cache->misses, cache->evictions);
+void logCacheStats(int level, LruCache *cache, const char *msg) {
+  log(level, "%s cache stats: %llu lookups / %llu misses / %llu evictions",
+      msg, cache->lookups, cache->misses, cache->evictions);
 }

@@ -17,7 +17,7 @@ logFile = stdout
 ; 0 = no logging
 ; 1 = ERROR
 ; 2 = WARNING
-; 3 = NOTICE
+; 3 = INFO
 ; 4 = DEBUG
 logLevel = 4
 

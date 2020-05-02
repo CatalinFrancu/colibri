@@ -297,9 +297,9 @@ void decodeEgtbBoard(PieceSet *ps, int nps, Board *b, unsigned code) {
 }
 
 /* Computes a score for a board and its set of forward moves by looking at all the resulting boards.
- * - If I can move into any lost position (for the opponent), then I win. Look for he shortest win.
+ * - If I can move into any lost position (for the opponent), then I win. Look for the shortest win.
  * - If all positions I can move into are won (for the opponent), then I lost. Look for the longest loss.
- * - If there are no moves, the position is won / lost now depending on the number of pieces.
+ * - If there are no moves, the position is won / drawn now depending on the number of pieces.
  * - Otherwise the position is a DRAW with the current information
  *
  * memTable - if this is NULL, then we are at the first step of collecting wins/losses in 0/1 for our table.
@@ -594,7 +594,7 @@ bool generateEgtb(const char *combo) {
   log(LOG_INFO, "Generation time: %.3f s (%.3f positions/s)", delta / 1000.0, size / (delta / 1000.0));
   log(LOG_DEBUG, "Longest win/loss:");
   printBoard(&b);
-  logCacheStats(&egtbCache, "EGTB");
+  logCacheStats(LOG_INFO, &egtbCache, "EGTB");
   return true;
 }
 
@@ -821,7 +821,7 @@ void egtbVerifyHelper(const char *combo, int side, int level, int maxLevel, int 
       if (b->bb[BB_EMPTY] & mask) {
         if (!level) {
           log(LOG_DEBUG, "  Level %d: placing a %c at %s", level, combo[level], SQUARE_NAME(sq).c_str());
-          logCacheStats(&egtbCache, "EGTB");
+          logCacheStats(LOG_DEBUG, &egtbCache, "EGTB");
         }
         b->bb[base] ^= mask;
         b->bb[base + piece] ^= mask;

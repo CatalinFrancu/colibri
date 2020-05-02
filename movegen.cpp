@@ -306,11 +306,15 @@ int getBlackCaptures(Board *b, Move *m) {
 int getAllMoves(Board *b, Move *m, bool direction) {
   if (direction == BACKWARD) {
     // Notice the color inversion -- if White is to move, then Black must have made the last move
-    return (b->side == WHITE) ? getBlackNonCaptures(b, m, direction) : getWhiteNonCaptures(b, m, direction);
+    return (b->side == WHITE)
+      ? getBlackNonCaptures(b, m, direction)
+      : getWhiteNonCaptures(b, m, direction);
   }
   int numMoves = (b->side == WHITE) ? getWhiteCaptures(b, m) : getBlackCaptures(b, m);
   if (!numMoves) {
-    numMoves = (b->side == WHITE) ? getWhiteNonCaptures(b, m, direction) : getBlackNonCaptures(b, m, direction);
+    numMoves = (b->side == WHITE)
+      ? getWhiteNonCaptures(b, m, direction)
+      : getBlackNonCaptures(b, m, direction);
   }
   return numMoves;
 }
