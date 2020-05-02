@@ -309,11 +309,12 @@ void decodeEgtbBoard(PieceSet *ps, int nps, Board *b, unsigned code) {
 int forwardStep(Board *b, Move *m, int numMoves, PieceSet *ps, int nps, char *memTable) {
   int score;
   if (!numMoves) {
-    // Compute score from White's point of view, then negate it if needed
-    int delta = popCount(b->bb[BB_BALL]) - popCount(b->bb[BB_WALL]);
-    score = (delta > 0) ? 1 : ((delta == 0) ? EGTB_DRAW : -1);
-    if (b->side == BLACK) {
-      score = -score;
+    // Joint rules: side to move is stalemated, but must also have fewer pieces
+    int delta = popCount(b->bb[BB_WALL]) - popCount(b->bb[BB_BALL]);
+    if (b->side == WHITE) {
+      score = (delta < 0) ? 1 : EGTB_DRAW;
+    } else {
+      score = (delta > 0) ? 1 : EGTB_DRAW;
     }
   } else {
     Board b2;
@@ -668,9 +669,10 @@ void matchOrDie(bool condition, Board *b, int score, int minNeg, int maxNeg, int
 }
 
 void egtbVerifyPosition(Board *b, Move *m, const char *combo, PieceSet *ps, int nps) {
-  // Only check 10% of the positions. This is ok, because a bug is likely to affect at least hundreds of positions, and the chance of missing
-  // 300 buggy positions is 0.90^300 = 1.8 * 10^-14
-  if (rand() % 10) {
+  // Only check 1/8th of the positions. This is OK, because a bug is likely to affect
+  // at least hundreds of positions, and the chance of missing 200 buggy positions is
+  // 0.875^200 = 2.5 * 10^-12.
+  if (rand() & 7) {
     return;
   }
   Board bc = *b;
@@ -678,16 +680,13 @@ void egtbVerifyPosition(Board *b, Move *m, const char *combo, PieceSet *ps, int 
   bc = *b;
   int numMoves = getAllMoves(&bc, m, FORWARD);
 
-  // If no moves are possible, the score should be 1, 0 or -1 depending on the count of white and black pieces.
   if (!numMoves) {
-    int stmCount = popCount((bc.side == WHITE) ? bc.bb[BB_WALL] : bc.bb[BB_BALL]);
-    int sntmCount = popCount((bc.side == WHITE) ? bc.bb[BB_BALL] : bc.bb[BB_WALL]);
-    if (stmCount > sntmCount) {
-      assert(score == -1); // Lost now
-    } else if (stmCount < sntmCount) {
-      assert(score == 1); // Won now
+    // Joint rules: side to move wins or draws depending on the piece counts.
+    int delta = popCount(bc.bb[BB_WALL]) - popCount(bc.bb[BB_BALL]);
+    if (bc.side == WHITE) {
+      assert(score == ((delta < 0) ? 1 : EGTB_DRAW));
     } else {
-      assert(score == EGTB_DRAW);
+      assert(score == ((delta > 0) ? 1 : EGTB_DRAW));
     }
     return;
   }
