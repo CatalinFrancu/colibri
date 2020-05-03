@@ -63,14 +63,15 @@ int main(int argc, char **argv) {
       log(LOG_WARNING, "No command given. Resuming main() execution.");
   }
 
-  //  generateEgtb("KQBNvK");
-  //  verifyEgtb("KQBNvK");
-  //  compressEgtb("KQBNvK");
-  //  generateEgtb("KQBNvQ");
-  //  verifyEgtb("KQBNvQ");
-  //  compressEgtb("KQBNvQ");
-  //  generateEgtb("KQBNvR");
-  //  verifyEgtb("KQBNvR");
-  //  compressEgtb("KQBNvR");
-  // generateAllEgtb(3, 2);
+  // const char* table = "KKKvK";
+  // generateEgtb(table);
+  // verifyEgtb(table);
+  // compressEgtb(table);
+  // generateEgtb("KQBNvQ");
+  // verifyEgtb("KQBNvQ");
+  // compressEgtb("KQBNvQ");
+  // generateEgtb("KQBNvR");
+  // verifyEgtb("KQBNvR");
+  // compressEgtb("KQBNvR");
+  generateAllEgtb(3, 2);
 }
