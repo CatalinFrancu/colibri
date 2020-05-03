@@ -99,9 +99,6 @@ using namespace std;
 /* Cache EGTB files in 32 KB chunks */
 #define EGTB_CHUNK_SIZE 32768
 
-/* How many open positions can arise in one retrograde iteration */
-#define EGTB_ITERATION_SIZE 150000000
-
 /* Size of every PNS^1 step */
 #define PNS_STEP_SIZE 1000000
 

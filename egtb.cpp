@@ -17,20 +17,16 @@
 LruCache egtbCache;
 
 // Positions left to consider in this retrograde iteration
-unsigned openIter1[EGTB_ITERATION_SIZE];
+unsigned *openIter1, numOpenIter1;
 
 // Positions collected for consideration in the next retrograde iteration
-unsigned openIter2[EGTB_ITERATION_SIZE];
-int numOpenIter1, numOpenIter2;
+unsigned *openIter2, numOpenIter2;
 
 void initEgtb() {
   egtbCache = lruCacheCreate(cfgEgtbChunks);
 }
 
 inline void pushToNextIteration(unsigned code) {
-  if (numOpenIter2 == EGTB_ITERATION_SIZE) {
-    die("EGTB_ITERATION_SIZE exceeded");
-  }
   openIter2[numOpenIter2++] = code;
 }
 
@@ -557,6 +553,10 @@ bool generateEgtb(const char *combo) {
   log(LOG_INFO, "Table size: %d", size);
   char *memTable = (char*)malloc(size);
   memset(memTable, EGTB_DRAW, size);
+
+  // Allocate space for the list of positions (2.5 GB for the largest tables).
+  openIter1 = (unsigned*)malloc(size * sizeof(unsigned));
+  openIter2 = (unsigned*)malloc(size * sizeof(unsigned));
   numOpenIter2 = 0;
   iterateEgtb(ps, numPieceSets, 0, &b, m, memTable);
   if (ps[0].piece == PAWN && ps[1].piece == PAWN) {
@@ -592,6 +592,8 @@ bool generateEgtb(const char *combo) {
   fwrite(memTable, size, 1, fTable);
   fclose(fTable);
   free(memTable);
+  free(openIter1);
+  free(openIter2);
   log(LOG_INFO, "Table size: %d, of which non-draws: %d", size, solved);
   u64 delta = timerGet() - timer;
   log(LOG_INFO, "Generation time: %.3f s (%.3f positions/s)", delta / 1000.0, size / (delta / 1000.0));
