@@ -131,9 +131,8 @@ void changeSides(Board *b) {
   b->side = WHITE + BLACK - b->side;
 }
 
-void changeSidesIfNeeded(Board *b) {
+void changeSidesIfNeeded(Board *b, int wp, int bp) {
   bool change = false;
-  int wp = popCount(b->bb[BB_WALL]), bp = popCount(b->bb[BB_BALL]);
   if (wp < bp) {
     change = true;
   } else if (wp == bp) {

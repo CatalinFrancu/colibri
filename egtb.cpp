@@ -612,7 +612,7 @@ int egtbLookup(Board *b) {
     return EGTB_UNKNOWN;
   }
 
-  changeSidesIfNeeded(b);
+  changeSidesIfNeeded(b, wp, bp);
 
   char combo[EGTB_MEN + 2];
   int len = 0;

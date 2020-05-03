@@ -32,7 +32,8 @@ void rotateMove(Move *m, int orientation);
 void changeSides(Board *b);
 
 /* Changes sides if needed for an EGTB lookup (e.g. Black has more pieces than White) */
-void changeSidesIfNeeded(Board *b);
+/* wp, bp: popcounts (saves recomputing them inside the function) */
+void changeSidesIfNeeded(Board *b, int wp, int bp);
 
 /* Two things need to happen before we refer to the EP index:
  * 1. Naturally, the EP bit must be set
