@@ -231,14 +231,11 @@ void Pns::analyzeBoard(Board *b) {
          (node[0].proof < INFTY64 || node[0].disproof < INFTY64)) {
     Board current = *b;
     int mpn = selectMpn(&current);
-    printf("MPN: %d\n", mpn);
-    printBoard(&current);
     if (expand(mpn, &current)) {
       update(mpn);
     } else {
       full = true;
     }
-    printf("size after expand: %d\n", nodeSize);
   }
   log(LOG_INFO, "Tree size %d, proof %llu, disproof %llu",
       nodeSize, node[0].proof, node[0].disproof);
