@@ -5,6 +5,7 @@
 #include "configfile.h"
 #include "egtb.h"
 #include "fileutil.h"
+#include "logging.h"
 #include "lrucache.h"
 #include "movegen.h"
 #include "pns.h"
@@ -1230,69 +1231,91 @@ BOOST_AUTO_TEST_CASE(testIsFen) {
 }
 
 /************************* Tests for pns.cpp *************************/
-/* TODO These seem to be outdated; PNS calls need to be converted to the class model. */
 
-// BOOST_AUTO_TEST_CASE(testPnsExpand) {
-//   loadConfigFile(CONFIG_FILE);
-//   initEgtb();
-//   PnsNode *t;
-//   Board *b;
+BOOST_AUTO_TEST_CASE(testPnsTrivial) {
+  logInit("stderr");
+  loadConfigFile(CONFIG_FILE);
+  initEgtb();
 
-//   t = pnsMakeLeaf();
-//   b = fenToBoard("7r/8/8/8/8/8/8/K7 w - - 0 0"); // KvR: EGTB loss
-//   pnsExpand(t, b);
-//   BOOST_CHECK_EQUAL(t->proof, INFTY64);
-//   BOOST_CHECK_EQUAL(t->disproof, 0);
-//   free(t);
-//   free(b);
+  Pns pns(PNS_STEP_SIZE, PNS_MOVE_SIZE, PNS_CHILD_SIZE, PNS_PARENT_SIZE);
+  Board* b = fenToBoard("7r/8/8/8/8/8/8/K7 w - - 0 0"); // KvR: EGTB loss
+  pns.analyzeBoard(b);
+  BOOST_CHECK_EQUAL(pns.getProof(), INFTY64);
+  BOOST_CHECK_EQUAL(pns.getDisproof(), 0);
+  free(b);
 
-//   t = pnsMakeLeaf();
-//   b = fenToBoard("7r/8/8/8/8/8/8/K7 b - - 0 0");  // RvK: EGTB win
-//   pnsExpand(t, b);
-//   BOOST_CHECK_EQUAL(t->proof, 0);
-//   BOOST_CHECK_EQUAL(t->disproof, INFTY64);
-//   free(t);
-//   free(b);
+  pns.reset();
+  b = fenToBoard("7r/8/8/8/8/8/8/K7 b - - 0 0");  // RvK: EGTB win
+  pns.analyzeBoard(b);
+  BOOST_CHECK_EQUAL(pns.getProof(), 0);
+  BOOST_CHECK_EQUAL(pns.getDisproof(), INFTY64);
+  free(b);
 
-//   t = pnsMakeLeaf();
-//   b = fenToBoard("8/p4p2/P1p2P2/2P5/8/8/8/8 w - - 0 0");  // PPPvPPP with no moves: draw
-//   pnsExpand(t, b);
-//   BOOST_CHECK_EQUAL(t->proof, INFTY64);
-//   BOOST_CHECK_EQUAL(t->disproof, INFTY64);
-//   free(t);
-//   free(b);
-// }
+  pns.reset();
+  b = fenToBoard("8/p4p2/P1p2P2/2P5/8/8/8/8 w - - 0 0");  // 3Pv3P with no moves: draw
+  pns.analyzeBoard(b);
+  BOOST_CHECK_EQUAL(pns.getProof(), INFTY64);
+  BOOST_CHECK_EQUAL(pns.getDisproof(), INFTY64);
+  free(b);
 
-// BOOST_AUTO_TEST_CASE(testPnsAnalyzeBoard) {
-//   zobristInit();
+  pns.reset();
+  b = fenToBoard("8/p1p2p2/P1p2P2/2P5/8/8/8/8 w - - 0 0");  // 3Pv4P with no moves: win
+  pns.analyzeBoard(b);
+  BOOST_CHECK_EQUAL(pns.getProof(), 0);
+  BOOST_CHECK_EQUAL(pns.getDisproof(), INFTY64);
+  free(b);
 
-//   Board *b = fenToBoard("8/3p4/p7/4P3/8/4PPPP/8/8 b - - 0 0");
-//   PnsNode *t = pnsMakeLeaf();
-//   pnsAnalyzeBoard(t, b, 17); // Just enough to run into the transposition after d5 exd6 and d6 exd6
+  pns.reset();
+  b = fenToBoard("8/p4p2/P1p2P2/2P5/2P5/8/8/8 w - - 0 0");  // 4Pv3P with no moves: draw
+  pns.analyzeBoard(b);
+  BOOST_CHECK_EQUAL(pns.getProof(), INFTY64);
+  BOOST_CHECK_EQUAL(pns.getDisproof(), INFTY64);
+  free(b);
+}
 
-//   BOOST_CHECK_EQUAL(t->proof, 5);
-//   BOOST_CHECK_EQUAL(t->disproof, 3);
-//   BOOST_CHECK_EQUAL(t->numParents, 0);
-//   BOOST_CHECK_EQUAL(t->numChildren, 3);
-//   BOOST_CHECK_EQUAL(t->move[0].from, 40);
-//   BOOST_CHECK_EQUAL(t->move[0].to, 32);
-//   BOOST_CHECK_EQUAL(t->move[1].from, 51);
-//   BOOST_CHECK_EQUAL(t->move[1].to, 43);
-//   BOOST_CHECK_EQUAL(t->move[2].from, 51);
-//   BOOST_CHECK_EQUAL(t->move[2].to, 35);
+BOOST_AUTO_TEST_CASE(testPnsAnalyzeBoard) {
+  zobristInit();
 
-//   PnsNode *g = t->child[1]->child[0]; // This is the transposition
-//   BOOST_CHECK_EQUAL(g->proof, 5);
-//   BOOST_CHECK_EQUAL(g->disproof, 1);
-//   BOOST_CHECK_EQUAL(g->numParents, 2);
-//   BOOST_CHECK_EQUAL(g->numChildren, 1);
-//   BOOST_CHECK_EQUAL(g->move[0].from, 40);
-//   BOOST_CHECK_EQUAL(g->move[0].to, 32);
-//   BOOST_CHECK_EQUAL(g->parent[0], t->child[1]);
-//   BOOST_CHECK_EQUAL(g->parent[1], t->child[2]);
+  Board* b = fenToBoard("8/p2p4/3p4/1P6/1P6/1P6/1P6/8 b - - 0 0");
 
-//   free(b);
-// }
+  // Create a PNS tree just large enough to run into the transposition after a5 bxa6 and a6 bxa6
+  Pns pns(28, PNS_MOVE_SIZE, PNS_CHILD_SIZE, PNS_PARENT_SIZE);
+  pns.analyzeBoard(b);
+
+  PnsNode *t = pns.getNode(0);
+  Move m0 = pns.getMove(t->move);
+  Move m1 = pns.getMove(t->move + 1);
+  Move m2 = pns.getMove(t->move + 2);
+  BOOST_CHECK_EQUAL(t->proof, 2);
+  BOOST_CHECK_EQUAL(t->disproof, INFTY64);
+  BOOST_CHECK_EQUAL(t->parent, NIL);
+  BOOST_CHECK_EQUAL(t->numChildren, 3);
+
+  BOOST_CHECK_EQUAL(m0.from, 43);
+  BOOST_CHECK_EQUAL(m0.to, 35);
+  BOOST_CHECK_EQUAL(m1.from, 48);
+  BOOST_CHECK_EQUAL(m1.to, 40);
+  BOOST_CHECK_EQUAL(m2.from, 48);
+  BOOST_CHECK_EQUAL(m2.to, 32);
+
+  // gc is the grandchild after (a5 bxa6ep). This is the transposition, also
+  // reachable after a6 bxa6.
+  PnsNode *gc = pns.getNode(22);
+  m0 = pns.getMove(gc->move);
+  
+  BOOST_CHECK_EQUAL(gc->proof, 2);
+  BOOST_CHECK_EQUAL(gc->disproof, 1);
+  BOOST_CHECK_EQUAL(pns.getNumParents(gc), 2);
+  BOOST_CHECK_EQUAL(gc->numChildren, 1);
+  BOOST_CHECK_EQUAL(m0.from, 43);
+  BOOST_CHECK_EQUAL(m0.to, 35);
+
+  // Its parents are a5 and a6, reachable from the root node (indices 2 and 3).
+  BOOST_CHECK_EQUAL(pns.getParent(gc, 0), 3);
+  BOOST_CHECK_EQUAL(pns.getParent(gc, 1), 2);
+
+  free(b);
+}
 
 /************************* Tests for zobrist.cpp *************************/
 

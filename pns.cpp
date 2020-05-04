@@ -15,12 +15,55 @@ Pns::Pns(int nodeMax, int moveMax, int childMax, int parentMax) {
   this->childMax = childMax;
   this->parentMax = parentMax;
 
-  nodeSize = moveSize = childSize = parentSize = 1;
-
   this->node = (PnsNode*)malloc(nodeMax * sizeof(PnsNode));
   this->move = (Move*)malloc(moveMax * sizeof(Move));
   this->child = (int*)malloc(childMax * sizeof(int));
   this->parent = (PnsNodeList*)malloc(parentMax * sizeof(PnsNodeList));
+
+  reset();
+}
+
+u64 Pns::getProof() {
+  return node[0].proof;
+}
+
+u64 Pns::getDisproof() {
+  return node[0].disproof;
+}
+
+PnsNode* Pns::getNode(int t) {
+  assert(t < nodeSize);
+  return &node[t];
+}
+
+Move Pns::getMove(int m) {
+  assert(m < moveSize);
+  return move[m];
+}
+
+int Pns::getNumParents(PnsNode* t) {
+  int result = 0;
+  int p = t->parent;
+  while (p != NIL) {
+    p = parent[p].next;
+    result++;
+  }
+  return result;
+}
+
+int Pns::getParent(PnsNode* t, int k) {
+  int p = t->parent;
+  while (p != NIL && k) {
+    p = parent[p].next;
+    k--;
+  }
+  assert(p != NIL);
+  return parent[p].node;
+}
+
+void Pns::reset() {
+  nodeSize = moveSize = childSize = parentSize = 0;
+  allocateLeaf();
 }
 
 int Pns::allocateLeaf() {
@@ -88,7 +131,7 @@ void Pns::hashAncestors(int t) {
 }
 
 int Pns::selectMpn(Board *b) {
-  int t = 1; // Start at the root
+  int t = 0; // Start at the root
   while (node[t].numChildren) {
     int i = 0, c = node[t].child;
     while ((i < node[t].numChildren) && (node[child[c]].disproof != node[t].proof)) {
@@ -110,8 +153,9 @@ void Pns::setScoreNoMoves(int t, Board *b) {
   int indexOther = BB_WALL + BB_BALL - indexMe;
   int countMe = popCount(b->bb[indexMe]);
   int countOther = popCount(b->bb[indexOther]);
+  // international rules: can win or draw, but never lose
   node[t].proof = (countMe < countOther) ? 0 : INFTY64;
-  node[t].disproof = (countMe > countOther) ? 0 : INFTY64;
+  node[t].disproof = INFTY64;
 }
 
 void Pns::setScoreEgtb(int t, int score) {
@@ -127,7 +171,7 @@ void Pns::setScoreEgtb(int t, int score) {
   }
 }
 
-void Pns::expand(int t, Board *b) {
+bool Pns::expand(int t, Board *b) {
   int score = evalBoard(b);
   if (score != EGTB_UNKNOWN) {
     setScoreEgtb(t, score);                     // EGTB node
@@ -135,6 +179,9 @@ void Pns::expand(int t, Board *b) {
     int nc = getMoves(b, t);
     if (!nc) {                                  // No legal moves
       setScoreNoMoves(t, b);
+    } else if (nodeSize + nc > nodeMax) {
+      // not enough room left to expand
+      return false;
     } else {                                    // Regular node
       node[t].child = allocateChildren(nc);
       u64 z = getZobrist(b);
@@ -155,6 +202,7 @@ void Pns::expand(int t, Board *b) {
       }
     }
   }
+  return true;
 }
 
 void Pns::update(int t) {
@@ -177,17 +225,25 @@ void Pns::update(int t) {
 }
 
 void Pns::analyzeBoard(Board *b) {
-  int treeSize = 1;
-  while (nodeSize < nodeMax - MAX_MOVES &&
-         node[1].proof && node[1].disproof &&
-         (node[1].proof < INFTY64 || node[1].disproof < INFTY64)) {
+  bool full = false;
+  while (!full &&
+         node[0].proof && node[0].disproof &&
+         (node[0].proof < INFTY64 || node[0].disproof < INFTY64)) {
     Board current = *b;
     int mpn = selectMpn(&current);
-    expand(mpn, &current);
-    update(mpn);
+    printf("MPN: %d\n", mpn);
+    printBoard(&current);
+    if (expand(mpn, &current)) {
+      update(mpn);
+    } else {
+      full = true;
+    }
+    printf("size after expand: %d\n", nodeSize);
   }
-  log(LOG_INFO, "Tree size %d, proof %llu, disproof %llu", nodeSize, node[1].proof, node[1].disproof);
-  log(LOG_INFO, "Usage: nodes %d/%d moves %d/%d children %d/%d parents %d/%d", nodeSize, nodeMax, moveSize, moveMax, childSize, childMax, parentSize, parentMax);
+  log(LOG_INFO, "Tree size %d, proof %llu, disproof %llu",
+      nodeSize, node[0].proof, node[0].disproof);
+  log(LOG_INFO, "Usage: nodes %d/%d moves %d/%d children %d/%d parents %d/%d",
+      nodeSize, nodeMax, moveSize, moveMax, childSize, childMax, parentSize, parentMax);
 }
 
 void Pns::analyzeString(string input, string fileName) {
