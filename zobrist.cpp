@@ -60,7 +60,7 @@ u64 updateZobrist(u64 z, Board *b, Move m) {
   // m.piece disappears from m.from.
   z ^= zrBoard[m.from][b->side][m.piece];
 
-  // m.piece or m.promotion appears at m.tp.
+  // m.piece or m.promotion appears at m.to.
   if (m.promotion) {
     z ^= zrBoard[m.to][b->side][m.promotion];
   } else {
