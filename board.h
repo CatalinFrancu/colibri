@@ -77,9 +77,4 @@ void makeBackwardMove(Board *b, Move m);
  *  Returns the resulting board or NULL on all errors. */
 Board* makeMoveSequence(int numMoveStrings, string *moveStrings);
 
-/* Statically evaluates a board:
- * - if one side has no pieces left, it wins
- * - otherwise this is a draw from the static eval's point of view. */
-int evalBoard(Board *b);
-
 #endif

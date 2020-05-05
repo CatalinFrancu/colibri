@@ -479,13 +479,3 @@ Board* makeMoveSequence(int numMoveStrings, string *moveStrings) {
   }
   return b;
 }
-
-int evalBoard(Board *b) {
-  if (!b->bb[BB_WALL]) {
-    return (b->side == WHITE) ? 1 : -1; // Won/lost now
-  }
-  if (!b->bb[BB_BALL]) {
-    return (b->side == WHITE) ? -1 : 1; // Lost/won now
-  }
-  return egtbLookup(b);
-}

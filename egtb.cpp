@@ -335,13 +335,13 @@ int forwardStep(Board *b, Move *m, int numMoves, PieceSet *ps, int nps, char *me
       makeMove(&b2, m[i]);
       int childScore;
       if (m[i].promotion) {
-        childScore = sgn(evalBoard(&b2));
+        childScore = sgn(egtbLookup(&b2));
       } else if (memTable) {
         canonicalizeBoard(ps, nps, &b2);
         int index = getEgtbIndex(ps, nps, &b2);
         childScore = memTable[index];
       } else if (captures) {
-        childScore = evalBoard(&b2);
+        childScore = egtbLookup(&b2);
       } else {
         // If there is no memTable and there are no promotions and no captures, then we are iterating this table for the first time
         // and this position isn't a conversion, so it's a draw / unknown.
@@ -605,8 +605,11 @@ bool generateEgtb(const char *combo) {
 
 int egtbLookup(Board *b) {
   int wp = popCount(b->bb[BB_WALL]), bp = popCount(b->bb[BB_BALL]);
-  if (!wp || !bp) {
-    return EGTB_DRAW; // You're looking in the wrong place, buddy -- evalBoard() should catch this
+  if (!wp) {
+    return (b->side == WHITE) ? 1 : -1; // Won/lost now
+  }
+  if (!bp) {
+    return (b->side == WHITE) ? -1 : 1; // Lost/won now
   }
   if (wp + bp > EGTB_MEN) {
     return EGTB_UNKNOWN;
@@ -655,7 +658,7 @@ int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int 
       Board b2 = *b;
       makeMove(&b2, m[i]);
       fens[i] = boardToFen(&b2);
-      scores[i] = evalBoard(&b2);
+      scores[i] = egtbLookup(&b2);
     }
   }
   return result;
@@ -702,7 +705,7 @@ void egtbVerifyPosition(Board *b, Move *m, const char *combo, PieceSet *ps, int 
     Board b2 = bc;
     makeMove(&b2, m[i]);
     if (captures || m[i].promotion) {
-      childScore[i] = evalBoard(&b2);
+      childScore[i] = egtbLookup(&b2);
     } else {
       childScore[i] = egtbLookupWithInfo(&b2, combo, ps, nps);
     }

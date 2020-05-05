@@ -43,9 +43,13 @@ int getEpEgtbIndex(PieceSet *ps, int nps, Board *b);
  * Returns true if it actually generated something, false if the file was already there. */
 bool generateEgtb(const char *combo);
 
-/* Queries the EGTB for this position. Takes care of canonicalization.
- * Returns the score shifted by 1. Returns INFTY on errors (missing EGTB file, more than EGTB_MEN pieces on the board etc.).
- * Clobbers b. */
+/**
+ * Queries the EGTB for this position. Also handles two corner cases: (1) no
+ * white or black pieces (game is won/lost now); (2) too many pieces. Takes
+ * care of canonicalization. Returns the score shifted by 1. Returns INFTY on
+ * errors (missing EGTB file etc.).
+ * Clobbers b.
+*/
 int egtbLookup(Board *b);
 
 /* Queries the EGTB for this position. The caller must pass some extra information (this information is identical over large numbers of queries

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sstream>
 #include "board.h"
+#include "egtb.h"
 #include "logging.h"
 #include "movegen.h"
 #include "pns.h"
@@ -174,7 +175,7 @@ void Pns::copyMovesFromPn1() {
 bool Pns::expand(int t, Board *b) {
   // Looking up the board in EGTB is unnecessary in PN2. However, it is
   // relatively cheap so we do it for clarity.
-  int score = evalBoard(b);
+  int score = egtbLookup(b);
   if (score != EGTB_UNKNOWN) {
     setScoreEgtb(t, score);                   // EGTB node
     return true;
