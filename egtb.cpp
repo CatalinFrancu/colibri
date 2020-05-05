@@ -574,7 +574,7 @@ bool generateEgtb(const char *combo) {
     numOpenIter1 = numOpenIter2;
     numOpenIter2 = 0;
 
-    for (int i = 0; i < numOpenIter1; i++) {
+    for (unsigned i = 0; i < numOpenIter1; i++) {
       decodeEgtbBoard(ps, numPieceSets, &b, openIter1[i]);
       retrograde(ps, numPieceSets, &b, targetScore, memTable, mf, mb);
     }

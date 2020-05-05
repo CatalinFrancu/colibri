@@ -10,7 +10,7 @@ bool endsWith(const char *s, const char *suffix) {
   }
   int len = strlen(s);
   int lens = strlen(suffix);
-  if (lens >  lens) {
+  if (lens > len) {
     return false;
   }
   return !strncmp(s + len - lens, suffix, lens);

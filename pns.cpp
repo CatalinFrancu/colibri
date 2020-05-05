@@ -325,16 +325,16 @@ void Pns::loadTree(Board *b, string fileName) {
     }
     assert(fread(&nodeSize, sizeof(nodeSize), 1, f) == 1);
     assert(fread(&nodeMax, sizeof(nodeMax), 1, f) == 1);
-    assert(fread(node, sizeof(PnsNode), nodeSize, f) == nodeSize);
+    assert((int)fread(node, sizeof(PnsNode), nodeSize, f) == nodeSize);
     assert(fread(&moveSize, sizeof(moveSize), 1, f) == 1);
     assert(fread(&moveMax, sizeof(moveMax), 1, f) == 1);
-    assert(fread(move, sizeof(Move), moveSize, f) == moveSize);
+    assert((int)fread(move, sizeof(Move), moveSize, f) == moveSize);
     assert(fread(&childSize, sizeof(childSize), 1, f) == 1);
     assert(fread(&childMax, sizeof(childMax), 1, f) == 1);
-    assert(fread(child, sizeof(int), childSize, f) == childSize);
+    assert((int)fread(child, sizeof(int), childSize, f) == childSize);
     assert(fread(&parentSize, sizeof(parentSize), 1, f) == 1);
     assert(fread(&parentMax, sizeof(parentMax), 1, f) == 1);
-    assert(fread(parent, sizeof(PnsNodeList), parentSize, f) == parentSize);
+    assert((int)fread(parent, sizeof(PnsNodeList), parentSize, f) == parentSize);
     fclose(f);
     log(LOG_INFO, "Loaded tree from %s.", fileName.c_str());
 

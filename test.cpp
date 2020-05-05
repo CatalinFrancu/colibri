@@ -1237,7 +1237,7 @@ BOOST_AUTO_TEST_CASE(testPnsTrivial) {
   loadConfigFile(CONFIG_FILE);
   initEgtb();
 
-  Pns pns(PNS_STEP_SIZE, PNS_MOVE_SIZE, PNS_CHILD_SIZE, PNS_PARENT_SIZE);
+  Pns pns(PNS_STEP_SIZE, PNS_MOVE_SIZE, PNS_CHILD_SIZE, PNS_PARENT_SIZE, NULL);
   Board* b = fenToBoard("7r/8/8/8/8/8/8/K7 w - - 0 0"); // KvR: EGTB loss
   pns.analyzeBoard(b);
   BOOST_CHECK_EQUAL(pns.getProof(), INFTY64);
@@ -1279,7 +1279,7 @@ BOOST_AUTO_TEST_CASE(testPnsAnalyzeBoard) {
   Board* b = fenToBoard("8/p2p4/3p4/1P6/1P6/1P6/1P6/8 b - - 0 0");
 
   // Create a PNS tree just large enough to run into the transposition after a5 bxa6 and a6 bxa6
-  Pns pns(28, PNS_MOVE_SIZE, PNS_CHILD_SIZE, PNS_PARENT_SIZE);
+  Pns pns(28, PNS_MOVE_SIZE, PNS_CHILD_SIZE, PNS_PARENT_SIZE, NULL);
   pns.analyzeBoard(b);
 
   PnsNode *t = pns.getNode(0);
