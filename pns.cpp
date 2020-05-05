@@ -64,7 +64,6 @@ int Pns::getParent(PnsNode* t, int k) {
 
 void Pns::reset() {
   nodeSize = moveSize = childSize = parentSize = 0;
-  allocateLeaf();
   trans.clear();
 }
 
@@ -185,7 +184,6 @@ bool Pns::expand(int t, Board *b) {
   if (pn1) {
     Board bc = *b;
     printBoard(b);
-    pn1->reset();
     pn1->analyzeBoard(&bc);
     log(LOG_INFO, "Back from PN1");
     nc = pn1->node[0].numChildren;
@@ -250,6 +248,8 @@ void Pns::update(int t) {
 }
 
 void Pns::analyzeBoard(Board *b) {
+  reset();
+  allocateLeaf();
   bool full = false;
   while (!full &&
          node[0].proof && node[0].disproof &&
