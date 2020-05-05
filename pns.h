@@ -27,10 +27,13 @@ class Pns {
   /* Set of nodes on any path from the MPN to the root. Stores indices in node. */
   unordered_set<int> ancestors;
 
+  /* First level PN tree, if we are a second level PN tree. */
+  Pns* pn1;
+
 public:
 
   /* Creates a new Pns with the given size limits and one leaf. */
-  Pns(int nodeMax, int moveMax, int childMax, int parentMax);
+  Pns(int nodeMax, int moveMax, int childMax, int parentMax, Pns* pn1);
 
   /* Constructs a P/N tree until the position is proved or the tree exceeds nodeMax. */
   void analyzeBoard(Board *b);
@@ -71,9 +74,6 @@ private:
   /* Allocates n moves in the preallocated memory. */
   int allocateMoves(int n);
 
-  /* Allocates moves and computes the move list */
-  int getMoves(Board *b, int t);
-
   /* Allocates n children pointers in the preallocated memory. */
   int allocateChildren(int n);
 
@@ -105,6 +105,9 @@ private:
 
   /* Sets the proof and disproof numbers for an EGTB board. */
   void setScoreEgtb(int t, int score);
+
+  /* copy the PN1 root's moves to our own move array */
+  void copyMovesFromPn1();
 
   /* Expands the given leaf with 1/1 children. If there are no legal moves,
      sets the P/D numbers accordingly. If it runs out of tree space, returns

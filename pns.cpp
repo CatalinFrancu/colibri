@@ -9,11 +9,12 @@
 #include "stringutil.h"
 #include "zobrist.h"
 
-Pns::Pns(int nodeMax, int moveMax, int childMax, int parentMax) {
+Pns::Pns(int nodeMax, int moveMax, int childMax, int parentMax, Pns* pn1) {
   this->nodeMax = nodeMax;
   this->moveMax = moveMax;
   this->childMax = childMax;
   this->parentMax = parentMax;
+  this->pn1 = pn1;
 
   this->node = (PnsNode*)malloc(nodeMax * sizeof(PnsNode));
   this->move = (Move*)malloc(moveMax * sizeof(Move));
@@ -64,6 +65,7 @@ int Pns::getParent(PnsNode* t, int k) {
 void Pns::reset() {
   nodeSize = moveSize = childSize = parentSize = 0;
   allocateLeaf();
+  trans.clear();
 }
 
 int Pns::allocateLeaf() {
@@ -79,14 +81,6 @@ int Pns::allocateMoves(int n) {
   moveSize += n;
   assert(moveSize <= moveMax);
   return moveSize - n;
-}
-
-int Pns::getMoves(Board *b, int t) {
-  int n = getAllMoves(b, move + moveSize, FORWARD);
-  node[t].numChildren = n;
-  node[t].move = moveSize;
-  allocateMoves(n);
-  return n;
 }
 
 /* Creates child pointers in the statically allocated memory */
@@ -171,36 +165,67 @@ void Pns::setScoreEgtb(int t, int score) {
   }
 }
 
+void Pns::copyMovesFromPn1() {
+  memcpy(move + moveSize,
+         pn1->move + pn1->node[0].move,
+         pn1->node[0].numChildren * sizeof(Move));
+}
+
+
 bool Pns::expand(int t, Board *b) {
+  // Looking up the board in EGTB is unnecessary in PN2. However, it is
+  // relatively cheap so we do it for clarity.
   int score = evalBoard(b);
   if (score != EGTB_UNKNOWN) {
-    setScoreEgtb(t, score);                     // EGTB node
+    setScoreEgtb(t, score);                   // EGTB node
+    return true;
+  }
+
+  int nc;
+  if (pn1) {
+    Board bc = *b;
+    printBoard(b);
+    pn1->reset();
+    pn1->analyzeBoard(&bc);
+    log(LOG_INFO, "Back from PN1");
+    nc = pn1->node[0].numChildren;
+    copyMovesFromPn1();
   } else {
-    int nc = getMoves(b, t);
-    if (!nc) {                                  // No legal moves
-      setScoreNoMoves(t, b);
-    } else if (nodeSize + nc > nodeMax) {
-      // not enough room left to expand
-      return false;
-    } else {                                    // Regular node
-      node[t].child = allocateChildren(nc);
-      u64 z = getZobrist(b);
-      for (int i = 0; i < nc; i++) {
-        int c = node[t].child + i;
-        u64 z2 = updateZobrist(z, b, move[node[t].move + i]);
-        int orig = trans[z2];
-        if (!orig) {                            // Regular child
-          child[c] = allocateLeaf();
-          trans[z2] = child[c];
-        } else if (ancestors.find(orig) == ancestors.end()) { // Transposition
-          child[c] = orig;
-        } else {                                // Repetition
-          child[c] = allocateLeaf();
-          node[child[c]].proof = node[child[c]].disproof = INFTY64;
-        }
-        addParent(child[c], t);
+    nc = getAllMoves(b, move + moveSize, FORWARD);
+  }
+  node[t].numChildren = nc;
+  if (!nc) {                                  // No legal moves
+    setScoreNoMoves(t, b);
+    return true;
+  }
+  if (nodeSize + nc > nodeMax) {              // not enough room left to expand
+    return false;
+  }
+
+  node[t].move = allocateMoves(nc);           // a bit unsound, we already used the space
+  node[t].child = allocateChildren(nc);
+
+  u64 z = getZobrist(b);
+  for (int i = 0; i < nc; i++) {
+    int c = node[t].child + i;
+    u64 z2 = updateZobrist(z, b, move[node[t].move + i]);
+    int orig = trans[z2];
+    if (!orig) {                            // Regular child
+      child[c] = allocateLeaf();
+      trans[z2] = child[c];
+      if (pn1) {
+        // copy the i-th child's proof/disproof values from the PN1 root
+        int pn1c = pn1->node[0].child + i;
+        node[child[c]].proof = pn1->node[pn1c].proof;
+        node[child[c]].disproof = pn1->node[pn1c].disproof;
       }
+    } else if (ancestors.find(orig) == ancestors.end()) { // Transposition
+      child[c] = orig;
+    } else {                                // Repetition
+      child[c] = allocateLeaf();
+      node[child[c]].proof = node[child[c]].disproof = INFTY64;
     }
+    addParent(child[c], t);
   }
   return true;
 }
@@ -233,6 +258,10 @@ void Pns::analyzeBoard(Board *b) {
     int mpn = selectMpn(&current);
     if (expand(mpn, &current)) {
       update(mpn);
+      if (pn1) {
+        printf("root: %llu/%llu\n", node[0].proof, node[0].disproof);
+        printTree(0, 0);
+      }
     } else {
       full = true;
     }

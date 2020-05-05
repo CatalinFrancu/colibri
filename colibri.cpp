@@ -48,13 +48,14 @@ int main(int argc, char **argv) {
      }
   }
 
-  Pns pns(PNS_STEP_SIZE, PNS_MOVE_SIZE, PNS_CHILD_SIZE, PNS_PARENT_SIZE);
+  // Pns pn1(3000000, 10000000, 10000000, 10000000, NULL);
+  // Pns pn2(10000000, 100000000, 100000000, 100000000, &pn1);
   switch (command) {
     case CMD_ANALYZE:
       if (fileName.empty()) {
         die("Please specify and input/output file with -f.");
       }
-      pns.analyzeString(position, fileName);
+      // pn2.analyzeString(position, fileName);
       break;
     case CMD_SERVER:
       startServer(); break;
@@ -72,5 +73,5 @@ int main(int argc, char **argv) {
   // generateEgtb("KQBNvR");
   // verifyEgtb("KQBNvR");
   // compressEgtb("KQBNvR");
-  generateAllEgtb(3, 2);
+  generateAllEgtb(4, 1);
 }
