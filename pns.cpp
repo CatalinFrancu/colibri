@@ -230,6 +230,8 @@ bool Pns::expand(int t, Board *b) {
 }
 
 void Pns::update(int t) {
+  u64 origP = node[t].proof, origD = node[t].disproof;
+  bool changed = true;
   if (node[t].numChildren) {
     // If t has no children, then presumably it's a stalemate or EGTB position, so it already has correct P/D values.
     u64 p = INFTY64, d = 0;
@@ -238,13 +240,20 @@ void Pns::update(int t) {
       p = MIN(p, node[c].disproof);
       d += node[c].proof;
     }
-    node[t].proof = p;
-    node[t].disproof = MIN(d, INFTY64);
+    d = MIN(d, INFTY64);
+    if (origP != p || origD != d) {
+      node[t].proof = p;
+      node[t].disproof = d;
+    } else {
+      changed = false;
+    }
   }
-  int u = node[t].parent;
-  while (u != NIL) {
-    update(parent[u].node);
-    u = parent[u].next;
+  if (changed) {
+    int u = node[t].parent;
+    while (u != NIL) {
+      update(parent[u].node);
+      u = parent[u].next;
+    }
   }
 }
 
