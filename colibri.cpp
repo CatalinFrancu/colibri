@@ -63,15 +63,9 @@ int main(int argc, char **argv) {
       log(LOG_WARNING, "No command given. Resuming main() execution.");
   }
 
-  // const char* table = "KKKvK";
+  // const char* table = "KPvP";
   // generateEgtb(table);
   // verifyEgtb(table);
   // compressEgtb(table);
-  // generateEgtb("KQBNvQ");
-  // verifyEgtb("KQBNvQ");
-  // compressEgtb("KQBNvQ");
-  // generateEgtb("KQBNvR");
-  // verifyEgtb("KQBNvR");
-  // compressEgtb("KQBNvR");
-  generateAllEgtb(4, 1);
+  generateAllEgtb(2, 2);
 }

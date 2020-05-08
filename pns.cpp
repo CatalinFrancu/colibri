@@ -153,7 +153,7 @@ void Pns::setScoreNoMoves(int t, Board *b) {
 }
 
 void Pns::setScoreEgtb(int t, int score) {
-  if (score == EGTB_DRAW) { // EGTB draw
+  if (score == 0) { // EGTB draw
     node[t].proof = INFTY64;
     node[t].disproof = INFTY64;
   } else if (score > 0) {   // EGTB win

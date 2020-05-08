@@ -7,6 +7,7 @@
 #include "configfile.h"
 #include "defines.h"
 #include "egtb.h"
+#include "egtb_queue.h"
 #include "fileutil.h"
 #include "logging.h"
 #include "lrucache.h"
@@ -16,18 +17,34 @@
 
 LruCache egtbCache;
 
-// Positions left to consider in this retrograde iteration
-unsigned *openIter1, numOpenIter1;
-
-// Positions collected for consideration in the next retrograde iteration
-unsigned *openIter2, numOpenIter2;
+/**
+ * Data for the table currently being built. The possible combined values are
+ * memOpen[i] = 0, memScore[i] < 0: position evaluated to a loss
+ * memOpen[i] = 0, memScore[i] = 0: position evaluated to a draw
+ * memOpen[i] = 0, memScore[i] > 0: position evaluated to a win
+ * memOpen[i] > 0, memScore[i] < 0: open position, all children so far lose in memScore[i] or less
+ * memOpen[i] > 0, memScore[i] = 0: open position, best we can do so far is draw
+ * memOpen[i] > 0, memScore[i] > 0: undefined
+ */
+char *memScore; // score -- the data we will eventually dump to the file
+unsigned char *memOpen;  // number of open children
+EgtbQueue* retro; // positions left to consider in BFS retrograde analysis
+Board scanB; // construct positions here during scan()
 
 void initEgtb() {
   egtbCache = lruCacheCreate(cfgEgtbChunks);
 }
 
-inline void pushToNextIteration(unsigned code) {
-  openIter2[numOpenIter2++] = code;
+/**
+ * Evaluates b to 1 (immediate win) or 0 (draw). The side to move is assumed
+ * to be stalemated. Uses joint rules: win if STM has fewer pieces, draw
+ * otherwise.
+ */
+int evalStalemate(Board* b) {
+  int delta = popCount(b->bb[BB_WALL]) - popCount(b->bb[BB_BALL]);
+  return
+    (b->side == WHITE && delta < 0) ||
+    (b->side == BLACK && delta > 0);
 }
 
 inline u64 egtbGetKey(const char *combo, int index) {
@@ -265,6 +282,7 @@ unsigned encodeEgtbBoard(PieceSet *ps, int nps, Board *b) {
   if (b->bb[BB_EP]) {
     int epSq = ctz(b->bb[BB_EP]);
     doublePushSq = (b->side == WHITE) ? epSq - 8 : epSq + 8;
+    // encode a pawn on the first / last line to indicate there is an EP square
     replacementSq = (b->side == WHITE) ? epSq + 16 : epSq - 16;
   }
 
@@ -306,129 +324,132 @@ void decodeEgtbBoard(PieceSet *ps, int nps, Board *b, unsigned code) {
   }
 }
 
-/* Computes a score for a board and its set of forward moves by looking at all the resulting boards.
- * - If I can move into any lost position (for the opponent), then I win. Look for the shortest win.
- * - If all positions I can move into are won (for the opponent), then I lost. Look for the longest loss.
- * - If there are no moves, the position is won / drawn now depending on the number of pieces.
- * - Otherwise the position is a DRAW with the current information
+/**
+ * Called during the initial scan of all possible placements for a table.
  *
- * memTable - if this is NULL, then we are at the first step of collecting wins/losses in 0/1 for our table.
- *   If this is not null, then we have computed some partial information that we can query.
- *   memTable != NULL also implies that none of the moves are captures (because we are now doing retrograde analysis).
+ * For the current board in scanB, computes:
+ *   * memScore: scores decidable positions, initializes open ones;
+ *   * memOpen: counts the open children (how many times scanB expects to be
+ *     notified);
+ *   * if scanB is solved, adds it to the BFS queue.
+ *
+ * Decidable positions are scored as:
+ *   * +1/0 (won/drawn now if stalemate);
+ *   * +2 (win in 1 by converting to some lost position);
+ *   * -2 (lose in 1 because all moves convert to winning positions);
+ *   * 0 (at least one drawn conversion; all other conversions draw/win);
+ *   * open (no conversion to a lost position; at least one open child);
+ *     * in this case, take note of:
+ *       * whether or not a draw is assured by the solved children;
+ *       * number of open children.
  */
-int forwardStep(Board *b, Move *m, int numMoves, PieceSet *ps, int nps, char *memTable) {
-  int score;
+void evaluatePlacement(PieceSet *ps, int nps) {
+
+  // allocate these only once  
+  static Move m[MAX_MOVES];
+  static Board b2;
+
+  int numMoves = getAllMoves(&scanB, m, FORWARD);
+  int index = getEgtbIndex(ps, nps, &scanB);
+  memScore[index] = memOpen[index] = 0;
+
   if (!numMoves) {
-    // Joint rules: side to move is stalemated, but must also have fewer pieces
-    int delta = popCount(b->bb[BB_WALL]) - popCount(b->bb[BB_BALL]);
-    if (b->side == WHITE) {
-      score = (delta < 0) ? 1 : EGTB_DRAW;
-    } else {
-      score = (delta > 0) ? 1 : EGTB_DRAW;
-    }
+    memScore[index] = evalStalemate(&scanB);
   } else {
-    Board b2;
-    int shortestWin = INFTY, longestLoss = 0;
-    int captures = isCapture(b, m[0]);
-    for (int i = 0; i < numMoves; i++) {
-      memcpy(&b2, b, sizeof(Board));
-      makeMove(&b2, m[i]);
-      int childScore;
-      if (m[i].promotion) {
-        childScore = sgn(egtbLookup(&b2));
-      } else if (memTable) {
-        canonicalizeBoard(ps, nps, &b2);
-        int index = getEgtbIndex(ps, nps, &b2);
-        childScore = memTable[index];
-      } else if (captures) {
-        childScore = egtbLookup(&b2);
+    bool haveWin = false, haveDraw = false;
+    int captures = isCapture(&scanB, m[0]);
+    int i = 0;
+
+    while ((i < numMoves) && !haveWin) {
+      if (captures || m[i].promotion) {
+        // conversion: evaluate child now
+        b2 = scanB;
+        makeMove(&b2, m[i]);
+        int childScore = egtbLookup(&b2);
+        if (childScore < 0) {
+          haveWin = true;
+        } else if (childScore == 0) {
+          haveDraw = true;
+        }
       } else {
-        // If there is no memTable and there are no promotions and no captures, then we are iterating this table for the first time
-        // and this position isn't a conversion, so it's a draw / unknown.
-        childScore = EGTB_DRAW;
+        memOpen[index]++;
       }
-      if (childScore == EGTB_DRAW) {
-        longestLoss = INFTY; // Can hold out forever
-      } else if (childScore < 0 && -childScore < shortestWin) {
-        shortestWin = -childScore;
-      } else if (childScore > 0 && childScore > longestLoss) {
-        longestLoss = childScore;
-      }
+      i++;
     }
-    // At this point shortestWin / longestLoss already account for my move, because EGTB values are shifted by 1
-    score = (shortestWin < INFTY) ? shortestWin : ((longestLoss == INFTY) ? EGTB_DRAW : -longestLoss);
+    if (haveWin) {
+      memScore[index] = 2;
+      memOpen[index] = 0;
+    } else if (memOpen[index]) {
+      // Open position; note whether or not we have a draw so far. The -1
+      // value is relevant. This will increase in time if we find
+      // longer-lasting losses or it will be upgraded to 0 if we find a draw.
+      memScore[index] = haveDraw ? 0 : -1;
+    } else if (haveDraw) {
+      memScore[index] = 0;
+    } else { // all children evaluated and no draw found
+      memScore[index] = -2;
+    }
   }
-  return score;
-}
-
-void evaluatePlacement(PieceSet *ps, int nps, Board *b, int side, Move *m, char *memTable) {
-  b->side = side;
-  int numMoves = getAllMoves(b, m, FORWARD);
-  int score = forwardStep(b, m, numMoves, ps, nps, NULL);
-
-  if (score != EGTB_DRAW) {
-    pushToNextIteration(encodeEgtbBoard(ps, nps, b));
-    // It is safe to pass b to getEgtbIndex because we generated it in canonical fashion
-    int index = getEgtbIndex(ps, nps, b);
-    // If there are no moves, the score is a 1 (won now) or -1 (lost now).
-    // If there are moves, there is a conversion (capture / promotion) and the score is a 2 (win in 1) or -2 (loss in 1)
-    int fileScore = numMoves ? 2 : 1;
-    fileScore *= (score > 0) ? 1 : -1;
-    memTable[index] = fileScore;
+  if (!memOpen[index]) {
+    retro->enqueue(encodeEgtbBoard(ps, nps, &scanB), index);
   }
 }
 
 /**
  * Recursively iterate over all possible placements of the piece sets.
- * Does not deal with ep positions -- those are handled separately by iterateEpEgtb().
+ * Does not deal with EP positions -- those are handled separately by scanEp().
  * ps - array of piece sets
  * nps - number of piece sets
  * level - index of current piece set being placed
- * board - stores the pieces we have placed so far
- * m - reusable space for move generation during evaluatePlacement()
- * memTable - memory buffer that holds the EGTB scores
  */
-void iterateEgtb(PieceSet *ps, int nps, int level, Board *b, Move *m, char *memTable) {
+void scan(PieceSet *ps, int nps, int level) {
   if (level == nps) {
     // Found a placement, now evaluate it.
-    evaluatePlacement(ps, nps, b, WHITE, m, memTable);
-    evaluatePlacement(ps, nps, b, BLACK, m, memTable);
+    scanB.side = WHITE;
+    evaluatePlacement(ps, nps);
+    scanB.side = BLACK;
+    evaluatePlacement(ps, nps);
     return;
   }
 
   int baseBb = (ps[level].side == WHITE) ? BB_WALL : BB_BALL;
   int gsize = ps[level].count;
   bool isPawn = ps[level].piece == PAWN;
-  int freeSquares = (isPawn ? 48 : 64) - getPieceCount(b);
+  int freeSquares = (isPawn ? 48 : 64) - getPieceCount(&scanB);
   int numCombs = choose[freeSquares][gsize];
-  u64 occupied = b->bb[BB_WALL] ^ b->bb[BB_BALL];
+  u64 occupied = scanB.bb[BB_WALL] ^ scanB.bb[BB_BALL];
   if (isPawn) {
     occupied >>= 8;
   }
 
   for (int comb = 0; comb < numCombs; comb++) {
-    // For the first piece set, the combination must be canonical. Otherwise, all combinations are acceptable.
-    bool acceptable = (level == 0) ? (isPawn ? (canonical48[gsize][comb] >= 0) : (canonical64[gsize][comb] >= 0)) : true;
+    // For the first piece set, the combination must be canonical. Otherwise,
+    // all combinations are acceptable.
+    bool acceptable = (level == 0)
+      ? (isPawn
+         ? (canonical48[gsize][comb] >= 0)
+         : (canonical64[gsize][comb] >= 0))
+      : true;
     if (acceptable) {
       u64 mask = unrankCombination(comb, gsize, occupied);
       if (isPawn) {
         mask <<= 8;
       }
-      b->bb[baseBb] ^= mask;
-      b->bb[baseBb + ps[level].piece] = mask;
-      b->bb[BB_EMPTY] ^= mask;
-      iterateEgtb(ps, nps, level + 1, b, m, memTable);
-      b->bb[baseBb] ^= mask;
-      b->bb[baseBb + ps[level].piece] = 0ull;
-      b->bb[BB_EMPTY] ^= mask;
+      scanB.bb[baseBb] ^= mask;
+      scanB.bb[baseBb + ps[level].piece] = mask;
+      scanB.bb[BB_EMPTY] ^= mask;
+      scan(ps, nps, level + 1);
+      scanB.bb[baseBb] ^= mask;
+      scanB.bb[baseBb + ps[level].piece] = 0ull;
+      scanB.bb[BB_EMPTY] ^= mask;
     }
   }
 }
 
-/* Params: see iterateEgtb(). */
-void iterateEpEgtbHelper(PieceSet *ps, int nps, int level, Board *b, Move *m, u64 occupied, char *memTable) {
+/* Params: see scan(). */
+void scanEpHelper(PieceSet *ps, int nps, int level, u64 occupied) {
   if (level == nps) {
-    evaluatePlacement(ps, nps, b, b->side, m, memTable);
+    evaluatePlacement(ps, nps);
     return;
   }
 
@@ -445,91 +466,144 @@ void iterateEpEgtbHelper(PieceSet *ps, int nps, int level, Board *b, Move *m, u6
     } else {
       mask = unrankCombination(comb, gsize, occupied);
     }
-    b->bb[base] ^= mask;
-    b->bb[base + ps[level].piece] ^= mask;
-    b->bb[BB_EMPTY] ^= mask;
-    iterateEpEgtbHelper(ps, nps, level + 1, b, m, occupied ^ mask, memTable);
-    b->bb[base] ^= mask;
-    b->bb[base + ps[level].piece] ^= mask;
-    b->bb[BB_EMPTY] ^= mask;
+    scanB.bb[base] ^= mask;
+    scanB.bb[base + ps[level].piece] ^= mask;
+    scanB.bb[BB_EMPTY] ^= mask;
+    scanEpHelper(ps, nps, level + 1, occupied ^ mask);
+    scanB.bb[base] ^= mask;
+    scanB.bb[base + ps[level].piece] ^= mask;
+    scanB.bb[BB_EMPTY] ^= mask;
   }
 }
 
-/* Params: see iterateEgtb(). */
-void iterateEpEgtb(PieceSet *ps, int nps, char *memTable) {
+/* Params: see scan(). */
+void scanEp(PieceSet *ps, int nps) {
   // Generate the 14 canonical placements for the pair of pawns.
-  Board b;
-  Move m[MAX_MOVES];
   for (int i = 0; i < 14; i++) {
-    emptyBoard(&b);
-    b.side = (i < 7) ? WHITE : BLACK;
+    emptyBoard(&scanB);
+    scanB.side = (i < 7) ? WHITE : BLACK;
     int index = i % 7;
-    int allStm = (b.side == WHITE) ? BB_WALL : BB_BALL;
+    int allStm = (scanB.side == WHITE) ? BB_WALL : BB_BALL;
     int allSntm = BB_WALL + BB_BALL - allStm;
     int file = (index + 1) / 2;
-    b.bb[BB_EP] = ((b.side == WHITE) ? 0x0000010000000000ull : 0x0000000000010000ull) << file;
-    b.bb[allSntm + PAWN] = b.bb[allSntm] = (b.side == WHITE) ? (b.bb[BB_EP] >> 8) : (b.bb[BB_EP] << 8);
-    b.bb[allStm + PAWN] = b.bb[allStm] = (index & 1) ? (b.bb[allSntm] >> 1) : (b.bb[allSntm] << 1);
-    b.bb[BB_EMPTY] = ~(b.bb[allStm] ^ b.bb[allSntm]);
-    u64 occupied = b.bb[allStm] | b.bb[BB_EP] | (b.bb[BB_EP] << 8) | (b.bb[BB_EP] >> 8);
-    iterateEpEgtbHelper(ps, nps, 0, &b, m, occupied, memTable);
+    scanB.bb[BB_EP] = ((scanB.side == WHITE) ? 0x0000010000000000ull : 0x0000000000010000ull) << file;
+    scanB.bb[allSntm + PAWN] = scanB.bb[allSntm] =
+      (scanB.side == WHITE)
+      ? (scanB.bb[BB_EP] >> 8)
+      : (scanB.bb[BB_EP] << 8);
+    scanB.bb[allStm + PAWN] = scanB.bb[allStm] =
+      (index & 1)
+      ? (scanB.bb[allSntm] >> 1)
+      : (scanB.bb[allSntm] << 1);
+    scanB.bb[BB_EMPTY] = ~(scanB.bb[allStm] ^ scanB.bb[allSntm]);
+    u64 occupied = scanB.bb[allStm] | scanB.bb[BB_EP] | (scanB.bb[BB_EP] << 8) | (scanB.bb[BB_EP] >> 8);
+    scanEpHelper(ps, nps, 0, occupied);
   }
 }
 
-/* Writes the score we have found for this board, but also for all its rotations, if they are canonical.
- * An example of why this is necessary: Kc3/ke1/w is canonical and it's a win in 2 (Kd2 wins).
- * Kc3/ka5/w is also canonical and a win in 2 (Kb4 wins). Retrograde analysis will correctly find the first position,
- * doing a backward move from Kd2/ke1/b. However, it won't solve the second one, because Kb4/ka5/b is not canonical. */
-void scoreAllRotations(PieceSet *ps, int nps, Board *b, int index, int score, char *memTable) {
-  pushToNextIteration(encodeEgtbBoard(ps, nps, b));
-  int fileScore = (score > 0) ? (score + 1) : (score - 1);
-  memTable[index] = fileScore;
+void scanWrapper(PieceSet *ps, int nps, int level) {
+  emptyBoard(&scanB);
+  scan(ps, nps, 0);
+  if (ps[0].piece == PAWN && ps[1].piece == PAWN) {
+    scanEp(ps, nps);
+  }
+}
 
-  // Now try 1 or 7 rotations, based on whether there are pawns on the board
-  int legalOri[7] = { ORI_FLIP_EW, ORI_ROT_CCW, ORI_ROT_180, ORI_ROT_CW, ORI_FLIP_NS, ORI_FLIP_DIAG, ORI_FLIP_ANTIDIAG };
-  int oriCount = (ps[0].piece == PAWN) ? 1 : 7;
-  for (int ori = 0; ori < oriCount; ori++) {
-    Board bc = *b;
-    rotateBoard(&bc, legalOri[ori]);
-    if (canonicalizeBoard(ps, nps, &bc) == ORI_NORMAL) {
-      index = getEgtbIndex(ps, nps, &bc);
-      if (memTable[index] == EGTB_DRAW) {
-        pushToNextIteration(encodeEgtbBoard(ps, nps, &bc));
-        memTable[index] = fileScore;
-      }
+/**
+ * Notifies b that one of b's children has been solved. The board is assumed
+ * to be canonical.
+ */
+void notifyBoard(PieceSet *ps, int nps, Board *b, int score) {
+  // Don't look at this position if we've already scored it
+  int index = getEgtbIndex(ps, nps, b);
+  if (memOpen[index]) {
+    memOpen[index]--;
+    if (score < 0) {
+      // child loses => parent converts to a win in -score + 1
+      memScore[index] = -score + 1;
+      memOpen[index] = 0;
+    } else if (score == 0) {
+      // child draws => parent has a guaranteed draw
+      memScore[index] = 0;
+    } else if (memScore[index] < 0) {
+      // child wins and parent was losing so far: compare
+      memScore[index] = MIN(memScore[index], -score - 1);
+    } else {
+      // child wins, but parent had a draw: nothing
+    }
+
+    if (!memOpen[index]) {
+      retro->enqueue(encodeEgtbBoard(ps, nps, b), index); 
     }
   }
 }
 
-void retrograde(PieceSet *ps, int nps, Board *b, int targetScore, char *memTable, Move *mf, Move *mb) {
+/**
+ * Which rotations of this board, when canonicalized, come back to this board?
+ * For unique boards the answer is "all 8 of them", e.g. Kb1/nb3. But for
+ * Kb2/nb3 and Kb2/nc2, which are themselves rotations of one another, their 8
+ * rotations will be split among the two canonicals.
+ */
+int getRotationsToNotify(PieceSet *ps, int nps, Board *b, int* rot) {
+  Board bc;
+  int result = 0;
+
+  int numCandidates = (ps[0].piece == PAWN) ? 2 : 8;
+  for (int i = 0; i < numCandidates; i++) {
+    int r = ORIENTATIONS[i];
+    bc = *b;
+    rotateBoard(&bc, r);
+    if (canonicalizeBoard(ps, nps, &bc) == REVERSE_ORIENTATION[r]) {
+      rot[result++] = r;
+    }
+  }
+  // TODO delete this assertion and push ORI_NORMAL by default once you verify it
+  assert(result && (rot[0] == ORI_NORMAL));
+  return result;
+}
+
+/**
+ * Takes a solved position and expands it. Decides which parents need to be
+ * notified and notifies them. To save yourself a few days of insanity, read
+ * this comment before making changes.
+ *
+ * The logic is to look at things from the parent's point of view. The parent
+ * would generate all its children, canonicalize them, and look them up in
+ * order to compute its (the parent's) score. So the code generates all
+ * unmoves and decides which rotations thereof need to be notified. We cannot
+ * let Kb1/nb3 and Kb1/nc2 both notify all 8 of their rotations. This would
+ * cause too many notifications and premature closures of parents.
+ *
+ * So we basically ask "if you were my parent and you made this move, would
+ * you canonicalize to me, or to another canonical rotation of me?".
+ */
+void retrograde(PieceSet *ps, int nps, Board *b, unsigned index) {
+  static Move mb[MAX_MOVES];
+  static int rot[8];
+  static Board parentB, rotParentB;
+
   int nb = getAllMoves(b, mb, BACKWARD);
-  for (int i = 0; i < nb; i++) {
-    // Make backward move
-    Board br = *b; // Retro-board
-    makeBackwardMove(&br, mb[i]);
-
-    // Making a move may cause br to become non-canonical. Rotate it and the move that took us to it.
-    int orientation = canonicalizeBoard(ps, nps, &br);
-    Move mcopy = mb[i];
-    rotateMove(&mcopy, orientation);
-
-    // Make sure that one of the forward moves is symmetric to mb[i]. See the comments for getAllMoves() for details.
-    int nf = getAllMoves(&br, mf, FORWARD);
-    int sym = 0;
-    while ((sym < nf) && ((mf[sym].piece != mcopy.piece) || (mf[sym].from != mcopy.to) || (mf[sym].to != mcopy.from))) {
-      sym++;
-    }
-    if (sym < nf) {
-      // Don't look at this position if we've already scored it
-      int index = getEgtbIndex(ps, nps, &br);
-      if (memTable[index] == EGTB_DRAW) {
-        int score = forwardStep(&br, mf, nf, ps, nps, memTable);
-        if ((score != EGTB_DRAW) && (abs(score) <= targetScore)) {
-          scoreAllRotations(ps, nps, &br, index, score, memTable);
-        }
+  int numRot = getRotationsToNotify(ps, nps, b, rot);
+  int score = memScore[index];
+  
+  for (int i = 0; i < nb; i++)  {
+    parentB = *b;
+    makeBackwardMove(&parentB, mb[i]);
+    for (int j = 0; j < numRot; j++) {
+      rotParentB = parentB;
+      rotateBoard(&rotParentB, rot[j]);
+      if (isCanonical(ps, nps, &rotParentB)) {
+        notifyBoard(ps, nps, &rotParentB, score);
       }
     }
   }
+}
+
+void dumpTable(string destName, int size) {
+  log(LOG_DEBUG, "Dumping table to [%s]", destName.c_str());
+  FILE *f = fopen(destName.c_str(), "w");
+  fwrite(memScore, size, 1, f);
+  fclose(f);
 }
 
 bool generateEgtb(const char *combo) {
@@ -543,62 +617,51 @@ bool generateEgtb(const char *combo) {
   log(LOG_INFO, "Generating table %s into file %s", combo, destName.c_str());
   PieceSet ps[EGTB_MEN];
   int numPieceSets = comboToPieceSets((char*)combo, ps);
-  Board b;
-  Move m[MAX_MOVES];
 
-  // First populate all the immediate wins / losses (no legal moves) and immediate conversions (win/loss in 1).
-  // Collect all the positions thus evaluated, in encoded form, in a temporary file.
-  emptyBoard(&b);
+  // Collect and enqueue all the immediate stalemates and conversions.
   int size = getEgtbSize(ps, numPieceSets) + getEpEgtbSize(ps, numPieceSets);
   log(LOG_INFO, "Table size: %d", size);
-  char *memTable = (char*)malloc(size);
-  memset(memTable, EGTB_DRAW, size);
+  memScore = (char*)malloc(size);
+  memOpen = (unsigned char*)malloc(size);
+  retro = new EgtbQueue(size);
 
-  // Allocate space for the list of positions (2.5 GB for the largest tables).
-  openIter1 = (unsigned*)malloc(size * sizeof(unsigned));
-  openIter2 = (unsigned*)malloc(size * sizeof(unsigned));
-  numOpenIter2 = 0;
-  iterateEgtb(ps, numPieceSets, 0, &b, m, memTable);
-  if (ps[0].piece == PAWN && ps[1].piece == PAWN) {
-    iterateEpEgtb(ps, numPieceSets, memTable);
-  }
-  int solved = numOpenIter2;
-  log(LOG_INFO, "Discovered %d boards with wins and losses in 0 or 1 half-moves", solved);
+  scanWrapper(ps, numPieceSets, 0);
+  log(LOG_INFO, "Discovered %d boards with stalemate or conversion", retro->getTotal());
 
-  int targetScore = 1;
-  Move mf[MAX_MOVES], mb[MAX_MOVES]; // Storage space for forward and backward moves
-  while (numOpenIter2 && targetScore < 126) {
-    targetScore++;
-    // transfer next iteration (openIter2) to the current interation (openIter1)
-    memcpy(openIter1, openIter2, numOpenIter2 * sizeof(unsigned));
-    numOpenIter1 = numOpenIter2;
-    numOpenIter2 = 0;
-
-    for (unsigned i = 0; i < numOpenIter1; i++) {
-      decodeEgtbBoard(ps, numPieceSets, &b, openIter1[i]);
-      retrograde(ps, numPieceSets, &b, targetScore, memTable, mf, mb);
+  // Loop de loop.
+  int max = 0; // absolute maximum value encountered so far
+  while (!retro->isEmpty() && max < 127) {
+    unsigned code, index;
+    Board b;
+    retro->dequeue(&code, &index);
+    decodeEgtbBoard(ps, numPieceSets, &b, code);
+    int score = memScore[index];
+    if (abs(score) > max) {
+      max = abs(score);
+      log(LOG_DEBUG, "Encountered score ±%d", max);
     }
-
-    solved += numOpenIter2;
-    log(LOG_DEBUG, "Discovered %d boards at score ±%d", numOpenIter2, targetScore);
+    retrograde(ps, numPieceSets, &b, index);
   }
-  if (numOpenIter2) {
+
+  if (!retro->isEmpty()) {
     appendEgtbNote("Table reached score 127", combo);
   }
 
+  // Any still open positions are draws.
+  for (int i = 0; i < size; i++) {
+    if (memOpen[i]) {
+      memScore[i] = 0;
+    }
+  }
+
   // Done! Dump the generated table in the EGTB folder and delete the temp files
-  log(LOG_DEBUG, "Dumping table to [%s]", destName.c_str());
-  FILE *fTable = fopen(destName.c_str(), "w");
-  fwrite(memTable, size, 1, fTable);
-  fclose(fTable);
-  free(memTable);
-  free(openIter1);
-  free(openIter2);
-  log(LOG_INFO, "Table size: %d, of which non-draws: %d", size, solved);
+  log(LOG_INFO, "Table size: %d, of which non-draws: %d", size, retro->getTotal());
+  dumpTable(destName, size);
+  free(memScore);
+  free(memOpen);
+  delete retro;
   u64 delta = timerGet() - timer;
   log(LOG_INFO, "Generation time: %.3f s (%.3f positions/s)", delta / 1000.0, size / (delta / 1000.0));
-  log(LOG_DEBUG, "Longest win/loss:");
-  printBoard(&b);
   logCacheStats(LOG_INFO, &egtbCache, "EGTB");
   return true;
 }
@@ -664,14 +727,24 @@ int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int 
   return result;
 }
 
-void matchOrDie(bool condition, Board *b, int score, int minNeg, int maxNeg, int minPos, int maxPos, bool anyDraws, int *childScores, int numMoves) {
+void matchOrDie(bool condition, Board *b, int score, int minNeg, int maxNeg,
+                int minPos, int maxPos, bool anyDraws, int *childScores, int numMoves,
+                PieceSet *ps, int nps) {
   if (!condition) {
-    log(LOG_ERROR, "VERIFICATION ERROR: score %d, minNeg %d, maxNeg %d, minPos %d, maxPos %d, anyDraws %d",score, minNeg, maxNeg, minPos, maxPos, anyDraws);
+    printBoard(b);
+    canonicalizeBoard(ps, nps, b);
+    unsigned index = getEgtbIndex(ps, nps, b);
+    int canonScore = egtbLookup(b);
+    log(LOG_ERROR, "Canonicalizes to index %u score %d:", index, canonScore);
+    printBoard(b);
+
+    log(LOG_ERROR,
+        "VERIFICATION ERROR: score %d, minNeg %d, maxNeg %d, minPos %d, maxPos %d, anyDraws %d",
+        score, minNeg, maxNeg, minPos, maxPos, anyDraws);
     log(LOG_ERROR, "Child scores:");
     for (int i = 0; i < numMoves; i++) {
       log(LOG_ERROR, "%d", childScores[i]);
     }
-    printBoard(b);
     assert(false);
   }
 }
@@ -692,9 +765,9 @@ void egtbVerifyPosition(Board *b, Move *m, const char *combo, PieceSet *ps, int 
     // Joint rules: side to move wins or draws depending on the piece counts.
     int delta = popCount(bc.bb[BB_WALL]) - popCount(bc.bb[BB_BALL]);
     if (bc.side == WHITE) {
-      assert(score == ((delta < 0) ? 1 : EGTB_DRAW));
+      assert(score == ((delta < 0) ? 1 : 0));
     } else {
-      assert(score == ((delta > 0) ? 1 : EGTB_DRAW));
+      assert(score == ((delta > 0) ? 1 : 0));
     }
     return;
   }
@@ -755,18 +828,23 @@ void egtbVerifyPosition(Board *b, Move *m, const char *combo, PieceSet *ps, int 
     if (cs > 0 && cs < minPos) {
       minPos = cs;
     }
-    if (cs == EGTB_DRAW) {
+    if (cs == 0) {
       anyDraws = true;
     }
   }
   if (score > 0) {
-    matchOrDie(maxNeg == -score + 1, &bc, score, minNeg, maxNeg, minPos, maxPos, anyDraws, childScore, numMoves);
+    matchOrDie(maxNeg == -score + 1,
+               &bc, score, minNeg, maxNeg, minPos, maxPos,
+               anyDraws, childScore, numMoves, ps, nps);
   } else if (score < 0) {
-    matchOrDie((maxPos == -score - 1) && (maxNeg == -INFTY) && !anyDraws, &bc, score, minNeg, maxNeg, minPos, maxPos, anyDraws, childScore, numMoves);
+    matchOrDie((maxPos == -score - 1) && (maxNeg == -INFTY) && !anyDraws,
+               &bc, score, minNeg, maxNeg, minPos, maxPos,
+               anyDraws, childScore, numMoves, ps, nps);
   } else {
     // Either there isn't a win/loss or we can't prove it in one byte.
     matchOrDie((anyDraws && (maxNeg == -INFTY)) || (maxPos == 127) || (minPos == -127),
-               &bc, score, minNeg, maxNeg, minPos, maxPos, anyDraws, childScore, numMoves);
+               &bc, score, minNeg, maxNeg, minPos, maxPos,
+               anyDraws, childScore, numMoves, ps, nps);
   }
 }
 
@@ -808,7 +886,7 @@ void egtbVerifySideAndEp(Board *b, Move *m, const char *combo, PieceSet *ps, int
  * level - index of current piece set being placed
  * maxLevel - maximum numer of level (shortcut for strlen(combo))
  * b - board being constructed
- * m - reusable space for move generation during evaluatePlacement()
+ * m - reusable space for move generation
  * ps, nps - the piece sets for the combo, to speed up the EGTB lookups
  */
 void egtbVerifyHelper(const char *combo, int side, int level, int maxLevel, int prevSq, Board *b, Move *m, PieceSet *ps, int nps) {

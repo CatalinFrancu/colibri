@@ -50,6 +50,15 @@ using namespace std;
 #define ORI_FLIP_EW 6         /* c1 -> f1 */
 #define ORI_FLIP_ANTIDIAG 7   /* c1 -> h6 */
 
+const int ORIENTATIONS[8] =
+  { ORI_NORMAL, ORI_FLIP_EW, ORI_ROT_CCW, ORI_ROT_180,
+    ORI_ROT_CW, ORI_FLIP_NS, ORI_FLIP_DIAG, ORI_FLIP_ANTIDIAG };
+
+/* Orientation we need to apply to undo an orientation */
+const int REVERSE_ORIENTATION[8] =
+  { ORI_NORMAL, ORI_ROT_CW, ORI_ROT_180, ORI_ROT_CCW,
+    ORI_FLIP_NS, ORI_FLIP_DIAG, ORI_FLIP_EW, ORI_FLIP_ANTIDIAG };
+
 /* Masks for some ranks and files of interest */
 #define FILE_A 0x0101010101010101ull
 #define FILE_H 0x8080808080808080ull
@@ -86,9 +95,6 @@ using namespace std;
 
 /* Maximum number of pieces in the endgame tables */
 #define EGTB_MEN 5
-
-/* EGTB scores are shifted by 1, e.g. -1 means "lost now", +1 means "won now", -7 means "losing in 6 half-moves */
-#define EGTB_DRAW 0
 
 #define EGTB_UNKNOWN 1000000000
 

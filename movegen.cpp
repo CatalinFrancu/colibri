@@ -182,8 +182,10 @@ int getWhiteNonCaptures(Board *b, Move *m, bool direction) {
       pushMove(m, &numMoves, PAWN, toSq + 8, toSq, 0);
     }
 
-    // Pawn pushes (two-step)
-    mask = ((oneStep & RANK_3) >> 8) & b->bb[BB_EMPTY];
+    // see comment in movegen.h about two-step pawn unmoves
+    u64 blockers = b->bb[BB_BP] & RANK_4;
+    u64 blockerCaptures = ((blockers & ~FILE_A) >> 9) | ((blockers & ~FILE_H) >> 7);
+    mask = ((oneStep & RANK_3 & ~blockerCaptures) >> 8) & b->bb[BB_EMPTY];
     while (mask) {
       GET_BIT_AND_CLEAR(mask, toSq);
       pushMove(m, &numMoves, PAWN, toSq + 16, toSq, 0);
@@ -264,8 +266,10 @@ int getBlackNonCaptures(Board *b, Move *m, bool direction) {
       pushMove(m, &numMoves, PAWN, toSq - 8, toSq, 0);
     }
 
-    // Pawn pushes (two-step)
-    mask = ((oneStep & RANK_6) << 8) & b->bb[BB_EMPTY];
+    // see comment in movegen.h about two-step pawn unmoves
+    u64 blockers = b->bb[BB_WP] & RANK_5;
+    u64 blockerCaptures = ((blockers & ~FILE_A) << 7) | ((blockers & ~FILE_H) << 9);
+    mask = ((oneStep & RANK_6 & ~blockerCaptures) << 8) & b->bb[BB_EMPTY];
     while (mask) {
       GET_BIT_AND_CLEAR(mask, toSq);
       pushMove(m, &numMoves, PAWN, toSq - 16, toSq, 0);

@@ -184,6 +184,25 @@ int canonicalizeBoard(PieceSet *ps, int nps, Board *b) {
   return ORI_NORMAL;
 }
 
+bool isCanonical(PieceSet *ps, int nps, Board *b) {
+  if (epCapturePossible(b)) {
+    return !(b->bb[BB_EP] & 0xf0f0f0f0f0f0f0f0ull);
+  }
+  int base = (ps[0].side == WHITE) ? BB_WALL : BB_BALL;
+  u64 mask = b->bb[base + ps[0].piece];
+  if (ps[0].piece == PAWN) {
+    mask >>= 8;
+  }
+  int comb = rankCombinationFree(mask);
+  int canonical;
+  if (ps[0].piece == PAWN) {
+    canonical = canonical48[ps[0].count][comb];
+  } else {
+    canonical = canonical64[ps[0].count][comb];
+  }
+  return canonical >= 0;
+}
+
 Board* fenToBoard(const char *fen) {
   // Use a static board, then allocate it on the heap and copy it if all goes well
   // This way we can return NULL on errors and not worry about deallocation.

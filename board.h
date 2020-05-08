@@ -57,6 +57,9 @@ bool isCapture(Board *b, Move m);
  * Returns the rotation performed to canonicalize the board (which can be ORI_NORMAL if the board is already canonical). */
 int canonicalizeBoard(PieceSet *ps, int nps, Board *b);
 
+/* Checks if the board is in its canonical rotation. */
+bool isCanonical(PieceSet *ps, int nps, Board *b);
+
 /* Constructs a board from a FEN notation. Returns NULL on all errors. */
 Board* fenToBoard(const char *fen);
 
