@@ -6,12 +6,12 @@
 u64 rotate(u64 x, int orientation) {
   switch (orientation) {
     case ORI_NORMAL: return x;
+    case ORI_FLIP_EW: return mirrorEW(x);
     case ORI_ROT_CCW: return flipDiagA1H8(reverseBytes(x));
     case ORI_ROT_180: return reverseBytes(mirrorEW(x));
     case ORI_ROT_CW: return reverseBytes(flipDiagA1H8(x));
     case ORI_FLIP_NS: return reverseBytes(x);
     case ORI_FLIP_DIAG: return flipDiagA1H8(x);
-    case ORI_FLIP_EW: return mirrorEW(x);
     case ORI_FLIP_ANTIDIAG: return flipDiagA8H1(x);
     default: return x;
   }

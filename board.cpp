@@ -78,6 +78,11 @@ void rotateBoard(Board *b, int orientation) {
   switch (orientation) {
     case ORI_NORMAL:
       return;
+    case ORI_FLIP_EW:
+      for (int i = 0; i < BB_COUNT; i++) {
+        b->bb[i] = mirrorEW(b->bb[i]);
+      }
+      return;
     case ORI_ROT_CCW:
       for (int i = 0; i < BB_COUNT; i++) {
         b->bb[i] = flipDiagA1H8(reverseBytes(b->bb[i]));
@@ -101,11 +106,6 @@ void rotateBoard(Board *b, int orientation) {
     case ORI_FLIP_DIAG:
       for (int i = 0; i < BB_COUNT; i++) {
         b->bb[i] = flipDiagA1H8(b->bb[i]);
-      }
-      return;
-    case ORI_FLIP_EW:
-      for (int i = 0; i < BB_COUNT; i++) {
-        b->bb[i] = mirrorEW(b->bb[i]);
       }
       return;
     case ORI_FLIP_ANTIDIAG:

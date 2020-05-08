@@ -40,24 +40,23 @@ using namespace std;
 #define BB_EP 15
 #define BB_COUNT 16
 
-/* Possible orientations */
+/*
+ * Possible orientations. The first two apply to all boards; the other six
+ * only apply to boards without pawns.
+ */
 #define ORI_NORMAL 0          /* c1 -> c1 */
-#define ORI_ROT_CCW 1         /* c1 -> h3 */
-#define ORI_ROT_180 2         /* c1 -> f8 */
-#define ORI_ROT_CW 3          /* c1 -> a6 */
-#define ORI_FLIP_NS 4         /* c1 -> c8 */
-#define ORI_FLIP_DIAG 5       /* c1 -> a3 */
-#define ORI_FLIP_EW 6         /* c1 -> f1 */
+#define ORI_FLIP_EW 1         /* c1 -> f1 */
+#define ORI_ROT_CCW 2         /* c1 -> h3 */
+#define ORI_ROT_180 3         /* c1 -> f8 */
+#define ORI_ROT_CW 4          /* c1 -> a6 */
+#define ORI_FLIP_NS 5         /* c1 -> c8 */
+#define ORI_FLIP_DIAG 6       /* c1 -> a3 */
 #define ORI_FLIP_ANTIDIAG 7   /* c1 -> h6 */
-
-const int ORIENTATIONS[8] =
-  { ORI_NORMAL, ORI_FLIP_EW, ORI_ROT_CCW, ORI_ROT_180,
-    ORI_ROT_CW, ORI_FLIP_NS, ORI_FLIP_DIAG, ORI_FLIP_ANTIDIAG };
 
 /* Orientation we need to apply to undo an orientation */
 const int REVERSE_ORIENTATION[8] =
-  { ORI_NORMAL, ORI_ROT_CW, ORI_ROT_180, ORI_ROT_CCW,
-    ORI_FLIP_NS, ORI_FLIP_DIAG, ORI_FLIP_EW, ORI_FLIP_ANTIDIAG };
+  { ORI_NORMAL, ORI_FLIP_EW, ORI_ROT_CW, ORI_ROT_180,
+    ORI_ROT_CCW, ORI_FLIP_NS, ORI_FLIP_DIAG, ORI_FLIP_ANTIDIAG };
 
 /* Masks for some ranks and files of interest */
 #define FILE_A 0x0101010101010101ull

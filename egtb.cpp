@@ -575,11 +575,10 @@ int getRotationsToNotify(PieceSet *ps, int nps, Board *b, int* rot) {
 
   int numCandidates = (ps[0].piece == PAWN) ? 2 : 8;
   for (int i = 0; i < numCandidates; i++) {
-    int r = ORIENTATIONS[i];
     bc = *b;
-    rotateBoard(&bc, r);
-    if (canonicalizeBoard(ps, nps, &bc, true) == REVERSE_ORIENTATION[r]) {
-      rot[result++] = r;
+    rotateBoard(&bc, i);
+    if (canonicalizeBoard(ps, nps, &bc, true) == REVERSE_ORIENTATION[i]) {
+      rot[result++] = i;
     }
   }
   // TODO delete this assertion and push ORI_NORMAL by default once you verify it

@@ -19,12 +19,12 @@ void precomputeRotateSquare() {
   for (int sq = 0; sq < 64; sq++) {
     int rank = sq >> 3, file = sq & 7;
     rotateSquare[sq][ORI_NORMAL] = sq;
+    rotateSquare[sq][ORI_FLIP_EW] = SQUARE(rank, 7 - file);
     rotateSquare[sq][ORI_ROT_CCW] = SQUARE(file, 7 - rank);
     rotateSquare[sq][ORI_ROT_180] = SQUARE(7 - rank, 7 - file);
     rotateSquare[sq][ORI_ROT_CW] = SQUARE(7 - file, rank);
     rotateSquare[sq][ORI_FLIP_NS] = SQUARE(7 - rank, file);
     rotateSquare[sq][ORI_FLIP_DIAG] = SQUARE(file, rank);
-    rotateSquare[sq][ORI_FLIP_EW] = SQUARE(rank, 7 - file);
     rotateSquare[sq][ORI_FLIP_ANTIDIAG] = SQUARE(7 - file, 7 - rank);
   }
 }
