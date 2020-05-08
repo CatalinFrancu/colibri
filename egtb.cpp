@@ -446,6 +446,19 @@ void scan(PieceSet *ps, int nps, int level) {
   }
 }
 
+bool hasRightAndLeftEpPawns(u64 mask) {
+  u64 pawnsToMove = (scanB.side == WHITE) ? scanB.bb[BB_WP] : scanB.bb[BB_BP];
+  u64 rightMask = (scanB.side == WHITE)
+    ? (scanB.bb[BB_EP] >> 7)
+    : (scanB.bb[BB_EP] << 9);
+  if (pawnsToMove & rightMask) {     // if there is a pawn on the right
+    u64 leftMask = (rightMask & ~FILE_B) >> 2; // may be empty
+    return mask & leftMask;          // proposed mask covers bad square
+  } else {
+    return false;
+  }
+}
+
 /* Params: see scan(). */
 void scanEpHelper(PieceSet *ps, int nps, int level, u64 occupied) {
   if (level == nps) {
@@ -466,13 +479,25 @@ void scanEpHelper(PieceSet *ps, int nps, int level, u64 occupied) {
     } else {
       mask = unrankCombination(comb, gsize, occupied);
     }
-    scanB.bb[base] ^= mask;
-    scanB.bb[base + ps[level].piece] ^= mask;
-    scanB.bb[BB_EMPTY] ^= mask;
-    scanEpHelper(ps, nps, level + 1, occupied ^ mask);
-    scanB.bb[base] ^= mask;
-    scanB.bb[base + ps[level].piece] ^= mask;
-    scanB.bb[BB_EMPTY] ^= mask;
+
+    // If there is a pawn on the right that can capture en passant, don't
+    // allow a second one on the left. That would enqueue duplicate positions
+    // during the initial scan, which would cause duplicate notifications and
+    // early closures down the road.
+    bool doubleEp =
+      isPawn &&                          // placing more pawns...
+      (ps[level].side == scanB.side) &&  // ... for the side that can capture...
+      hasRightAndLeftEpPawns(mask);      // ... and of them creates the forbidden setup
+
+    if (!doubleEp) {
+      scanB.bb[base] ^= mask;
+      scanB.bb[base + ps[level].piece] ^= mask;
+      scanB.bb[BB_EMPTY] ^= mask;
+      scanEpHelper(ps, nps, level + 1, occupied ^ mask);
+      scanB.bb[base] ^= mask;
+      scanB.bb[base + ps[level].piece] ^= mask;
+      scanB.bb[BB_EMPTY] ^= mask;
+    }
   }
 }
 

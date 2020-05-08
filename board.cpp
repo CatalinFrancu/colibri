@@ -187,6 +187,8 @@ int canonicalizeBoard(PieceSet *ps, int nps, Board *b) {
 bool isCanonical(PieceSet *ps, int nps, Board *b) {
   if (epCapturePossible(b)) {
     return !(b->bb[BB_EP] & 0xf0f0f0f0f0f0f0f0ull);
+  } else {
+    b->bb[BB_EP] = 0ull;
   }
   int base = (ps[0].side == WHITE) ? BB_WALL : BB_BALL;
   u64 mask = b->bb[base + ps[0].piece];

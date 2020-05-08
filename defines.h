@@ -61,6 +61,7 @@ const int REVERSE_ORIENTATION[8] =
 
 /* Masks for some ranks and files of interest */
 #define FILE_A 0x0101010101010101ull
+#define FILE_B 0x0202020202020202ull
 #define FILE_H 0x8080808080808080ull
 #define RANK_1 0x00000000000000ffull
 #define RANK_3 0x0000000000ff0000ull
