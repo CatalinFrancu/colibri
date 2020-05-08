@@ -319,7 +319,7 @@ BOOST_AUTO_TEST_CASE(testCanonicalizeBoard) {
   PieceSet ps[EGTB_MEN];
   int nps = comboToPieceSets("KQvN", ps);
   Board *b = fenToBoard("8/8/4n3/8/8/Q7/5K2/8 w - - 0 0");
-  canonicalizeBoard(ps, nps, b);
+  canonicalizeBoard(ps, nps, b, false);
 
   BOOST_CHECK_EQUAL(b->bb[BB_WP], 0ull);
   BOOST_CHECK_EQUAL(b->bb[BB_WN], 0ull);
@@ -345,7 +345,7 @@ BOOST_AUTO_TEST_CASE(testCanonicalizeBoard) {
   // En passant case
   nps = comboToPieceSets("NNPvPP", ps);
   b = fenToBoard("8/2p5/8/1N6/5pP1/8/8/5N2 b - g3 0 0");
-  canonicalizeBoard(ps, nps, b);
+  canonicalizeBoard(ps, nps, b, false);
 
   BOOST_CHECK_EQUAL(b->bb[BB_WP], 0x0000000002000000ull);
   BOOST_CHECK_EQUAL(b->bb[BB_WN], 0x0000004000000004ull);

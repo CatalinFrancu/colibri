@@ -53,12 +53,15 @@ inline bool epCapturePossible(Board *b) {
 /* Returns true iff m is a capture on b (in which case any legal move on b is a capture) */
 bool isCapture(Board *b, Move m);
 
-/* Rotate the board as needed to bring it into canonical orientation.
- * Returns the rotation performed to canonicalize the board (which can be ORI_NORMAL if the board is already canonical). */
-int canonicalizeBoard(PieceSet *ps, int nps, Board *b);
-
-/* Checks if the board is in its canonical rotation. */
-bool isCanonical(PieceSet *ps, int nps, Board *b);
+/**
+ * Rotate the board as needed to bring it into canonical orientation.
+ *
+ * @param bool dryRun If true, leave the board unchanged and only return the
+ * rotation.
+ * @return int The rotation performed to canonicalize the board (which can be
+ *   ORI_NORMAL if the board is already canonical).
+*/
+int canonicalizeBoard(PieceSet *ps, int nps, Board *b, bool dryRun);
 
 /* Constructs a board from a FEN notation. Returns NULL on all errors. */
 Board* fenToBoard(const char *fen);

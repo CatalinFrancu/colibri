@@ -154,16 +154,20 @@ bool isCapture(Board *b, Move m) {
   return ((m.piece == PAWN) && (toMask == b->bb[BB_EP])) || (toMask & ~b->bb[BB_EMPTY]);
 }
 
-int canonicalizeBoard(PieceSet *ps, int nps, Board *b) {
+int canonicalizeBoard(PieceSet *ps, int nps, Board *b, bool dryRun) {
   // Boards where en passant capture is possible are first indexed by the EP square, which must be on the left-hand side.
   if (epCapturePossible(b)) {
     if (b->bb[BB_EP] & 0xf0f0f0f0f0f0f0f0ull) {
-      rotateBoard(b, ORI_FLIP_EW);
+      if (!dryRun) {
+        rotateBoard(b, ORI_FLIP_EW);
+      }
       return ORI_FLIP_EW;
     }
     return ORI_NORMAL;
   } else {
-    b->bb[BB_EP] = 0ull;
+    if (!dryRun) {
+      b->bb[BB_EP] = 0ull;
+    }
   }
   int base = (ps[0].side == WHITE) ? BB_WALL : BB_BALL;
   u64 mask = b->bb[base + ps[0].piece];
@@ -178,31 +182,12 @@ int canonicalizeBoard(PieceSet *ps, int nps, Board *b) {
     canonical = canonical64[ps[0].count][comb];
   }
   if (canonical < 0) {
-    rotateBoard(b, -canonical);
+    if (!dryRun) {
+      rotateBoard(b, -canonical);
+    }
     return -canonical;
   }
   return ORI_NORMAL;
-}
-
-bool isCanonical(PieceSet *ps, int nps, Board *b) {
-  if (epCapturePossible(b)) {
-    return !(b->bb[BB_EP] & 0xf0f0f0f0f0f0f0f0ull);
-  } else {
-    b->bb[BB_EP] = 0ull;
-  }
-  int base = (ps[0].side == WHITE) ? BB_WALL : BB_BALL;
-  u64 mask = b->bb[base + ps[0].piece];
-  if (ps[0].piece == PAWN) {
-    mask >>= 8;
-  }
-  int comb = rankCombinationFree(mask);
-  int canonical;
-  if (ps[0].piece == PAWN) {
-    canonical = canonical48[ps[0].count][comb];
-  } else {
-    canonical = canonical64[ps[0].count][comb];
-  }
-  return canonical >= 0;
 }
 
 Board* fenToBoard(const char *fen) {

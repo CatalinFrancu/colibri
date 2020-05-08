@@ -578,7 +578,7 @@ int getRotationsToNotify(PieceSet *ps, int nps, Board *b, int* rot) {
     int r = ORIENTATIONS[i];
     bc = *b;
     rotateBoard(&bc, r);
-    if (canonicalizeBoard(ps, nps, &bc) == REVERSE_ORIENTATION[r]) {
+    if (canonicalizeBoard(ps, nps, &bc, true) == REVERSE_ORIENTATION[r]) {
       rot[result++] = r;
     }
   }
@@ -617,7 +617,7 @@ void retrograde(PieceSet *ps, int nps, Board *b, unsigned index) {
     for (int j = 0; j < numRot; j++) {
       rotParentB = parentB;
       rotateBoard(&rotParentB, rot[j]);
-      if (isCanonical(ps, nps, &rotParentB)) {
+      if (canonicalizeBoard(ps, nps, &rotParentB, true) == ORI_NORMAL) {
         notifyBoard(ps, nps, &rotParentB, score);
       }
     }
@@ -728,7 +728,7 @@ int egtbLookup(Board *b) {
 }
 
 int egtbLookupWithInfo(Board *b, const char *combo, PieceSet *ps, int nps) {
-  canonicalizeBoard(ps, nps, b);
+  canonicalizeBoard(ps, nps, b, false);
   int index = getEgtbIndex(ps, nps, b);
   return readFromCache(combo, index);
 }
@@ -757,7 +757,7 @@ void matchOrDie(bool condition, Board *b, int score, int minNeg, int maxNeg,
                 PieceSet *ps, int nps) {
   if (!condition) {
     printBoard(b);
-    canonicalizeBoard(ps, nps, b);
+    canonicalizeBoard(ps, nps, b, false);
     unsigned index = getEgtbIndex(ps, nps, b);
     int canonScore = egtbLookup(b);
     log(LOG_ERROR, "Canonicalizes to index %u score %d:", index, canonScore);
