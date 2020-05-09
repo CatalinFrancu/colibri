@@ -23,6 +23,7 @@ class EgtbQueue {
 public:
 
   EgtbQueue(int size);
+  ~EgtbQueue();
   void enqueue(unsigned code, unsigned index);
   void dequeue(unsigned* code, unsigned* index);
   bool isEmpty();

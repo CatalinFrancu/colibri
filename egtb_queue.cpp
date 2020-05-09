@@ -7,6 +7,10 @@ EgtbQueue::EgtbQueue(int size) {
   queue = (EgtbQueueElement*)malloc(size * sizeof(EgtbQueueElement));
 }
 
+EgtbQueue::~EgtbQueue() {
+  free(queue);
+}
+
 void EgtbQueue::enqueue(unsigned code, unsigned index) {
   total++;
   queue[tail].code = code;
