@@ -6,8 +6,10 @@ int rotateSquare[64][8];
 int choose[65][EGTB_MEN];
 int* canonical64[EGTB_MEN / 2 + 1];
 int numCanonical64[EGTB_MEN / 2 + 1];
+byte* rotMask64[EGTB_MEN / 2 + 1];
 int* canonical48[EGTB_MEN];
 int numCanonical48[EGTB_MEN];
+byte* rotMask48[EGTB_MEN];
 u64 kingAttacks[64];
 u64 knightAttacks[64];
 byte isoMove[8][64];
@@ -66,15 +68,20 @@ void precomputeCanonical64() {
   for (int k = 1; k <= EGTB_MEN / 2; k++) {
     int uniqueCounter = 0;
     canonical64[k] = new int[choose[64][k]];
+    rotMask64[k] = new byte[choose[64][k]];
     for (int comboNumber = 0; comboNumber < choose[64][k]; comboNumber++) {
       u64 combo = unrankCombination(comboNumber, k, 0);
-      int minNumber = comboNumber;
+      int minNumber = INFTY;
       int minTransform = -1;
-      for (int tr = 1; tr <= 7; tr++) {
-        int newNumber = rankCombination(rotate(combo, tr), 0);
+      byte rotMask = 0;
+      for (int tr = 0; tr <  8; tr++) {
+        int newNumber = rankCombinationFree(rotate(combo, tr));
         if (newNumber < minNumber) {
           minNumber = newNumber;
           minTransform = tr;
+          rotMask = 1 << tr;
+        } else if (newNumber == minNumber) {
+          rotMask |= 1 << tr;
         }
       }
       if (minNumber == comboNumber) {
@@ -82,6 +89,7 @@ void precomputeCanonical64() {
       } else {
         canonical64[k][comboNumber] = -minTransform;
       }
+      rotMask64[k][comboNumber] = rotMask;
     }
     numCanonical64[k] = uniqueCounter;
   }
@@ -91,13 +99,19 @@ void precomputeCanonical48() {
   for (int k = 1; k < EGTB_MEN; k++) {
     int uniqueCounter = 0;
     canonical48[k] = new int[choose[48][k]];
+    rotMask48[k] = new byte[choose[48][k]];
     for (int comboNumber = 0; comboNumber < choose[48][k]; comboNumber++) {
       u64 combo = unrankCombination(comboNumber, k, 0);
-      int mirrorNumber = rankCombination(rotate(combo, ORI_FLIP_EW), 0);
+      int mirrorNumber = rankCombinationFree(rotate(combo, ORI_FLIP_EW));
       if (mirrorNumber < comboNumber) {
         canonical48[k][comboNumber] = -ORI_FLIP_EW;
+        rotMask48[k][comboNumber] = 1 << ORI_FLIP_EW;
+      } else if (mirrorNumber == comboNumber) {
+        canonical48[k][comboNumber] = uniqueCounter++;
+        rotMask48[k][comboNumber] = (1 << ORI_NORMAL) | (1 << ORI_FLIP_EW);
       } else {
         canonical48[k][comboNumber] = uniqueCounter++;
+        rotMask48[k][comboNumber] = 1 << ORI_NORMAL;
       }
     }
     numCanonical48[k] = uniqueCounter;

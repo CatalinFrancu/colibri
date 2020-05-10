@@ -53,11 +53,6 @@ using namespace std;
 #define ORI_FLIP_DIAG 6       /* c1 -> a3 */
 #define ORI_FLIP_ANTIDIAG 7   /* c1 -> h6 */
 
-/* Orientation we need to apply to undo an orientation */
-const int REVERSE_ORIENTATION[8] =
-  { ORI_NORMAL, ORI_FLIP_EW, ORI_ROT_CW, ORI_ROT_180,
-    ORI_ROT_CCW, ORI_FLIP_NS, ORI_FLIP_DIAG, ORI_FLIP_ANTIDIAG };
-
 /* Masks for some ranks and files of interest */
 #define FILE_A 0x0101010101010101ull
 #define FILE_B 0x0202020202020202ull

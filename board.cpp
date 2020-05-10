@@ -154,8 +154,18 @@ bool isCapture(Board *b, Move m) {
   return ((m.piece == PAWN) && (toMask == b->bb[BB_EP])) || (toMask & ~b->bb[BB_EMPTY]);
 }
 
+inline u64 getMaskFromPieceSet(Board* b, PieceSet ps) {
+  int base = (ps.side == WHITE) ? BB_WALL : BB_BALL;
+  u64 mask = b->bb[base + ps.piece];
+  if (ps.piece == PAWN) {
+    mask >>= 8;
+  }
+  return mask;
+}
+
 int canonicalizeBoard(PieceSet *ps, int nps, Board *b, bool dryRun) {
-  // Boards where en passant capture is possible are first indexed by the EP square, which must be on the left-hand side.
+  // Boards where en passant capture is possible are first indexed by the EP
+  // square, which must be on the left-hand side.
   if (epCapturePossible(b)) {
     if (b->bb[BB_EP] & 0xf0f0f0f0f0f0f0f0ull) {
       if (!dryRun) {
@@ -169,25 +179,42 @@ int canonicalizeBoard(PieceSet *ps, int nps, Board *b, bool dryRun) {
       b->bb[BB_EP] = 0ull;
     }
   }
-  int base = (ps[0].side == WHITE) ? BB_WALL : BB_BALL;
-  u64 mask = b->bb[base + ps[0].piece];
-  if (ps[0].piece == PAWN) {
-    mask >>= 8;
-  }
+
+  // Start with the rotation mask for the first piece set.
+  u64 mask = getMaskFromPieceSet(b, ps[0]);
   int comb = rankCombinationFree(mask);
-  int canonical;
-  if (ps[0].piece == PAWN) {
-    canonical = canonical48[ps[0].count][comb];
-  } else {
-    canonical = canonical64[ps[0].count][comb];
-  }
-  if (canonical < 0) {
-    if (!dryRun) {
-      rotateBoard(b, -canonical);
+
+  byte trMask = (ps[0].piece == PAWN)
+    ? rotMask48[ps[0].count][comb]
+    : rotMask64[ps[0].count][comb];
+  int i = 1, tr;
+
+  // Process more piece sets
+  while ((i < nps) && (popCount(trMask) > 1)) {
+    mask = getMaskFromPieceSet(b, ps[i]);
+
+    // examine all transforms and save all those generating the smallest combo
+    byte newTrMask = 0;
+    int minComb = INFTY;
+    while (trMask) {
+      GET_BIT_AND_CLEAR(trMask, tr);
+      comb = rankCombinationFree(rotate(mask, tr));
+      if (comb < minComb) {           // new minimum found, start a new mask
+        minComb = comb;
+        newTrMask = 1 << tr;
+      } else if (comb == minComb) {   // add to the existing transform mask
+        newTrMask |= 1 << tr;
+      }
     }
-    return -canonical;
+    trMask = newTrMask;
+    i++;
   }
-  return ORI_NORMAL;
+
+  GET_BIT_AND_CLEAR(trMask, tr); // take the last set bit
+  if (!dryRun) {
+    rotateBoard(b, tr);
+  }
+  return tr;
 }
 
 Board* fenToBoard(const char *fen) {

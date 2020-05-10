@@ -57,7 +57,7 @@ bool isCapture(Board *b, Move m);
  * Rotate the board as needed to bring it into canonical orientation.
  *
  * @param bool dryRun If true, leave the board unchanged and only return the
- * rotation.
+ *   rotation.
  * @return int The rotation performed to canonicalize the board (which can be
  *   ORI_NORMAL if the board is already canonical).
 */

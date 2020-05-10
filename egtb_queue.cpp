@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "egtb_queue.h"
+#include "logging.h"
 
 EgtbQueue::EgtbQueue(int size) {
   this->size = size;
@@ -17,6 +18,9 @@ void EgtbQueue::enqueue(unsigned code, unsigned index) {
   queue[tail++].index = index;
   if (tail == size) {
     tail = 0;
+  }
+  if (!(total & ((1 << 22) - 1))) {
+    log(LOG_DEBUG, "%d positions enqueued", total);
   }
 }
 

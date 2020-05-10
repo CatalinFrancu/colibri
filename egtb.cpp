@@ -7,6 +7,7 @@
 #include "configfile.h"
 #include "defines.h"
 #include "egtb.h"
+#include "egtb_hash.h"
 #include "egtb_queue.h"
 #include "fileutil.h"
 #include "logging.h"
@@ -27,9 +28,10 @@ LruCache egtbCache;
  * memOpen[i] > 0, memScore[i] > 0: undefined
  */
 char *memScore; // score -- the data we will eventually dump to the file
-unsigned char *memOpen;  // number of open children
+byte *memOpen;  // number of open children
 EgtbQueue* retro; // positions left to consider in BFS retrograde analysis
 Board scanB; // construct positions here during scan()
+EgtbHash egtbHash; // to prevent duplicates in child or parent lists
 
 void initEgtb() {
   egtbCache = lruCacheCreate(cfgEgtbChunks);
@@ -344,6 +346,11 @@ void decodeEgtbBoard(PieceSet *ps, int nps, Board *b, unsigned code) {
  *       * number of open children.
  */
 void evaluatePlacement(PieceSet *ps, int nps) {
+  // We can still generate non-canonical boards, but at least we recognize
+  // them as such.
+  if (canonicalizeBoard(ps, nps, &scanB, true) != ORI_NORMAL) {
+    return;
+  }
 
   // allocate these only once  
   static Move m[MAX_MOVES];
@@ -360,11 +367,13 @@ void evaluatePlacement(PieceSet *ps, int nps) {
     int captures = isCapture(&scanB, m[0]);
     int i = 0;
 
+    egtbHash.clear();
     while ((i < numMoves) && !haveWin) {
+      b2 = scanB;
+      makeMove(&b2, m[i]);
+
       if (captures || m[i].promotion) {
         // conversion: evaluate child now
-        b2 = scanB;
-        makeMove(&b2, m[i]);
         int childScore = egtbLookup(&b2);
         if (childScore < 0) {
           haveWin = true;
@@ -372,7 +381,12 @@ void evaluatePlacement(PieceSet *ps, int nps) {
           haveDraw = true;
         }
       } else {
-        memOpen[index]++;
+        canonicalizeBoard(ps, nps, &b2, false);
+        unsigned childIndex = getEgtbIndex(ps, nps, &b2);
+        if (!egtbHash.contains(childIndex)) {
+          egtbHash.add(childIndex);
+          memOpen[index]++;
+        }
       }
       i++;
     }
@@ -535,12 +549,14 @@ void scanWrapper(PieceSet *ps, int nps, int level) {
 }
 
 /**
- * Notifies b that one of b's children has been solved. The board is assumed
- * to be canonical.
+ * Notifies b that one of b's children has been solved. b is assumed to be
+ * canonical.
+ *
+ * @param unsigned index b's index
+ * @param int score The child's score
  */
-void notifyBoard(PieceSet *ps, int nps, Board *b, int score) {
-  // Don't look at this position if we've already scored it
-  int index = getEgtbIndex(ps, nps, b);
+void notifyBoard(PieceSet *ps, int nps, Board *b, unsigned index, int score) {
+  // Skip this position if we've already scored it
   if (memOpen[index]) {
     memOpen[index]--;
     if (score < 0) {
@@ -564,61 +580,24 @@ void notifyBoard(PieceSet *ps, int nps, Board *b, int score) {
 }
 
 /**
- * Which rotations of this board, when canonicalized, come back to this board?
- * For unique boards the answer is "all 8 of them", e.g. Kb1/nb3. But for
- * Kb2/nb3 and Kb2/nc2, which are themselves rotations of one another, their 8
- * rotations will be split among the two canonicals.
- */
-int getRotationsToNotify(PieceSet *ps, int nps, Board *b, int* rot) {
-  Board bc;
-  int result = 0;
-
-  int numCandidates = (ps[0].piece == PAWN) ? 2 : 8;
-  for (int i = 0; i < numCandidates; i++) {
-    bc = *b;
-    rotateBoard(&bc, i);
-    if (canonicalizeBoard(ps, nps, &bc, true) == REVERSE_ORIENTATION[i]) {
-      rot[result++] = i;
-    }
-  }
-  // TODO delete this assertion and push ORI_NORMAL by default once you verify it
-  assert(result && (rot[0] == ORI_NORMAL));
-  return result;
-}
-
-/**
- * Takes a solved position and expands it. Decides which parents need to be
- * notified and notifies them. To save yourself a few days of insanity, read
- * this comment before making changes.
- *
- * The logic is to look at things from the parent's point of view. The parent
- * would generate all its children, canonicalize them, and look them up in
- * order to compute its (the parent's) score. So the code generates all
- * unmoves and decides which rotations thereof need to be notified. We cannot
- * let Kb1/nb3 and Kb1/nc2 both notify all 8 of their rotations. This would
- * cause too many notifications and premature closures of parents.
- *
- * So we basically ask "if you were my parent and you made this move, would
- * you canonicalize to me, or to another canonical rotation of me?".
+ * Expands a solved position, notifying its parents.
  */
 void retrograde(PieceSet *ps, int nps, Board *b, unsigned index) {
   static Move mb[MAX_MOVES];
-  static int rot[8];
-  static Board parentB, rotParentB;
+  static Board parentB;
 
   int nb = getAllMoves(b, mb, BACKWARD);
-  int numRot = getRotationsToNotify(ps, nps, b, rot);
   int score = memScore[index];
-  
+
+  egtbHash.clear();
   for (int i = 0; i < nb; i++)  {
     parentB = *b;
     makeBackwardMove(&parentB, mb[i]);
-    for (int j = 0; j < numRot; j++) {
-      rotParentB = parentB;
-      rotateBoard(&rotParentB, rot[j]);
-      if (canonicalizeBoard(ps, nps, &rotParentB, true) == ORI_NORMAL) {
-        notifyBoard(ps, nps, &rotParentB, score);
-      }
+    canonicalizeBoard(ps, nps, &parentB, false);
+    unsigned parentIndex = getEgtbIndex(ps, nps, &parentB);
+    if (!egtbHash.contains(parentIndex)) {
+      egtbHash.add(parentIndex);
+      notifyBoard(ps, nps, &parentB, parentIndex, score);
     }
   }
 }
@@ -646,7 +625,7 @@ bool generateEgtb(const char *combo) {
   int size = getEgtbSize(ps, numPieceSets) + getEpEgtbSize(ps, numPieceSets);
   log(LOG_INFO, "Table size: %d", size);
   memScore = (char*)malloc(size);
-  memOpen = (unsigned char*)malloc(size);
+  memOpen = (byte*)malloc(size);
   retro = new EgtbQueue(size);
 
   scanWrapper(ps, numPieceSets, 0);

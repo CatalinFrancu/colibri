@@ -34,10 +34,17 @@ extern u64 antidiagonal[64];
 extern int* canonical64[EGTB_MEN / 2 + 1];
 extern int numCanonical64[EGTB_MEN / 2 + 1];
 
+/**
+ * Stores an 8-bit mask for each placement. The mask indicates which transforms
+ * can be used to achieve the canonical placement in canonical64[].
+ */
+extern byte* rotMask64[EGTB_MEN / 2 + 1];
+
 /* Same, but assuming the set to be placed consists of pawns (so only 48 of the squares are legal).
  * Here we need up to EGTB-1 pieces, for combinations like KvPPPP */
 extern int* canonical48[EGTB_MEN];
 extern int numCanonical48[EGTB_MEN];
+extern byte* rotMask48[EGTB_MEN];
 
 /* given a mask with k bits set and an occupancy mask with o bits occupied, returns the rank of the
  * mask, i.e. a number between 0 and choose[64 - o][k] - 1 */

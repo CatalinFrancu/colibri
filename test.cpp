@@ -4,6 +4,7 @@
 #include "bitmanip.h"
 #include "configfile.h"
 #include "egtb.h"
+#include "egtb_hash.h"
 #include "fileutil.h"
 #include "logging.h"
 #include "lrucache.h"
@@ -171,6 +172,35 @@ BOOST_AUTO_TEST_CASE(testCanonical) {
   BOOST_CHECK_EQUAL(numCanonical64[2], 278);
   BOOST_CHECK_EQUAL(numCanonical48[1], 24);
   BOOST_CHECK_EQUAL(numCanonical48[2], 576);
+}
+
+BOOST_AUTO_TEST_CASE(testRotMask) {
+  // Ka1 remains Ka1 after flipping across the diagonal
+  BOOST_CHECK_EQUAL(rotMask64[1][0], (1 << ORI_NORMAL) | (1 << ORI_FLIP_DIAG));
+  // Kb1 has no canonical rotations, only itself
+  BOOST_CHECK_EQUAL(rotMask64[1][1], (1 << ORI_NORMAL));
+  // Ka2 is not canonical, needs to be flipped
+  BOOST_CHECK_EQUAL(rotMask64[1][8], (1 << ORI_FLIP_DIAG));
+
+  // Kb7Kg2 has three identical rotations (rotate 180 and flipping across
+  // either diagonal)
+  u64 kb7kg2 = 0x0002000000004000ull;
+  int c = rankCombinationFree(kb7kg2);
+  byte mask = (1 << ORI_NORMAL) | (1 << ORI_ROT_180) |
+    (1 << ORI_FLIP_DIAG) | (1 << ORI_FLIP_ANTIDIAG);
+  BOOST_CHECK_EQUAL(rotMask64[2][c], mask);
+
+  // one-pawn configurations are either canonical or need to be flipped E-W
+  for (c = 0; c < 48; c++) {
+    byte expected = ((c & 7) < 4) ? (1 << ORI_NORMAL) : (1 << ORI_FLIP_EW);
+    BOOST_CHECK_EQUAL(rotMask48[1][c], expected);
+  }
+  
+  // Pb2Pc2Pf2Pg2 (shifted by 8) has one identical rotation
+  u64 fourPawns = 0x66ull;
+  c = rankCombinationFree(fourPawns);
+  BOOST_CHECK_EQUAL(rotMask48[4][c], (1 << ORI_NORMAL) | (1 << ORI_FLIP_EW));
+
 }
 
 BOOST_AUTO_TEST_CASE(testKingAttacks) {
@@ -1433,4 +1463,24 @@ BOOST_AUTO_TEST_CASE(testUpdateZobrist) {
   makeMove(b, m);
 
   free(b);
+}
+
+/************************* Tests for egtb_hash.cpp *************************/
+
+BOOST_AUTO_TEST_CASE(testEgtbHash) {
+  EgtbHash h;
+
+  BOOST_CHECK_EQUAL(h.contains(17), false);
+  BOOST_CHECK_EQUAL(h.contains(81), false); // same bucket as 17
+  BOOST_CHECK_EQUAL(h.contains(99), false);
+  h.add(17);
+  h.add(81);
+  h.add(99);
+  BOOST_CHECK_EQUAL(h.contains(17), true);
+  BOOST_CHECK_EQUAL(h.contains(81), true);
+  BOOST_CHECK_EQUAL(h.contains(99), true);
+  h.clear();
+  BOOST_CHECK_EQUAL(h.contains(17), false);
+  BOOST_CHECK_EQUAL(h.contains(81), false);
+  BOOST_CHECK_EQUAL(h.contains(99), false);
 }
