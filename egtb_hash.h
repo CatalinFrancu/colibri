@@ -8,9 +8,10 @@
 
 class EgtbHash {
 
-  static const int BITS = 6;
+  static const int BITS = 10;
   static const int BUCKETS = 1 << BITS;
   static const int BUCKET_SIZE = 20;
+  static const unsigned MULT = 1151; // Knuth's multiplicative function
 
   unsigned data[1 << BITS][BUCKET_SIZE]; // elements go here
   unsigned bucketCount[1 << BITS];       // number of elements added to each bucket
@@ -23,6 +24,10 @@ public:
   void clear();
   void add(unsigned index);
   bool contains(unsigned index);
+
+private:
+
+  unsigned hash(unsigned index);
 };
   
 #endif

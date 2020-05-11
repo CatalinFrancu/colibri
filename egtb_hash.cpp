@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "egtb_hash.h"
 
 EgtbHash::EgtbHash() {
@@ -16,13 +17,14 @@ void EgtbHash::clear() {
 }
 
 void EgtbHash::add(unsigned index) {
-  int b = index & (BUCKETS - 1);
+  int b = hash(index);
+  assert(bucketCount[b] < BUCKET_SIZE);
   data[b][bucketCount[b]++] = index;
   dest[count++] = b;
 }
 
 bool EgtbHash::contains(unsigned index) {
-  int b = index & (BUCKETS - 1);
+  int b = hash(index);
   data[b][bucketCount[b]] = index; // sentinel
 
   unsigned i = 0;
@@ -30,4 +32,8 @@ bool EgtbHash::contains(unsigned index) {
     i++;
   }
   return i < bucketCount[b];
+}
+
+unsigned EgtbHash::hash(unsigned index) {
+  return (index * MULT) & (BUCKETS - 1);
 }
