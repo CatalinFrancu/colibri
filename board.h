@@ -25,9 +25,6 @@ int getPieceCount(Board *b);
 /* Rotate the board as specified. Does not change the side to move. */
 void rotateBoard(Board *b, int orientation);
 
-/* Rotate the from and to squares of a move */
-void rotateMove(Move *m, int orientation);
-
 /* Changes sides by flipping the board N-S and changing the color of all the pieces */
 void changeSides(Board *b);
 

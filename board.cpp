@@ -116,11 +116,6 @@ void rotateBoard(Board *b, int orientation) {
   }
 }
 
-void rotateMove(Move *m, int orientation) {
-  m->from = rotateSquare[m->from][orientation];
-  m->to = rotateSquare[m->to][orientation];
-}
-
 void changeSides(Board *b) {
   rotateBoard(b, ORI_FLIP_NS);
   for (int p = 0; p <= KING; p++) {

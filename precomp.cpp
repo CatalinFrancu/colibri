@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include "precomp.h"
 
-int rotateSquare[64][8];
 int choose[65][EGTB_MEN];
 int* canonical64[EGTB_MEN / 2 + 1];
 int numCanonical64[EGTB_MEN / 2 + 1];
@@ -16,20 +15,6 @@ byte isoMove[8][64];
 u64 fileConfiguration[256];
 u64 diagonal[64];
 u64 antidiagonal[64];
-
-void precomputeRotateSquare() {
-  for (int sq = 0; sq < 64; sq++) {
-    int rank = sq >> 3, file = sq & 7;
-    rotateSquare[sq][ORI_NORMAL] = sq;
-    rotateSquare[sq][ORI_FLIP_EW] = SQUARE(rank, 7 - file);
-    rotateSquare[sq][ORI_ROT_CCW] = SQUARE(file, 7 - rank);
-    rotateSquare[sq][ORI_ROT_180] = SQUARE(7 - rank, 7 - file);
-    rotateSquare[sq][ORI_ROT_CW] = SQUARE(7 - file, rank);
-    rotateSquare[sq][ORI_FLIP_NS] = SQUARE(7 - rank, file);
-    rotateSquare[sq][ORI_FLIP_DIAG] = SQUARE(file, rank);
-    rotateSquare[sq][ORI_FLIP_ANTIDIAG] = SQUARE(7 - file, 7 - rank);
-  }
-}
 
 void precomputeNChooseK() {
   for (int n = 0; n <= 64; n++) {
@@ -254,7 +239,6 @@ void precomputeAntidiagonals() {
 }
 
 void precomputeAll() {
-  precomputeRotateSquare();
   precomputeNChooseK();
   precomputeCanonical64();
   precomputeCanonical48();
