@@ -49,7 +49,7 @@ int evalStalemate(Board* b) {
     (b->side == BLACK && delta > 0);
 }
 
-inline u64 egtbGetKey(const char *combo, int index) {
+inline u64 egtbGetKey(const char *combo, unsigned index) {
   u64 result = 0ull;
   for (const char *s = combo; *s; s++) {
     result <<= 3;
@@ -90,7 +90,7 @@ char* readEgtbChunkFromFile(const char *combo, int chunkNo) {
   return NULL;
 }
 
-int readFromCache(const char *combo, int index) {
+int readFromCache(const char *combo, unsigned index) {
   int chunkNo = index / EGTB_CHUNK_SIZE, chunkOffset = index % EGTB_CHUNK_SIZE;
   u64 key = egtbGetKey(combo, chunkNo);
   char *data = (char*)lruCacheGet(&egtbCache, key);
@@ -208,7 +208,7 @@ int getComboSize(const char *combo) {
   return getEgtbSize(ps, nps) + getEpEgtbSize(ps, nps);
 }
 
-int getEpEgtbIndex(PieceSet *ps, int nps, Board *b) {
+unsigned getEpEgtbIndex(PieceSet *ps, int nps, Board *b) {
   int epSq = ctz(b->bb[BB_EP]);
   int file = epSq & 7;
   int result = file * 2; // So 0, 2, 4 or 6
@@ -244,14 +244,14 @@ int getEpEgtbIndex(PieceSet *ps, int nps, Board *b) {
   return result + getEgtbSize(ps, nps);
 }
 
-int getEgtbIndex(PieceSet *ps, int nps, Board *b) {
+unsigned getEgtbIndex(PieceSet *ps, int nps, Board *b) {
   if (epCapturePossible(b)) {
     return getEpEgtbIndex(ps, nps, b);
   } else {
     b->bb[BB_EP] = 0ull;
   }
   u64 occupied = 0ull, occupiedSq = 0;
-  int base, result = 0, comb;
+  unsigned base, result = 0, comb;
 
   for (int i = 0; i < nps; i++) {
     base = (ps[i].side == WHITE) ? BB_WALL : BB_BALL;
@@ -357,7 +357,7 @@ void evaluatePlacement(PieceSet *ps, int nps) {
   static Board b2;
 
   int numMoves = getAllMoves(&scanB, m, FORWARD);
-  int index = getEgtbIndex(ps, nps, &scanB);
+  unsigned index = getEgtbIndex(ps, nps, &scanB);
   memScore[index] = memOpen[index] = 0;
 
   if (!numMoves) {
@@ -707,7 +707,7 @@ int egtbLookup(Board *b) {
 
 int egtbLookupWithInfo(Board *b, const char *combo, PieceSet *ps, int nps) {
   canonicalizeBoard(ps, nps, b, false);
-  int index = getEgtbIndex(ps, nps, b);
+  unsigned index = getEgtbIndex(ps, nps, b);
   return readFromCache(combo, index);
 }
 

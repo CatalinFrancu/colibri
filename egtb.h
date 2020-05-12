@@ -32,12 +32,12 @@ int getEgtbSize(PieceSet *ps, int numPieceSets);
 int getEpEgtbSize(PieceSet *ps, int numPieceSets);
 
 /* Get the index of this position within its EGTB table. Assumes b is rotated into its canonical position. */
-int getEgtbIndex(PieceSet *ps, int nps, Board *b);
+unsigned getEgtbIndex(PieceSet *ps, int nps, Board *b);
 
 /* Get the index of this position within its EGTB table when the EP bit is set.
  * Assumes b is mirrored into its canonical position.
  * EP positions are appended after all the non-EP ones, so this function adds getEgtbSize() to its result. */
-int getEpEgtbIndex(PieceSet *ps, int nps, Board *b);
+unsigned getEpEgtbIndex(PieceSet *ps, int nps, Board *b);
 
 /* Generate and write to file the endgame tablebase for the given combo.
  * Returns true if it actually generated something, false if the file was already there. */
