@@ -735,11 +735,6 @@ void matchOrDie(bool condition, Board *b, int score, int minNeg, int maxNeg,
                 PieceSet *ps, int nps) {
   if (!condition) {
     printBoard(b);
-    canonicalizeBoard(ps, nps, b, false);
-    unsigned index = getEgtbIndex(ps, nps, b);
-    int canonScore = egtbLookup(b);
-    log(LOG_ERROR, "Canonicalizes to index %u score %d:", index, canonScore);
-    printBoard(b);
 
     log(LOG_ERROR,
         "VERIFICATION ERROR: score %d, minNeg %d, maxNeg %d, minPos %d, maxPos %d, anyDraws %d",
