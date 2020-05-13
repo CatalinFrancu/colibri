@@ -2,21 +2,22 @@
 #define __EGTB_HASH_H__
 
 /**
- * A hash set for EGTB indices. Designed for storing on the order of 10-100
- * indices, typically child positions generated from a parent position.
+ * A hash set for EGTB position indices. Designed for storing on the order of
+ * 10-100 values, typically child positions generated from a parent position.
+ * Due to this particularity, stored indices will often differ only in a few
+ * bits.
  */
 
 class EgtbHash {
 
-  static const int BITS = 10;
-  static const int BUCKETS = 1 << BITS;
+  static const int BUCKETS = 1024;
   static const int BUCKET_SIZE = 20;
   static const unsigned MULT = 1151; // Knuth's multiplicative function
 
-  unsigned data[1 << BITS][BUCKET_SIZE]; // elements go here
-  unsigned bucketCount[1 << BITS];       // number of elements added to each bucket
-  unsigned dest[BUCKETS * BUCKET_SIZE];  // bucket where each element went
-  unsigned count;                        // number of elements added
+  unsigned data[BUCKETS][BUCKET_SIZE + 1];  // elements go here; allow for sentinels
+  unsigned bucketCount[BUCKETS];            // number of elements added to each bucket
+  unsigned dest[BUCKETS * BUCKET_SIZE];     // bucket where each element went
+  unsigned count;                           // number of elements added
 
 public:
 
@@ -28,6 +29,7 @@ public:
 private:
 
   unsigned hash(unsigned index);
+
 };
   
 #endif

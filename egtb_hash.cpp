@@ -10,7 +10,7 @@ EgtbHash::EgtbHash() {
 
 void EgtbHash::clear() {
   // Decrease bucket counts for used buckets only. Should be faster than
-  // zeroing all 64 bucket counts.
+  // zeroing all bucket counts.
   while (count) {
     bucketCount[dest[--count]]--;
   }

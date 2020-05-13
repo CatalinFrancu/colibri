@@ -277,7 +277,7 @@ unsigned getEgtbIndex(PieceSet *ps, int nps, Board *b) {
 }
 
 unsigned encodeEgtbBoard(PieceSet *ps, int nps, Board *b) {
-  unsigned result = 0;
+  unsigned result = b->side;
   int doublePushSq = -1, replacementSq = -1;
 
   // If an en passant bit is set, we can determine (1) where the corresponding pawn is and (2) which square we should encode instead
@@ -300,14 +300,11 @@ unsigned encodeEgtbBoard(PieceSet *ps, int nps, Board *b) {
       result = (result << 6) + sq;
     }
   }
-  result = (result << 1) + b->side;
   return result;
 }
 
 void decodeEgtbBoard(PieceSet *ps, int nps, Board *b, unsigned code) {
   emptyBoard(b);
-  b->side = code & 1;
-  code >>= 1;
   for (int i = nps - 1; i >= 0; i--) {
     u64 mask = 0;
     for (int j = 0; j < ps[i].count; j++) {
@@ -324,6 +321,7 @@ void decodeEgtbBoard(PieceSet *ps, int nps, Board *b, unsigned code) {
     b->bb[base + ps[i].piece] = mask;
     b->bb[BB_EMPTY] ^= mask;
   }
+  b->side = code;
 }
 
 /**
