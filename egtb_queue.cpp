@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdlib.h>
 #include "egtb_queue.h"
 #include "logging.h"
@@ -5,7 +6,7 @@
 EgtbQueue::EgtbQueue(int size) {
   this->size = size;
   head = tail = total = 0;
-  queue = (EgtbQueueElement*)malloc(size * sizeof(EgtbQueueElement));
+  assert(queue = (EgtbQueueElement*)malloc(size * sizeof(EgtbQueueElement)));
 }
 
 EgtbQueue::~EgtbQueue() {

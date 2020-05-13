@@ -10,9 +10,9 @@
 
 class EgtbHash {
 
-  static const int BUCKETS = 1024;
+  static const int BUCKETS = 64;
   static const int BUCKET_SIZE = 20;
-  static const unsigned MULT = 1151; // Knuth's multiplicative function
+  static const unsigned MULT = 83; // Knuth's multiplicative function
 
   unsigned data[BUCKETS][BUCKET_SIZE + 1];  // elements go here; allow for sentinels
   unsigned bucketCount[BUCKETS];            // number of elements added to each bucket

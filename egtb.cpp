@@ -74,7 +74,7 @@ char* readEgtbChunkFromFile(const char *combo, int chunkNo) {
   FILE *f = fopen(fileName.c_str(), "r");
   if (f) {
     int startPos = chunkNo * EGTB_CHUNK_SIZE;
-    data = (char*)malloc(EGTB_CHUNK_SIZE);
+    assert(data = (char*)malloc(EGTB_CHUNK_SIZE));
     fseek(f, startPos, SEEK_SET);
     if (!fread(data, 1, EGTB_CHUNK_SIZE, f)) {
       log(LOG_WARNING, "No bytes read from EGTB combo %s chunk %d", combo, chunkNo);
@@ -277,7 +277,7 @@ unsigned getEgtbIndex(PieceSet *ps, int nps, Board *b) {
 }
 
 unsigned encodeEgtbBoard(PieceSet *ps, int nps, Board *b) {
-  unsigned result = b->side;
+  unsigned result = 0;
   int doublePushSq = -1, replacementSq = -1;
 
   // If an en passant bit is set, we can determine (1) where the corresponding pawn is and (2) which square we should encode instead
@@ -300,11 +300,14 @@ unsigned encodeEgtbBoard(PieceSet *ps, int nps, Board *b) {
       result = (result << 6) + sq;
     }
   }
+  result = (result << 1) + b->side;	
   return result;
 }
 
 void decodeEgtbBoard(PieceSet *ps, int nps, Board *b, unsigned code) {
   emptyBoard(b);
+  b->side = code & 1;	
+  code >>= 1;
   for (int i = nps - 1; i >= 0; i--) {
     u64 mask = 0;
     for (int j = 0; j < ps[i].count; j++) {
@@ -321,7 +324,6 @@ void decodeEgtbBoard(PieceSet *ps, int nps, Board *b, unsigned code) {
     b->bb[base + ps[i].piece] = mask;
     b->bb[BB_EMPTY] ^= mask;
   }
-  b->side = code;
 }
 
 /**
@@ -630,9 +632,9 @@ bool generateEgtb(const char *combo) {
   // Collect and enqueue all the immediate stalemates and conversions.
   int size = getEgtbSize(ps, numPieceSets) + getEpEgtbSize(ps, numPieceSets);
   log(LOG_INFO, "Table size: %d", size);
-  memScore = (char*)malloc(size);
-  memOpen = (byte*)malloc(size);
-  retro = new EgtbQueue(size);
+  assert(memScore = (char*)malloc(size));
+  assert(memOpen = (byte*)malloc(size));
+  assert(retro = new EgtbQueue(size));
 
   scanWrapper(ps, numPieceSets, 0);
   log(LOG_INFO, "Discovered %d boards with stalemate or conversion", retro->getTotal());
