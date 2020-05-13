@@ -30,5 +30,5 @@ public:
   int getTotal();
 
 };
-  
+
 #endif

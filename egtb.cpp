@@ -352,7 +352,7 @@ void evaluatePlacement(PieceSet *ps, int nps) {
     return;
   }
 
-  // allocate these only once  
+  // allocate these only once
   static Move m[MAX_MOVES];
   static Board b2;
 
@@ -556,8 +556,8 @@ void scanWrapper(PieceSet *ps, int nps, int level) {
  * @param int score The child's score
  */
 void notifyBoard(PieceSet *ps, int nps, Board *b, unsigned index, int score) {
-  // Skip this position if we've already scored it
   if (memOpen[index]) {
+    // This position is still open
     memOpen[index]--;
     if (score < 0) {
       // child loses => parent converts to a win in -score + 1
@@ -574,8 +574,16 @@ void notifyBoard(PieceSet *ps, int nps, Board *b, unsigned index, int score) {
     }
 
     if (!memOpen[index]) {
-      retro->enqueue(encodeEgtbBoard(ps, nps, b), index); 
+      retro->enqueue(encodeEgtbBoard(ps, nps, b), index);
     }
+  } else if ((score < 0) && (-score + 1 < memScore[index])) {
+    // We found a shorter win. This can happen because the queue doesn't just
+    // contain values of x, then x + 1. Due to the way scan() works, it can
+    // contain mixed values of x and x + 1 followed by mixed values of x + 1
+    // and x + 2. So a win can sometimes be upgraded from x to x - 1. When
+    // this happens, the parent is guaranteed to be in queue and not yet
+    // processed.
+    memScore[index] = -score + 1;
   }
 }
 
@@ -731,8 +739,8 @@ int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int 
 }
 
 void matchOrDie(bool condition, Board *b, int score, int minNeg, int maxNeg,
-                int minPos, int maxPos, bool anyDraws, int *childScores, int numMoves,
-                PieceSet *ps, int nps) {
+                int minPos, int maxPos, bool anyDraws, int *childScores,
+                Move* m, int numMoves, PieceSet *ps, int nps) {
   if (!condition) {
     printBoard(b);
 
@@ -741,7 +749,7 @@ void matchOrDie(bool condition, Board *b, int score, int minNeg, int maxNeg,
         score, minNeg, maxNeg, minPos, maxPos, anyDraws);
     log(LOG_ERROR, "Child scores:");
     for (int i = 0; i < numMoves; i++) {
-      log(LOG_ERROR, "%d", childScores[i]);
+      log(LOG_ERROR, "%s: %d", getMoveName(m[i]).c_str(), childScores[i]);
     }
     assert(false);
   }
@@ -833,16 +841,16 @@ void egtbVerifyPosition(Board *b, Move *m, const char *combo, PieceSet *ps, int 
   if (score > 0) {
     matchOrDie(maxNeg == -score + 1,
                &bc, score, minNeg, maxNeg, minPos, maxPos,
-               anyDraws, childScore, numMoves, ps, nps);
+               anyDraws, childScore, m, numMoves, ps, nps);
   } else if (score < 0) {
     matchOrDie((maxPos == -score - 1) && (maxNeg == -INFTY) && !anyDraws,
                &bc, score, minNeg, maxNeg, minPos, maxPos,
-               anyDraws, childScore, numMoves, ps, nps);
+               anyDraws, childScore, m, numMoves, ps, nps);
   } else {
     // Either there isn't a win/loss or we can't prove it in one byte.
     matchOrDie((anyDraws && (maxNeg == -INFTY)) || (maxPos == 127) || (minPos == -127),
                &bc, score, minNeg, maxNeg, minPos, maxPos,
-               anyDraws, childScore, numMoves, ps, nps);
+               anyDraws, childScore, m, numMoves, ps, nps);
   }
 }
 
