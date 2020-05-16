@@ -11,7 +11,7 @@
 class EgtbHash {
 
   static const int BUCKETS = 64;
-  static const int BUCKET_SIZE = 20;
+  static const int BUCKET_SIZE = 50;
   static const unsigned MULT = 83; // Knuth's multiplicative function
 
   unsigned data[BUCKETS][BUCKET_SIZE + 1];  // elements go here; allow for sentinels

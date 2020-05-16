@@ -405,7 +405,7 @@ void evaluatePlacement(PieceSet *ps, int nps) {
     }
   }
   if (!memOpen[index]) {
-    retro->enqueue(encodeEgtbBoard(ps, nps, &scanB), index);
+    retro->enqueue(encodeEgtbBoard(ps, nps, &scanB), memScore[index]);
   }
 }
 
@@ -574,7 +574,7 @@ void notifyBoard(PieceSet *ps, int nps, Board *b, unsigned index, int score) {
     }
 
     if (!memOpen[index]) {
-      retro->enqueue(encodeEgtbBoard(ps, nps, b), index);
+      retro->enqueue(encodeEgtbBoard(ps, nps, b), memScore[index]);
     }
   } else if ((score < 0) && (-score + 1 < memScore[index])) {
     // We found a shorter win. This can happen because the queue doesn't just
@@ -590,12 +590,11 @@ void notifyBoard(PieceSet *ps, int nps, Board *b, unsigned index, int score) {
 /**
  * Expands a solved position, notifying its parents.
  */
-void retrograde(PieceSet *ps, int nps, Board *b, unsigned index) {
+void retrograde(PieceSet *ps, int nps, Board *b, char score) {
   static Move mb[MAX_MOVES];
   static Board parentB;
 
   int nb = getAllMoves(b, mb, BACKWARD);
-  int score = memScore[index];
 
   egtbHash.clear();
   for (int i = 0; i < nb; i++)  {
@@ -642,16 +641,16 @@ bool generateEgtb(const char *combo) {
   // Loop de loop.
   int max = 0; // absolute maximum value encountered so far
   while (!retro->isEmpty() && max < 127) {
-    unsigned code, index;
+    unsigned code;
+    char score;
     Board b;
-    retro->dequeue(&code, &index);
+    retro->dequeue(&code, &score);
     decodeEgtbBoard(ps, numPieceSets, &b, code);
-    int score = memScore[index];
     if (abs(score) > max) {
       max = abs(score);
       log(LOG_DEBUG, "Encountered score ±%d", max);
     }
-    retrograde(ps, numPieceSets, &b, index);
+    retrograde(ps, numPieceSets, &b, score);
   }
 
   if (!retro->isEmpty()) {
@@ -666,7 +665,7 @@ bool generateEgtb(const char *combo) {
   }
 
   // Done! Dump the generated table in the EGTB folder and delete the temp files
-  log(LOG_INFO, "Table size: %d, of which non-draws: %d", size, retro->getTotal());
+  log(LOG_INFO, "Table size: %d, of which decisive: %d", size, retro->getTotal());
   dumpTable(destName, size);
   free(memScore);
   free(memOpen);
