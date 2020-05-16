@@ -22,8 +22,10 @@ void logInit(const char *fileName) {
 }
 
 void vlog(int level, const char *format, va_list vl) {
+  u64 millis = timerGet();
   if (level <= cfgLogLevel) {
-    fprintf(logFile, "[%10llu] [%s] ", timerGet(), LOG_LEVEL_NAMES[level]);
+    fprintf(logFile, "[%7llu.%03llu] [%s] ",
+            millis / 1000, millis % 1000, LOG_LEVEL_NAMES[level]);
     vfprintf(logFile, format, vl);
     fprintf(logFile, "\n");
     fflush(logFile);
