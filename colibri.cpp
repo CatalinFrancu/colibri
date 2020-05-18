@@ -67,5 +67,5 @@ int main(int argc, char **argv) {
   // generateEgtb(table);
   // verifyEgtb(table);
   // compressEgtb(table);
-  generateAllEgtb(2, 2);
+  // generateAllEgtb(2, 2);
 }
