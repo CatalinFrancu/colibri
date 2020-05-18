@@ -405,7 +405,7 @@ void evaluatePlacement(PieceSet *ps, int nps) {
     }
   }
   if (!memOpen[index]) {
-    retro->enqueue(encodeEgtbBoard(ps, nps, &scanB), memScore[index]);
+    retro->enqueue(encodeEgtbBoard(ps, nps, &scanB), index);
   }
 }
 
@@ -574,7 +574,7 @@ void notifyBoard(PieceSet *ps, int nps, Board *b, unsigned index, int score) {
     }
 
     if (!memOpen[index]) {
-      retro->enqueue(encodeEgtbBoard(ps, nps, b), memScore[index]);
+      retro->enqueue(encodeEgtbBoard(ps, nps, b), index);
     }
   } else if ((score < 0) && (-score + 1 < memScore[index])) {
     // We found a shorter win. This can happen because the queue doesn't just
@@ -641,10 +641,10 @@ bool generateEgtb(const char *combo) {
   // Loop de loop.
   int max = 0; // absolute maximum value encountered so far
   while (!retro->isEmpty() && max < 127) {
-    unsigned code;
-    char score;
+    unsigned code, index;
     Board b;
-    retro->dequeue(&code, &score);
+    retro->dequeue(&code, &index);
+    int score = memScore[index];
     decodeEgtbBoard(ps, numPieceSets, &b, code);
     if (abs(score) > max) {
       max = abs(score);
@@ -741,6 +741,9 @@ void matchOrDie(bool condition, Board *b, int score, int minNeg, int maxNeg,
                 int minPos, int maxPos, bool anyDraws, int *childScores,
                 Move* m, int numMoves, PieceSet *ps, int nps) {
   if (!condition) {
+    printBoard(b);
+    canonicalizeBoard(ps, nps, b, false);
+    printf("Canonical board, index: %u\n", getEgtbIndex(ps, nps, b));
     printBoard(b);
 
     log(LOG_ERROR,

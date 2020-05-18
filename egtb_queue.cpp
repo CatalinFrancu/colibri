@@ -6,19 +6,17 @@
 EgtbQueue::EgtbQueue(int size) {
   this->size = size;
   head = tail = enqTotal = deqTotal = 0;
-  assert(codes = (unsigned*)malloc(size * sizeof(unsigned)));
-  assert(scores = (char*)malloc(size));
+  assert(queue = (EgtbQueueElement*)malloc(size * sizeof(EgtbQueueElement)));
 }
 
 EgtbQueue::~EgtbQueue() {
-  free(codes);
-  free(scores);
+  free(queue);
 }
 
-void EgtbQueue::enqueue(unsigned code, char score) {
+void EgtbQueue::enqueue(unsigned code, unsigned index) {
   enqTotal++;
-  codes[tail] = code;
-  scores[tail++] = score;
+  queue[tail].code = code;
+  queue[tail++].index = index;
   if (tail == size) {
     tail = 0;
   }
@@ -28,10 +26,10 @@ void EgtbQueue::enqueue(unsigned code, char score) {
   }
 }
 
-void EgtbQueue::dequeue(unsigned* code, char* score) {
+void EgtbQueue::dequeue(unsigned* code, unsigned* index) {
   deqTotal++;
-  *code = codes[head];
-  *score = scores[head++];
+  *code = queue[head].code;
+  *index = queue[head++].index;
   if (head == size) {
     head = 0;
   }
