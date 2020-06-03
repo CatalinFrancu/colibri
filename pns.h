@@ -82,7 +82,7 @@ private:
   void addParent(int childIndex, int parentIndex);
 
   /* Prints a PNS tree node recursively. */
-  void printTree(int t, int level);
+  void printTree(int t, int level, int maxDepth);
 
   /* Saves the PNS tree. */
   void saveTree(Board *b, string fileName);

@@ -99,7 +99,10 @@ void Pns::addParent(int childIndex, int parentIndex) {
   }
 }
 
-void Pns::printTree(int t, int level) {
+void Pns::printTree(int t, int level, int maxDepth) {
+  if (level > maxDepth) {
+    return;
+  }
   for (int i = 0; i < node[t].numChildren; i++) {
     for (int j = 0; j < level; j++) {
       printf("    ");
@@ -109,7 +112,7 @@ void Pns::printTree(int t, int level) {
     string from = SQUARE_NAME(m.from);
     string to = SQUARE_NAME(m.to);
     printf("%s%s %llu/%llu\n", from.c_str(), to.c_str(), node[c].proof, node[c].disproof);
-    printTree(c, level + 1);
+    printTree(c, level + 1, maxDepth);
   }
 }
 
@@ -171,7 +174,6 @@ void Pns::copyMovesFromPn1() {
          pn1->node[0].numChildren * sizeof(Move));
 }
 
-
 bool Pns::expand(int t, Board *b) {
   // Looking up the board in EGTB is unnecessary in PN2. However, it is
   // relatively cheap so we do it for clarity.
@@ -213,10 +215,11 @@ bool Pns::expand(int t, Board *b) {
       child[c] = allocateLeaf();
       trans[z2] = child[c];
       if (pn1) {
-        // copy the i-th child's proof/disproof values from the PN1 root
-        int pn1c = pn1->node[0].child + i;
-        node[child[c]].proof = pn1->node[pn1c].proof;
-        node[child[c]].disproof = pn1->node[pn1c].disproof;
+        // Copy the i-th child's proof/disproof values from the PN1 root.
+        // Avoid jumping through some hoops: we know that the root's children
+        // are nodes 1 through nc.
+        node[child[c]].proof = pn1->node[i + 1].proof;
+        node[child[c]].disproof = pn1->node[i + 1].disproof;
       }
     } else if (ancestors.find(orig) == ancestors.end()) { // Transposition
       child[c] = orig;
@@ -270,7 +273,7 @@ void Pns::analyzeBoard(Board *b) {
       update(mpn);
       if (pn1) {
         printf("root: %llu/%llu\n", node[0].proof, node[0].disproof);
-        printTree(0, 0);
+        printTree(0, 0, 2);
       }
     } else {
       full = true;
