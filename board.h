@@ -22,8 +22,8 @@ bool equalMove(Move m1, Move m2);
 /* Returns the number of pieces on the board */
 int getPieceCount(Board *b);
 
-/* Rotate the board as specified. Does not change the side to move. */
-void rotateBoard(Board *b, int orientation);
+/* Rotate and/or flip the board as specified. Does not change the side to move. */
+void transformBoard(Board *b, int tr);
 
 /* Changes sides by flipping the board N-S and changing the color of all the pieces */
 void changeSides(Board *b);
@@ -51,12 +51,11 @@ inline bool epCapturePossible(Board *b) {
 bool isCapture(Board *b, Move m);
 
 /**
- * Rotate the board as needed to bring it into canonical orientation.
+ * Tranform the board as needed to bring it into its canonical position.
  *
- * @param bool dryRun If true, leave the board unchanged and only return the
- *   rotation.
- * @return int The rotation performed to canonicalize the board (which can be
- *   ORI_NORMAL if the board is already canonical).
+ * @param bool dryRun If true, leave the board unchanged.
+ * @return int The transformation performed to canonicalize the board (which
+ *   can be TR_NONE if the board is already canonical).
 */
 int canonicalizeBoard(PieceSet *ps, int nps, Board *b, bool dryRun);
 

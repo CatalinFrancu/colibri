@@ -24,24 +24,27 @@ extern u64 fileConfiguration[256];
 extern u64 diagonal[64];
 extern u64 antidiagonal[64];
 
-/* canonical64[k] holds information about every placement of a k-piece set.
- * If the placement with index i is canonical, then canonical64[k][i] holds its counter, otherwise it holds -1 times
- * the transformation that should be applied to this placement to obtain the canonical one.
- * For example, there are 10 canonical 1-piece placements and 278 canonical 2-piece placements. */
+/**
+ * Holds information about every placement of a k-piece set. If the placement
+ * with index i is canonical, then canonical64[k][i] holds its counter,
+ * otherwise it holds -1 times the transformation that should be applied to
+ * this placement to obtain the canonical one.  For example, there are 10
+ * canonical 1-piece placements and 278 canonical 2-piece placements.
+ */
 extern int* canonical64[EGTB_MEN / 2 + 1];
 extern int numCanonical64[EGTB_MEN / 2 + 1];
 
 /**
- * Stores an 8-bit mask for each placement. The mask indicates which transforms
- * can be used to achieve the canonical placement in canonical64[].
+ * Stores an 8-bit mask for each placement. trMask64[x] indicates which
+ * transformations achieve the canonical placement in canonical64[x].
  */
-extern byte* rotMask64[EGTB_MEN / 2 + 1];
+extern byte* trMask64[EGTB_MEN / 2 + 1];
 
 /* Same, but assuming the set to be placed consists of pawns (so only 48 of the squares are legal).
  * Here we need up to EGTB-1 pieces, for combinations like KvPPPP */
 extern int* canonical48[EGTB_MEN];
 extern int numCanonical48[EGTB_MEN];
-extern byte* rotMask48[EGTB_MEN];
+extern byte* trMask48[EGTB_MEN];
 
 /* given a mask with k bits set and an occupancy mask with o bits occupied, returns the rank of the
  * mask, i.e. a number between 0 and choose[64 - o][k] - 1 */

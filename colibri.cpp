@@ -48,14 +48,14 @@ int main(int argc, char **argv) {
      }
   }
 
-  // Pns pn1(3000000, 10000000, 10000000, 10000000, NULL);
-  // Pns pn2(10000000, 100000000, 100000000, 100000000, &pn1);
+  Pns pn1(3000000, 10000000, 10000000, 10000000, NULL);
+  Pns pn2(10000000, 100000000, 100000000, 100000000, &pn1);
   switch (command) {
     case CMD_ANALYZE:
       if (fileName.empty()) {
         die("Please specify and input/output file with -f.");
       }
-      // pn2.analyzeString(position, fileName);
+      pn2.analyzeString(position, fileName);
       break;
     case CMD_SERVER:
       startServer(); break;
@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
       log(LOG_WARNING, "No command given. Resuming main() execution.");
   }
 
-  // const char* table = "KPvP";
+  // const char* table = "BPPvPP";
   // generateEgtb(table);
   // verifyEgtb(table);
   // compressEgtb(table);

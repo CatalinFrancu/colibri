@@ -41,17 +41,17 @@ using namespace std;
 #define BB_COUNT 16
 
 /*
- * Possible orientations. The first two apply to all boards; the other six
+ * Possible transformations. The first two apply to all boards; the other six
  * only apply to boards without pawns.
  */
-#define ORI_NORMAL 0          /* c1 -> c1 */
-#define ORI_FLIP_EW 1         /* c1 -> f1 */
-#define ORI_ROT_CCW 2         /* c1 -> h3 */
-#define ORI_ROT_180 3         /* c1 -> f8 */
-#define ORI_ROT_CW 4          /* c1 -> a6 */
-#define ORI_FLIP_NS 5         /* c1 -> c8 */
-#define ORI_FLIP_DIAG 6       /* c1 -> a3 */
-#define ORI_FLIP_ANTIDIAG 7   /* c1 -> h6 */
+#define TR_NONE 0          /* c1 -> c1 */
+#define TR_FLIP_EW 1         /* c1 -> f1 */
+#define TR_ROT_CCW 2         /* c1 -> h3 */
+#define TR_ROT_180 3         /* c1 -> f8 */
+#define TR_ROT_CW 4          /* c1 -> a6 */
+#define TR_FLIP_NS 5         /* c1 -> c8 */
+#define TR_FLIP_DIAG 6       /* c1 -> a3 */
+#define TR_FLIP_ANTIDIAG 7   /* c1 -> h6 */
 
 /* Masks for some ranks and files of interest */
 #define FILE_A 0x0101010101010101ull

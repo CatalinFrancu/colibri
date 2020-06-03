@@ -31,7 +31,7 @@ int getEgtbSize(PieceSet *ps, int numPieceSets);
  * the pushed pawn must also remain empty. */
 int getEpEgtbSize(PieceSet *ps, int numPieceSets);
 
-/* Get the index of this position within its EGTB table. Assumes b is rotated into its canonical position. */
+/* Get the index of this position within its EGTB table. Assumes b is canonical. */
 unsigned getEgtbIndex(PieceSet *ps, int nps, Board *b);
 
 /* Get the index of this position within its EGTB table when the EP bit is set.

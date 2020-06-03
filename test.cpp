@@ -46,17 +46,17 @@ BOOST_AUTO_TEST_CASE(testCtz) {
   BOOST_CHECK_EQUAL(ctz(0x8000000000000000ull), 63);
 }
 
-BOOST_AUTO_TEST_CASE(testRotate) {
-  BOOST_CHECK_EQUAL(rotate(0x0000000c0000d001ull, ORI_NORMAL), 0x0000000c0000d001ull);
-  BOOST_CHECK_EQUAL(rotate(0x4000000400001001ull, ORI_FLIP_EW), 0x0200002000000880ull);
-  BOOST_CHECK_EQUAL(rotate(0x0000000000000001ull, ORI_ROT_CCW), 0x0000000000000080ull);
-  BOOST_CHECK_EQUAL(rotate(0x8000000000000000ull, ORI_ROT_CCW), 0x0100000000000000ull);
-  BOOST_CHECK_EQUAL(rotate(0x4000000400001001ull, ORI_ROT_CCW), 0x0001004000080080ull);
-  BOOST_CHECK_EQUAL(rotate(0x4000000400001001ull, ORI_ROT_180), 0x8008000020000002ull);
-  BOOST_CHECK_EQUAL(rotate(0x4000000400001001ull, ORI_ROT_CW), 0x0100100002008000ull);
-  BOOST_CHECK_EQUAL(rotate(0x4000000400001001ull, ORI_FLIP_NS), 0x0110000004000040ull);
-  BOOST_CHECK_EQUAL(rotate(0x4000000400001001ull, ORI_FLIP_DIAG), 0x0080000200100001ull);
-  BOOST_CHECK_EQUAL(rotate(0x4000000400001001ull, ORI_FLIP_ANTIDIAG), 0x8000080040000100ull);
+BOOST_AUTO_TEST_CASE(testTransform) {
+  BOOST_CHECK_EQUAL(transform(0x0000000c0000d001ull, TR_NONE), 0x0000000c0000d001ull);
+  BOOST_CHECK_EQUAL(transform(0x4000000400001001ull, TR_FLIP_EW), 0x0200002000000880ull);
+  BOOST_CHECK_EQUAL(transform(0x0000000000000001ull, TR_ROT_CCW), 0x0000000000000080ull);
+  BOOST_CHECK_EQUAL(transform(0x8000000000000000ull, TR_ROT_CCW), 0x0100000000000000ull);
+  BOOST_CHECK_EQUAL(transform(0x4000000400001001ull, TR_ROT_CCW), 0x0001004000080080ull);
+  BOOST_CHECK_EQUAL(transform(0x4000000400001001ull, TR_ROT_180), 0x8008000020000002ull);
+  BOOST_CHECK_EQUAL(transform(0x4000000400001001ull, TR_ROT_CW), 0x0100100002008000ull);
+  BOOST_CHECK_EQUAL(transform(0x4000000400001001ull, TR_FLIP_NS), 0x0110000004000040ull);
+  BOOST_CHECK_EQUAL(transform(0x4000000400001001ull, TR_FLIP_DIAG), 0x0080000200100001ull);
+  BOOST_CHECK_EQUAL(transform(0x4000000400001001ull, TR_FLIP_ANTIDIAG), 0x8000080040000100ull);
 }
 
 BOOST_AUTO_TEST_CASE(tetGetBitAndClear) {
@@ -163,32 +163,32 @@ BOOST_AUTO_TEST_CASE(testCanonical) {
   BOOST_CHECK_EQUAL(numCanonical48[2], 576);
 }
 
-BOOST_AUTO_TEST_CASE(testRotMask) {
+BOOST_AUTO_TEST_CASE(testTrMask) {
   // Ka1 remains Ka1 after flipping across the diagonal
-  BOOST_CHECK_EQUAL(rotMask64[1][0], (1 << ORI_NORMAL) | (1 << ORI_FLIP_DIAG));
-  // Kb1 has no canonical rotations, only itself
-  BOOST_CHECK_EQUAL(rotMask64[1][1], (1 << ORI_NORMAL));
+  BOOST_CHECK_EQUAL(trMask64[1][0], (1 << TR_NONE) | (1 << TR_FLIP_DIAG));
+  // Kb1 has no canonical transformations other than itself
+  BOOST_CHECK_EQUAL(trMask64[1][1], (1 << TR_NONE));
   // Ka2 is not canonical, needs to be flipped
-  BOOST_CHECK_EQUAL(rotMask64[1][8], (1 << ORI_FLIP_DIAG));
+  BOOST_CHECK_EQUAL(trMask64[1][8], (1 << TR_FLIP_DIAG));
 
-  // Kb7Kg2 has three identical rotations (rotate 180 and flipping across
+  // Kb7Kg2 has three identical transformations (rotate 180 or flip across
   // either diagonal)
   u64 kb7kg2 = 0x0002000000004000ull;
   int c = rankCombinationFree(kb7kg2);
-  byte mask = (1 << ORI_NORMAL) | (1 << ORI_ROT_180) |
-    (1 << ORI_FLIP_DIAG) | (1 << ORI_FLIP_ANTIDIAG);
-  BOOST_CHECK_EQUAL(rotMask64[2][c], mask);
+  byte mask = (1 << TR_NONE) | (1 << TR_ROT_180) |
+    (1 << TR_FLIP_DIAG) | (1 << TR_FLIP_ANTIDIAG);
+  BOOST_CHECK_EQUAL(trMask64[2][c], mask);
 
   // one-pawn configurations are either canonical or need to be flipped E-W
   for (c = 0; c < 48; c++) {
-    byte expected = ((c & 7) < 4) ? (1 << ORI_NORMAL) : (1 << ORI_FLIP_EW);
-    BOOST_CHECK_EQUAL(rotMask48[1][c], expected);
+    byte expected = ((c & 7) < 4) ? (1 << TR_NONE) : (1 << TR_FLIP_EW);
+    BOOST_CHECK_EQUAL(trMask48[1][c], expected);
   }
   
-  // Pb2Pc2Pf2Pg2 (shifted by 8) has one identical rotation
+  // Pb2Pc2Pf2Pg2 (shifted by 8) has one identical transformation
   u64 fourPawns = 0x66ull;
   c = rankCombinationFree(fourPawns);
-  BOOST_CHECK_EQUAL(rotMask48[4][c], (1 << ORI_NORMAL) | (1 << ORI_FLIP_EW));
+  BOOST_CHECK_EQUAL(trMask48[4][c], (1 << TR_NONE) | (1 << TR_FLIP_EW));
 
 }
 

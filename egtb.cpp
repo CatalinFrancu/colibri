@@ -348,7 +348,7 @@ void decodeEgtbBoard(PieceSet *ps, int nps, Board *b, unsigned code) {
 void evaluatePlacement(PieceSet *ps, int nps) {
   // We can still generate non-canonical boards, but at least we recognize
   // them as such.
-  if (canonicalizeBoard(ps, nps, &scanB, true) != ORI_NORMAL) {
+  if (canonicalizeBoard(ps, nps, &scanB, true) != TR_NONE) {
     return;
   }
 

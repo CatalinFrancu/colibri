@@ -74,41 +74,41 @@ int getPieceCount(Board *b) {
   return popCount(b->bb[BB_WALL] ^ b->bb[BB_BALL]);
 }
 
-void rotateBoard(Board *b, int orientation) {
-  switch (orientation) {
-    case ORI_NORMAL:
+void transformBoard(Board *b, int tr) {
+  switch (tr) {
+    case TR_NONE:
       return;
-    case ORI_FLIP_EW:
+    case TR_FLIP_EW:
       for (int i = 0; i < BB_COUNT; i++) {
         b->bb[i] = mirrorEW(b->bb[i]);
       }
       return;
-    case ORI_ROT_CCW:
+    case TR_ROT_CCW:
       for (int i = 0; i < BB_COUNT; i++) {
         b->bb[i] = flipDiagA1H8(reverseBytes(b->bb[i]));
       }
       return;
-    case ORI_ROT_180:
+    case TR_ROT_180:
       for (int i = 0; i < BB_COUNT; i++) {
         b->bb[i] = reverseBytes(mirrorEW(b->bb[i]));
       }
       return;
-    case ORI_ROT_CW:
+    case TR_ROT_CW:
       for (int i = 0; i < BB_COUNT; i++) {
         b->bb[i] = reverseBytes(flipDiagA1H8(b->bb[i]));
       }
       return;
-    case ORI_FLIP_NS:
+    case TR_FLIP_NS:
       for (int i = 0; i < BB_COUNT; i++) {
         b->bb[i] = reverseBytes(b->bb[i]);
       }
       return;
-    case ORI_FLIP_DIAG:
+    case TR_FLIP_DIAG:
       for (int i = 0; i < BB_COUNT; i++) {
         b->bb[i] = flipDiagA1H8(b->bb[i]);
       }
       return;
-    case ORI_FLIP_ANTIDIAG:
+    case TR_FLIP_ANTIDIAG:
       for (int i = 0; i < BB_COUNT; i++) {
         b->bb[i] = flipDiagA8H1(b->bb[i]);
       }
@@ -117,7 +117,7 @@ void rotateBoard(Board *b, int orientation) {
 }
 
 void changeSides(Board *b) {
-  rotateBoard(b, ORI_FLIP_NS);
+  transformBoard(b, TR_FLIP_NS);
   for (int p = 0; p <= KING; p++) {
     u64 tmp = b->bb[BB_WALL + p];
     b->bb[BB_WALL + p] = b->bb[BB_BALL + p];
@@ -164,24 +164,24 @@ int canonicalizeBoard(PieceSet *ps, int nps, Board *b, bool dryRun) {
   if (epCapturePossible(b)) {
     if (b->bb[BB_EP] & 0xf0f0f0f0f0f0f0f0ull) {
       if (!dryRun) {
-        rotateBoard(b, ORI_FLIP_EW);
+        transformBoard(b, TR_FLIP_EW);
       }
-      return ORI_FLIP_EW;
+      return TR_FLIP_EW;
     }
-    return ORI_NORMAL;
+    return TR_NONE;
   } else {
     if (!dryRun) {
       b->bb[BB_EP] = 0ull;
     }
   }
 
-  // Start with the rotation mask for the first piece set.
+  // Start with the transformation mask for the first piece set.
   u64 mask = getMaskFromPieceSet(b, ps[0]);
   int comb = rankCombinationFree(mask);
 
   byte trMask = (ps[0].piece == PAWN)
-    ? rotMask48[ps[0].count][comb]
-    : rotMask64[ps[0].count][comb];
+    ? trMask48[ps[0].count][comb]
+    : trMask64[ps[0].count][comb];
   int i = 1, tr;
 
   // Process more piece sets
@@ -193,7 +193,7 @@ int canonicalizeBoard(PieceSet *ps, int nps, Board *b, bool dryRun) {
     int minComb = INFTY;
     while (trMask) {
       GET_BIT_AND_CLEAR(trMask, tr);
-      comb = rankCombinationFree(rotate(mask, tr));
+      comb = rankCombinationFree(transform(mask, tr));
       if (comb < minComb) {           // new minimum found, start a new mask
         minComb = comb;
         newTrMask = 1 << tr;
@@ -207,7 +207,7 @@ int canonicalizeBoard(PieceSet *ps, int nps, Board *b, bool dryRun) {
 
   GET_BIT_AND_CLEAR(trMask, tr); // take the last set bit
   if (!dryRun) {
-    rotateBoard(b, tr);
+    transformBoard(b, tr);
   }
   return tr;
 }

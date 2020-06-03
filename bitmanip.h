@@ -54,7 +54,7 @@ inline u64 flipDiagA8H1(u64 x) {
 }
 
 /* Flip and/or rotate a bitboard */
-u64 rotate(u64 x, int orientation);
+u64 transform(u64 x, int tr);
 
 /* Print a bitboard in the form 00110100 | 01001101 | ... */
 void printBitboard(const char *msg, u64 x);

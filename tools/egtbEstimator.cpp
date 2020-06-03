@@ -54,7 +54,7 @@ u64 maxSizes[8];
 
 int genPawnPlacements(int n, int last, u64 x) {
   if (!n) {
-    return (x < rotate(x, ORI_FLIP_EW)) ? 0 : 1;
+    return (x < transform(x, TR_FLIP_EW)) ? 0 : 1;
   }
   int result = 0;
   for (int i = last + 1; i <= 56 - n; i++) {
@@ -74,7 +74,7 @@ void countPawnPlacements() {
 int genNonPawnPlacements(int n, int first, u64 x) {
   if (!n) {
     for (int i = 1; i <= 7; i++) {
-      if (rotate(x, i) < x) {
+      if (transform(x, i) < x) {
         return 0;
       }
     }
