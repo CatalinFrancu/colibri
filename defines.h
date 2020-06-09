@@ -100,21 +100,6 @@ using namespace std;
 /* Cache EGTB files in 32 KB chunks */
 #define EGTB_CHUNK_SIZE 32768
 
-/* Size of every PNS^1 step */
-#define PNS_STEP_SIZE 1000000
-
-/* Size of the in-memory PN^2 book. */
-#define PNS_BOOK_SIZE 10000000
-
-/* Size of the PN^2 move array */
-#define PNS_MOVE_SIZE 10000000
-
-/* Size of the PN^2 child array */
-#define PNS_CHILD_SIZE 10000000
-
-/* Size of the PN^2 parent array */
-#define PNS_PARENT_SIZE 10000000
-
 /* The square between 0 and 63 corresponding to a rank and file between 0 and 7 */
 #define SQUARE(rank, file) (((rank) << 3) + (file))
 
@@ -169,22 +154,6 @@ typedef struct {
 /* Piece names for move notation */
 const char PIECE_INITIALS[8] = " PNBRQK";
 const int PIECE_BY_NAME[26] = { 0, BISHOP, 0, 0, 0, 0, 0, 0, 0, 0, KING, 0, 0, KNIGHT, 0, PAWN, QUEEN, ROOK, 0, 0, 0, 0, 0, 0, 0, 0 };
-
-/* A PN search tree node (it's really a DAG). Pointers are statically represented in a preallocated memory area. */
-typedef struct {
-  u64 proof;
-  u64 disproof;
-  int child;     // index in pnsChildren of the first child
-  int move;      // index in pnsMove of the first move
-  int parent;    // index in pnsParent of the first parent (transpositions have multiple parents in the DAG)
-  byte numChildren;
-} PnsNode;
-
-/* A linked list of PnsNodes. Statically allocated. */
-typedef struct {
-  int node;
-  int next;
-} PnsNodeList;
 
 inline int sgn(int x) {
   return (x > 0) - (x < 0);

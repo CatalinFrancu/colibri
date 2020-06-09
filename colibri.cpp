@@ -48,8 +48,8 @@ int main(int argc, char **argv) {
      }
   }
 
-  Pns pn1(3000000, 10000000, 10000000, 10000000, NULL);
-  Pns pn2(10000000, 100000000, 100000000, 100000000, &pn1);
+  Pns pn1(1000000, 10000000, NULL);
+  Pns pn2(10000000, 100000000, &pn1);
   switch (command) {
     case CMD_ANALYZE:
       if (fileName.empty()) {

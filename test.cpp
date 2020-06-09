@@ -1256,7 +1256,7 @@ BOOST_AUTO_TEST_CASE(testPnsTrivial) {
   loadConfigFile(CONFIG_FILE);
   initEgtb();
 
-  Pns pns(PNS_STEP_SIZE, PNS_MOVE_SIZE, PNS_CHILD_SIZE, PNS_PARENT_SIZE, NULL);
+  Pns pns(1000, 10000, NULL);
   Board* b = fenToBoard("7r/8/8/8/8/8/8/K7 w - - 0 0"); // KvR: EGTB loss
   pns.analyzeBoard(b);
   BOOST_CHECK_EQUAL(pns.getProof(), INFTY64);
@@ -1298,40 +1298,42 @@ BOOST_AUTO_TEST_CASE(testPnsAnalyzeBoard) {
   Board* b = fenToBoard("8/p2p4/3p4/1P6/1P6/1P6/1P6/8 b - - 0 0");
 
   // Create a PNS tree just large enough to run into the transposition after a5 bxa6 and a6 bxa6
-  Pns pns(28, PNS_MOVE_SIZE, PNS_CHILD_SIZE, PNS_PARENT_SIZE, NULL);
+  Pns pns(28, 10000, NULL);
   pns.analyzeBoard(b);
 
-  PnsNode *t = pns.getNode(0);
-  Move m0 = pns.getMove(t->move);
-  Move m1 = pns.getMove(t->move + 1);
-  Move m2 = pns.getMove(t->move + 2);
-  BOOST_CHECK_EQUAL(t->proof, 2);
-  BOOST_CHECK_EQUAL(t->disproof, INFTY64);
-  BOOST_CHECK_EQUAL(t->parent, NIL);
-  BOOST_CHECK_EQUAL(t->numChildren, 3);
+  PnsNode t = pns.node[0];
+  PnsNodeList c0 = pns.edge[t.child];
+  PnsNodeList c1 = pns.edge[c0.next];
+  PnsNodeList c2 = pns.edge[c1.next];
+  BOOST_CHECK_EQUAL(t.proof, 2);
+  BOOST_CHECK_EQUAL(t.disproof, INFTY64);
+  BOOST_CHECK_EQUAL(t.parent, NIL);
+  BOOST_CHECK_EQUAL(c2.next, NIL);
 
-  BOOST_CHECK_EQUAL(m0.from, 43);
-  BOOST_CHECK_EQUAL(m0.to, 35);
-  BOOST_CHECK_EQUAL(m1.from, 48);
-  BOOST_CHECK_EQUAL(m1.to, 40);
-  BOOST_CHECK_EQUAL(m2.from, 48);
-  BOOST_CHECK_EQUAL(m2.to, 32);
+  BOOST_CHECK_EQUAL(c0.move.from, 43);
+  BOOST_CHECK_EQUAL(c0.move.to, 35);
+  BOOST_CHECK_EQUAL(c1.move.from, 48);
+  BOOST_CHECK_EQUAL(c1.move.to, 40);
+  BOOST_CHECK_EQUAL(c2.move.from, 48);
+  BOOST_CHECK_EQUAL(c2.move.to, 32);
 
   // gc is the grandchild after (a5 bxa6ep). This is the transposition, also
   // reachable after a6 bxa6.
-  PnsNode *gc = pns.getNode(22);
-  m0 = pns.getMove(gc->move);
+  PnsNode gc = pns.node[22];
+  c0 = pns.edge[gc.child];
+  PnsNodeList p0 = pns.edge[gc.parent];
+  PnsNodeList p1 = pns.edge[p0.next];
   
-  BOOST_CHECK_EQUAL(gc->proof, 2);
-  BOOST_CHECK_EQUAL(gc->disproof, 1);
-  BOOST_CHECK_EQUAL(pns.getNumParents(gc), 2);
-  BOOST_CHECK_EQUAL(gc->numChildren, 1);
-  BOOST_CHECK_EQUAL(m0.from, 43);
-  BOOST_CHECK_EQUAL(m0.to, 35);
+  BOOST_CHECK_EQUAL(gc.proof, 2);
+  BOOST_CHECK_EQUAL(gc.disproof, 1);
+  BOOST_CHECK_EQUAL(c0.next, NIL);
+  BOOST_CHECK_EQUAL(p1.next, NIL);
+  BOOST_CHECK_EQUAL(c0.move.from, 43);
+  BOOST_CHECK_EQUAL(c0.move.to, 35);
 
   // Its parents are a5 and a6, reachable from the root node (indices 2 and 3).
-  BOOST_CHECK_EQUAL(pns.getParent(gc, 0), 3);
-  BOOST_CHECK_EQUAL(pns.getParent(gc, 1), 2);
+  BOOST_CHECK_EQUAL(p0.node, 1);
+  BOOST_CHECK_EQUAL(p1.node, 2);
 
   free(b);
 }
