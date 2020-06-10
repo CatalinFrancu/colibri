@@ -7,9 +7,6 @@ using namespace std;
 /* Prints a board */
 void printBoard(Board *b);
 
-/* Returns a move in long notation */
-string getMoveName(Move m);
-
 /* Construct an empty board */
 void emptyBoard(Board *b);
 
@@ -68,6 +65,10 @@ string boardToFen(Board *b);
 /* Get the algebraic notation for every move on this board. This is best done for all the moves at once, because there can be ambiguities.
   m is the array of all moves possible on the given board. */
 void getAlgebraicNotation(Board *b, Move *m, int numMoves, string *san);
+
+/* Returns a move's algebraic notation. This is *slow*. It works by generating
+   all the moves on board b, then all those moves' names. */
+string getMoveName(Board* b, Move m);
 
 /* Make move m on the board b, modifying b */
 void makeMove(Board *b, Move m);

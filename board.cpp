@@ -44,14 +44,6 @@ void printBoard(Board *b) {
   printf("\nTo move: %s          En passant square: %s\n\n", (b->side == WHITE) ? "White" : "Black", epSqName.c_str());
 }
 
-string getMoveName(Move m) {
-  string s(PIECE_INITIALS[m.piece] + SQUARE_NAME(m.from) + SQUARE_NAME(m.to));
-  if (m.promotion) {
-    s += '=' + PIECE_INITIALS[m.promotion];
-  }
-  return s;
-}
-
 void emptyBoard(Board *b) {
   memset(b, 0, sizeof(Board));
   b->bb[BB_EMPTY] = 0xffffffffffffffffull;
@@ -426,6 +418,25 @@ void getAlgebraicNotation(Board *b, Move *m, int numMoves, string *san) {
       san[i] += SQUARE_NAME(m[i].to);
     }
   }
+}
+
+string getMoveName(Board* b, Move m) {
+  Move moves[MAX_MOVES];
+  string names[MAX_MOVES];
+  int n = getAllMoves(b, moves, FORWARD);
+
+  getAlgebraicNotation(b, moves, n, names);
+
+  int i = 0;
+  while ((i < n) && !equalMove(moves[i], m)) {
+    i++;
+  }
+
+  if (i == n) {
+    die("Move is illegal on given board.");
+  }
+
+  return names[i];
 }
 
 void makeMoveForSide(Board *b, Move m, int allMe, int allYou) {

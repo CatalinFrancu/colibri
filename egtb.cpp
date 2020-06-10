@@ -751,7 +751,7 @@ void matchOrDie(bool condition, Board *b, int score, int minNeg, int maxNeg,
         score, minNeg, maxNeg, minPos, maxPos, anyDraws);
     log(LOG_ERROR, "Child scores:");
     for (int i = 0; i < numMoves; i++) {
-      log(LOG_ERROR, "%s: %d", getMoveName(m[i]).c_str(), childScores[i]);
+      log(LOG_ERROR, "%s: %d", getMoveName(b, m[i]).c_str(), childScores[i]);
     }
     assert(false);
   }

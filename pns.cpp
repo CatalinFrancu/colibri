@@ -55,14 +55,13 @@ void Pns::printTree(int t, int level, int maxDepth) {
   }
 
   for (int e = node[t].child; e != NIL; e = edge[e].next) {
-    for (int j = 0; j < level; j++) {
-      printf("    ");
-    }
+    string s(4 * level, ' ');
     Move m = edge[e].move;
     int c = edge[e].node;
     string from = SQUARE_NAME(m.from);
     string to = SQUARE_NAME(m.to);
-    printf("%s%s %llu/%llu\n", from.c_str(), to.c_str(), node[c].proof, node[c].disproof);
+    log(LOG_DEBUG, "%s%s%s %llu/%llu",
+        s.c_str(), from.c_str(), to.c_str(), node[c].proof, node[c].disproof);
     printTree(c, level + 1, maxDepth);
   }
 }
@@ -78,6 +77,7 @@ void Pns::hashAncestors(int t) {
 
 int Pns::selectMpn(Board *b) {
   int t = 0; // Start at the root
+  string s;
   while (node[t].child != NIL) {
     int e = node[t].child;
     while (e != NIL &&
@@ -86,10 +86,16 @@ int Pns::selectMpn(Board *b) {
       e = edge[e].next;
     }
     assert(e != NIL);
+    if (pn1) {
+      s += ' ' + getMoveName(b, edge[e].move);
+    }
     makeMove(b, edge[e].move);
     t = edge[e].node;
   }
 
+  if (pn1) {
+    log(LOG_INFO, "Expanding MPN (%llu/%llu)%s", node[t].proof, node[t].disproof, s.c_str());
+  }
   ancestors.clear();
   hashAncestors(t);
   return t;
@@ -139,11 +145,9 @@ bool Pns::expand(int t, Board *b) {
 
   int nc;
   if (pn1) {
-    log(LOG_INFO, "proof: %llu disproof: %llu", node[0].proof, node[0].disproof);
     Board bc = *b;
     pn1->analyzeBoard(&bc);
     nc = copyMovesFromPn1();
-    pn1->printTree(0, 0, 0);
   } else {
     nc = getAllMoves(b, move, FORWARD);
   }
@@ -223,6 +227,9 @@ void Pns::analyzeBoard(Board *b) {
   while (!full &&
          node[0].proof && node[0].disproof &&
          (node[0].proof < INFTY64 || node[0].disproof < INFTY64)) {
+    if (pn1) {
+      log(LOG_INFO, "Root score %llu/%llu", node[0].proof, node[0].disproof);
+    }
     Board current = *b;
     int mpn = selectMpn(&current);
     if (expand(mpn, &current)) {
@@ -231,8 +238,11 @@ void Pns::analyzeBoard(Board *b) {
       full = true;
     }
   }
-  log(LOG_INFO, "Used %d nodes, %d edges, proof %llu, disproof %llu",
-      nodeAllocator->used(), edgeAllocator->used(), node[0].proof, node[0].disproof);
+  if (!pn1) {
+    log(LOG_INFO, "PN1 complete, score %llu/%llu, %d nodes, %d edges",
+        node[0].proof, node[0].disproof, nodeAllocator->used(), edgeAllocator->used());
+    printTree(0, 0, 0);
+  }
 }
 
 void Pns::analyzeString(string input, string fileName) {
