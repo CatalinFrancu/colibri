@@ -33,6 +33,7 @@ void Pns::reset() {
   nodeAllocator->reset();
   edgeAllocator->reset();
   trans.clear();
+  numEgtbLookups = 0;
 }
 
 int Pns::allocateLeaf() {
@@ -114,6 +115,7 @@ void Pns::setScoreNoMoves(int t, Board *b) {
 }
 
 void Pns::setScoreEgtb(int t, int score) {
+  numEgtbLookups++;
   if (score == 0) { // EGTB draw
     node[t].proof = INFTY64;
     node[t].disproof = INFTY64;
@@ -284,8 +286,9 @@ void Pns::analyzeBoard(Board *b) {
     }
   }
   if (!pn1) {
-    log(LOG_INFO, "PN1 complete, score %llu/%llu, %d nodes, %d edges",
-        node[0].proof, node[0].disproof, nodeAllocator->used(), edgeAllocator->used());
+    log(LOG_INFO, "PN1 complete, score %llu/%llu, %d nodes, %d edges, %d EGTB probes",
+        node[0].proof, node[0].disproof, nodeAllocator->used(), edgeAllocator->used(),
+        numEgtbLookups);
     printTree(0, 0, 0);
   }
 }

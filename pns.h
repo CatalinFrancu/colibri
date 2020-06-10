@@ -40,6 +40,8 @@ class Pns {
   /* First level PN tree, if we are a second level PN tree. */
   Pns* pn1;
 
+  int numEgtbLookups;
+
 public:
 
   /* Preallocated arrays of nodes and edges. */
