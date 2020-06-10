@@ -67,8 +67,6 @@ public:
 
 private:
 
-  /** Memory management, debugging, loading, saving **/
-
   /* Creates a PNS tree node with no children and no parents and proof/disproof values of 1.
    * Returns its index in the preallocated array. */
   int allocateLeaf();
@@ -87,7 +85,11 @@ private:
    * If fileName does not exist, then creates a 1-node tree. */
   void loadTree(Board *b, string fileName);
 
-  /** Proof-number search **/
+  /**
+   * Returns -1 if u is less promising than v, 0 if they are equal or 1 if u
+   * is more promising than v.
+   */
+  int nodeCmp(int u, int v);
 
   /* Adds a node's ancestors to the ancestor hash map. */
   void hashAncestors(int t);
@@ -120,8 +122,28 @@ private:
      false. */
   bool expand(int t, Board *b);
 
-  /* Propagate this node's values to each of its parents. */
-  void update(int t);
+  /**
+   * Finds the node c in the list of p's children. Moves c to its appropriate
+   * position in order to keep p's children sorted by (dis)proof. Assumes c
+   * appears in p's child list. Assumes that all other children except for c
+   * are already sorted.
+   *
+   * @param p A node pointer.
+   * @param c A node pointer.
+   */
+  void reorder(int p, int c);
+
+  /**
+   * Updates the (dis)proof numbers for t based on its children, given that
+   * the (dis)proof numbers of some child c may have changed. Reorders t's
+   * children by (dis)proof.
+   *
+   * Rationale: When selecting the MPN, we can always select the first child,
+   * because that's the best child. However, when propagating the scores back
+   * up, nodes can have multiple parents, so each node is *not* guaranteed to be
+   * its parent's first child.
+   */
+  void update(int t, int c);
 };
 
 #endif

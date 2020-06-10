@@ -184,7 +184,7 @@ BOOST_AUTO_TEST_CASE(testTrMask) {
     byte expected = ((c & 7) < 4) ? (1 << TR_NONE) : (1 << TR_FLIP_EW);
     BOOST_CHECK_EQUAL(trMask48[1][c], expected);
   }
-  
+
   // Pb2Pc2Pf2Pg2 (shifted by 8) has one identical transformation
   u64 fourPawns = 0x66ull;
   c = rankCombinationFree(fourPawns);
@@ -1310,12 +1310,12 @@ BOOST_AUTO_TEST_CASE(testPnsAnalyzeBoard) {
   BOOST_CHECK_EQUAL(t.parent, NIL);
   BOOST_CHECK_EQUAL(c2.next, NIL);
 
-  BOOST_CHECK_EQUAL(c0.move.from, 43);
-  BOOST_CHECK_EQUAL(c0.move.to, 35);
+  BOOST_CHECK_EQUAL(c0.move.from, 48);
+  BOOST_CHECK_EQUAL(c0.move.to, 40);
   BOOST_CHECK_EQUAL(c1.move.from, 48);
-  BOOST_CHECK_EQUAL(c1.move.to, 40);
-  BOOST_CHECK_EQUAL(c2.move.from, 48);
-  BOOST_CHECK_EQUAL(c2.move.to, 32);
+  BOOST_CHECK_EQUAL(c1.move.to, 32);
+  BOOST_CHECK_EQUAL(c2.move.from, 43);
+  BOOST_CHECK_EQUAL(c2.move.to, 35);
 
   // gc is the grandchild after (a5 bxa6ep). This is the transposition, also
   // reachable after a6 bxa6.
@@ -1323,7 +1323,7 @@ BOOST_AUTO_TEST_CASE(testPnsAnalyzeBoard) {
   c0 = pns.edge[gc.child];
   PnsNodeList p0 = pns.edge[gc.parent];
   PnsNodeList p1 = pns.edge[p0.next];
-  
+
   BOOST_CHECK_EQUAL(gc.proof, 2);
   BOOST_CHECK_EQUAL(gc.disproof, 1);
   BOOST_CHECK_EQUAL(c0.next, NIL);

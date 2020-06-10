@@ -66,6 +66,14 @@ void Pns::printTree(int t, int level, int maxDepth) {
   }
 }
 
+int Pns::nodeCmp(int u, int v) {
+  int s = sgn(node[u].disproof - node[v].disproof);
+  if (s != 0) {
+    return s;
+  }
+  return sgn(node[v].proof - node[u].proof);
+}
+
 void Pns::hashAncestors(int t) {
   bool insertSuccess = ancestors.insert(t).second;
   if (insertSuccess) { // new element
@@ -79,13 +87,7 @@ int Pns::selectMpn(Board *b) {
   int t = 0; // Start at the root
   string s;
   while (node[t].child != NIL) {
-    int e = node[t].child;
-    while (e != NIL &&
-           ((node[edge[e].node].disproof != node[t].proof) ||
-            (node[edge[e].node].proof == 0))) {
-      e = edge[e].next;
-    }
-    assert(e != NIL);
+    int e = node[t].child; // first child
     if (pn1) {
       s += ' ' + getMoveName(b, edge[e].move);
     }
@@ -193,12 +195,49 @@ bool Pns::expand(int t, Board *b) {
   return true;
 }
 
-void Pns::update(int t) {
+void Pns::reorder(int p, int c) {
+  // 1. Find c. If c is better than its predecessor, move it to the beginning
+  // of the list. If c is already the first child, do nothing.
+  int e = node[p].child;
+  if (edge[e].node != c) {
+    while (edge[edge[e].next].node != c) {
+      e = edge[e].next;
+    }
+    int f = edge[e].next;            // edge containing c
+    if (nodeCmp(edge[e].node, c) == 1) {
+      edge[e].next = edge[f].next;   // link edges before and after c
+      edge[f].next = node[p].child;  // c points to the first child
+      node[p].child = f;             // c is the first child
+    }
+    e = f;                           // e is the edge containing c
+  }
+
+  // 2. Now e is the edge containing c and all the nodes before c in the list
+  // are better than c. Move c rightwards while necessary. We move c by
+  // swapping payloads, not by changing pointers.
+  while ((edge[e].next != NIL) &&
+         nodeCmp(c, edge[edge[e].next].node) == 1) {
+    int f = edge[e].next;
+    Move mtmp = edge[e].move;
+    edge[e].move = edge[f].move;
+    edge[f].move = mtmp;
+
+    edge[e].node = edge[f].node;
+    edge[f].node = c;
+
+    e = edge[e].next;
+  }
+}
+
+void Pns::update(int t, int c) {
   u64 origP = node[t].proof, origD = node[t].disproof;
   bool changed = true;
   if (node[t].child != NIL) {
     // If t has no children after expand(), then it's a stalemate or EGTB
-    // position, so it already has correct P/D values.
+    // position, so it already has correct P/D values and sorted children.
+    if (c != INFTY) {
+      reorder(t, c);
+    }
     u64 p = INFTY64, d = 0;
     for (int e = node[t].child; e != NIL; e = edge[e].next) {
       int c = edge[e].node;
@@ -215,7 +254,7 @@ void Pns::update(int t) {
   }
   if (changed) {
     for (int e = node[t].parent; e != NIL; e = edge[e].next) {
-      update(edge[e].node);
+      update(edge[e].node, t);
     }
   }
 }
@@ -233,7 +272,7 @@ void Pns::analyzeBoard(Board *b) {
     Board current = *b;
     int mpn = selectMpn(&current);
     if (expand(mpn, &current)) {
-      update(mpn);
+      update(mpn, INFTY);
     } else {
       full = true;
     }
