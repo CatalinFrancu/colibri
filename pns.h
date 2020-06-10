@@ -123,6 +123,12 @@ private:
   bool expand(int t, Board *b);
 
   /**
+   * Floats a node rightwards in an edge list to its sorted position. Assumes
+   * the rest of the list is sorted.
+   */
+  void floatRight(int e);
+
+  /**
    * Finds the node c in the list of p's children. Moves c to its appropriate
    * position in order to keep p's children sorted by (dis)proof. Assumes c
    * appears in p's child list. Assumes that all other children except for c

@@ -190,9 +190,26 @@ bool Pns::expand(int t, Board *b) {
     edge[e].node = c;
     edge[e].next = node[t].child;
     node[t].child = e;
+    floatRight(e);
   }
 
   return true;
+}
+
+void Pns::floatRight(int e) {
+  int u = edge[e].node;
+  while ((edge[e].next != NIL) &&
+         nodeCmp(u, edge[edge[e].next].node) == 1) {
+    int f = edge[e].next;
+    Move mtmp = edge[e].move;
+    edge[e].move = edge[f].move;
+    edge[f].move = mtmp;
+
+    edge[e].node = edge[f].node;
+    edge[f].node = u;
+
+    e = f;
+  }
 }
 
 void Pns::reorder(int p, int c) {
@@ -215,18 +232,7 @@ void Pns::reorder(int p, int c) {
   // 2. Now e is the edge containing c and all the nodes before c in the list
   // are better than c. Move c rightwards while necessary. We move c by
   // swapping payloads, not by changing pointers.
-  while ((edge[e].next != NIL) &&
-         nodeCmp(c, edge[edge[e].next].node) == 1) {
-    int f = edge[e].next;
-    Move mtmp = edge[e].move;
-    edge[e].move = edge[f].move;
-    edge[f].move = mtmp;
-
-    edge[e].node = edge[f].node;
-    edge[f].node = c;
-
-    e = edge[e].next;
-  }
+  floatRight(e);
 }
 
 void Pns::update(int t, int c) {
