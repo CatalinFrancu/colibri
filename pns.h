@@ -7,6 +7,7 @@
 typedef struct {
   u64 proof;
   u64 disproof;
+  u64 zobrist;       // zobrist key of the position (0 if the node is a repetition)
   int child, parent; // pointers to heads of child and parent lists
 } PnsNode;
 
@@ -37,10 +38,14 @@ class Pns {
   /* Set of nodes on any path from the MPN to the root. Stores indices in node. */
   unordered_set<int> ancestors;
 
+  /* Set of nodes visiting during a trim operation, for preventing reentry. */
+  unordered_set<int> seen;
+
   /* First level PN tree, if we are a second level PN tree. */
   Pns* pn1;
 
   int numEgtbLookups;
+  bool trim; // whether or not non-winning edges should be trimmed
 
 public:
 
@@ -152,6 +157,41 @@ private:
    * its parent's first child.
    */
   void update(int t, int c);
+
+  /**
+   * Severs all links from t to its children and viceversa. Assumes that t's
+   * first child wins.
+   */
+  void trimNonWinning(int t);
+
+  /**
+   * Finds p in c's parent list and deletes the edge. If c becomes orphaned,
+   * deletes it.
+   */
+  void deleteParentLink(int c, int p);
+
+  /**
+   * Severs all links from t to its children and viceversa. Reclaims t for
+   * reuse. t is assumed to have no parents.
+   */
+  void deleteNode(int t);
+
+  /**
+   * Performs a recursive consistency check of the DAG.
+   * @param t Node to verify
+   * @param b Board corresponding to t
+   * @param seenNodes set of seen nodes (to prevent reentry)
+   * @param seenEdges global set of edge pointers (to check for duplicates)
+   */
+  void verifyConsistency(int t, Board *b, unordered_set<int>* seenNodes,
+                         unordered_set<int>* seenEdges);
+
+  /**
+   * Performs some additional checks on top of verifyConsistency().
+   * @param b Board corresponding to the root node.
+   */
+  void verifyConsistencyWrapper(Board *b);
+
 };
 
 #endif

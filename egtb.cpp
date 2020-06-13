@@ -300,13 +300,13 @@ unsigned encodeEgtbBoard(PieceSet *ps, int nps, Board *b) {
       result = (result << 6) + sq;
     }
   }
-  result = (result << 1) + b->side;	
+  result = (result << 1) + b->side;
   return result;
 }
 
 void decodeEgtbBoard(PieceSet *ps, int nps, Board *b, unsigned code) {
   emptyBoard(b);
-  b->side = code & 1;	
+  b->side = code & 1;
   code >>= 1;
   for (int i = nps - 1; i >= 0; i--) {
     u64 mask = 0;

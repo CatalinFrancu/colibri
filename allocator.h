@@ -14,6 +14,7 @@ class Allocator {
   int numElements; // number of elements to accommodate
   int firstFree;   // first index that has never been allocated
   int* stack;      // stack of deallocated indices
+  bool* inUse;     // keeps track of allocated indices
   int stackSize;   // number of deallocated indices
 
 public:
@@ -34,6 +35,11 @@ public:
    * perform sanity checks.
    */
   void free(int index);
+
+  /**
+   * Returns true iff index is currently allocated.
+   */
+  bool isInUse(int index);
 
   /**
    * Returns the number of used elements.

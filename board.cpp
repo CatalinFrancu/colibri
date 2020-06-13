@@ -41,7 +41,8 @@ void printBoard(Board *b) {
   }
   int epSq = ctz(b->bb[BB_EP]);
   string epSqName = b->bb[BB_EP] ? SQUARE_NAME(epSq) : "none";
-  printf("\nTo move: %s          En passant square: %s\n\n", (b->side == WHITE) ? "White" : "Black", epSqName.c_str());
+  printf("\nTo move: %s          En passant square: %s\n\n",
+         (b->side == WHITE) ? "White" : "Black", epSqName.c_str());
 }
 
 void emptyBoard(Board *b) {
@@ -433,10 +434,19 @@ string getMoveName(Board* b, Move m) {
   }
 
   if (i == n) {
-    die("Move is illegal on given board.");
+    printBoard(b);
+    die("Move [%s] is illegal on given board.", getLongMoveName(m).c_str());
   }
 
   return names[i];
+}
+
+string getLongMoveName(Move m) {
+  string s(PIECE_INITIALS[m.piece] + SQUARE_NAME(m.from) + SQUARE_NAME(m.to));
+  if (m.promotion) {
+    s += '=' + PIECE_INITIALS[m.promotion];
+  }
+  return s;
 }
 
 void makeMoveForSide(Board *b, Move m, int allMe, int allYou) {

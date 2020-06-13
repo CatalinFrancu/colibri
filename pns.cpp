@@ -12,6 +12,7 @@
 
 Pns::Pns(int nodes, int edges, Pns* pn1) {
   this->pn1 = pn1;
+  trim = (pn1 != NULL); // trim non-winning nodes in PN2, but not in PN1
 
   node = (PnsNode*)malloc(nodes * sizeof(PnsNode));
   nodeAllocator = new Allocator("node", nodes);
@@ -39,6 +40,7 @@ void Pns::reset() {
 int Pns::allocateLeaf() {
   int t = nodeAllocator->alloc();
   node[t].proof = node[t].disproof = 1;
+  node[t].zobrist = 0;
   node[t].child = node[t].parent = NIL;
   return t;
 }
@@ -97,7 +99,8 @@ int Pns::selectMpn(Board *b) {
   }
 
   if (pn1) {
-    log(LOG_INFO, "Expanding MPN (%llu/%llu)%s", node[t].proof, node[t].disproof, s.c_str());
+    log(LOG_INFO, "Size %d, expanding MPN (%llu/%llu)%s",
+        nodeAllocator->used(), node[t].proof, node[t].disproof, s.c_str());
   }
   ancestors.clear();
   hashAncestors(t);
@@ -167,13 +170,12 @@ bool Pns::expand(int t, Board *b) {
   u64 z = getZobrist(b);
   // nodes are prepended, so copy moves from last to first
   while (nc--) {
-    int e = edgeAllocator->alloc();
-
     // set the node values
     u64 z2 = updateZobrist(z, b, move[nc]);
     int orig = trans[z2], c;
     if (!orig) {                            // regular child
       c = allocateLeaf();
+      node[c].zobrist = z2;
       trans[z2] = c;
       if (pn1) {
         node[c].proof = proof[nc];
@@ -188,6 +190,7 @@ bool Pns::expand(int t, Board *b) {
     addParent(c, t);
 
     // set the edge values and prepend it
+    int e = edgeAllocator->alloc();
     edge[e].move = move[nc];
     edge[e].node = c;
     edge[e].next = node[t].child;
@@ -241,8 +244,11 @@ void Pns::update(int t, int c) {
   u64 origP = node[t].proof, origD = node[t].disproof;
   bool changed = true;
   if (node[t].child != NIL) {
+    // with trimming enabled, we shouldn't be called again after winning
+    assert(!trim || (origP > 0));
+
     // If t has no children after expand(), then it's a stalemate or EGTB
-    // position, so it already has correct P/D values and sorted children.
+    // position, so it already has correct P/D values.
     if (c != INFTY) {
       reorder(t, c);
     }
@@ -260,10 +266,75 @@ void Pns::update(int t, int c) {
       changed = false;
     }
   }
+  trimNonWinning(t);
+
   if (changed) {
     for (int e = node[t].parent; e != NIL; e = edge[e].next) {
       update(edge[e].node, t);
     }
+  }
+}
+
+void Pns::trimNonWinning(int t) {
+  if (!trim ||                          // trimming not enabled
+      (node[t].proof > 0) ||            // no need to trim -- not won
+      (node[t].child == NIL)) {         // nothing to trim
+    return;
+  }
+  // node is won; delete all children except the first one (which should be c)
+  seen.insert(t);
+  int e = edge[node[t].child].next; // start at 2nd child
+  edge[node[t].child].next = NIL;
+  while (e != NIL) {
+    int f = edge[e].next;
+    deleteParentLink(edge[e].node, t);
+    edgeAllocator->free(e);
+    e = f;
+  }
+}
+
+void Pns::deleteParentLink(int c, int p) {
+  int e = node[c].parent;
+  if (edge[e].node == p) {
+
+    // p is the first child
+    node[c].parent = edge[e].next;
+    edgeAllocator->free(e);
+
+    if (node[c].parent == NIL) {
+      deleteNode(c);
+    }
+
+  } else {
+
+    // find p's predecessor
+    while (edge[edge[e].next].node != p) {
+      e = edge[e].next;
+    }
+
+    int f = edge[edge[e].next].next;
+    edgeAllocator->free(edge[e].next);
+    edge[e].next = f;
+
+  }
+}
+
+void Pns::deleteNode(int t) {
+  if (!seen.insert(t).second) {
+    return;   // t was already visited during this trim
+  }
+  // notify t's children to sever their links to t; delete t's edge list
+  int e = node[t].child;
+
+  // this also covers the case when the zobrist value is 0 (for repetitions)
+  trans.erase(node[t].zobrist);
+
+  nodeAllocator->free(t);
+  while (e != NIL) {
+    int f = edge[e].next;
+    deleteParentLink(edge[e].node, t);
+    edgeAllocator->free(e);
+    e = f;
   }
 }
 
@@ -279,12 +350,15 @@ void Pns::analyzeBoard(Board *b) {
     }
     Board current = *b;
     int mpn = selectMpn(&current);
+    assert(node[mpn].proof > 0);
     if (expand(mpn, &current)) {
+      seen.clear();
       update(mpn, INFTY);
     } else {
       full = true;
     }
   }
+  // verifyConsistencyWrapper(b);
   if (!pn1) {
     log(LOG_INFO, "PN1 complete, score %llu/%llu, %d nodes, %d edges, %d EGTB probes",
         node[0].proof, node[0].disproof, nodeAllocator->used(), edgeAllocator->used(),
@@ -352,4 +426,107 @@ void Pns::loadTree(Board *b, string fileName) {
   } else { // File exists, but cannot be read for other reasons
     die("Input file [%s] exists, but cannot be read.", fileName.c_str());
   }
+}
+
+void Pns::verifyConsistency(int t, Board *b, unordered_set<int>* seenNodes,
+                            unordered_set<int>* seenEdges) {
+  if (!seenNodes->insert(t).second) {
+    return; // already visited
+  }
+  if (node[t].child == NIL) {
+    return;
+  }
+  assert(nodeAllocator->isInUse(t));
+
+  // check that all edge pointers are globally distinct
+  for (int e = node[t].parent; e != NIL; e = edge[e].next) {
+    if (!seenEdges->insert(e).second) {
+      die("Edge %d appears twice", e);
+    }
+  }
+  for (int e = node[t].child; e != NIL; e = edge[e].next) {
+    if (!seenEdges->insert(e).second) {
+      die("Edge %d appears twice", e);
+    }
+  }
+
+  // check that our proof is our first child's disproof
+  assert(node[t].proof == node[edge[node[t].child].node].disproof);
+
+  if (node[t].disproof == 0) {
+    // all our parents should be winning
+    for (int e = node[t].parent; e != NIL; e = edge[e].next) {
+      assert(node[edge[e].node].proof == 0);
+    }
+  }
+
+  // verify the move list
+  Move m[MAX_MOVES];
+  int nc = getAllMoves(b, m, FORWARD);
+  Board bc;
+
+  for (int e = node[t].child; e != NIL; e = edge[e].next) {
+    int c = edge[e].node, i = 0;
+
+    // find this move in the legal move list and delete it
+    m[nc] = edge[e].move;
+    while (!equalMove(edge[e].move, m[i])) {
+      i++;
+    }
+    if (i == nc) {
+      printBoard(b);
+      log(LOG_WARNING, "Illegal move in child list: %s, stored in edge #%d between nodes %d->%d",
+          getLongMoveName(edge[e].move).c_str(), e, t, c);
+      assert(false);
+    }
+    m[i] = m[--nc];
+
+    // check that the child links back to us
+    int f = node[c].parent;
+    while ((f != NIL) && (edge[f].node != t)) {
+      f = edge[f].next;
+    }
+    assert(f != NIL);
+
+    // check that this child is better than the next one.
+    if (edge[e].next != NIL) {
+      assert(nodeCmp(c, edge[edge[e].next].node) <= 0);
+    }
+
+    bc = *b;
+    makeMove(&bc, edge[e].move);
+    verifyConsistency(c, &bc, seenNodes, seenEdges);
+  }
+
+  if (nc) {
+    // some moves have been deleted: node should be won and have one losing child
+    assert(node[t].child != NIL);
+    assert(edge[node[t].child].next == NIL);
+    int c = edge[node[t].child].node;
+
+    if (node[t].proof) {
+      printBoard(b);
+      log(LOG_WARNING, "remaining moves:");
+      for (int i = 0; i < nc; i++) {
+        printf("%s\n", getMoveName(b, m[i]).c_str());
+      }
+    }
+    assert(node[t].proof == 0);
+    assert(node[t].disproof == INFTY64);
+    assert(node[c].proof == INFTY64);
+    assert(node[c].disproof == 0);
+  } else {
+    // With trimming enabled, if all moves have a match, than either there is
+    // only one move or no moves are winning.
+    if (trim) {
+      assert((edge[node[t].child].next == NIL) ||
+             (node[t].proof > 0));
+    }
+  }
+}
+
+void Pns::verifyConsistencyWrapper(Board* b) {
+  unordered_set<int> seenNodes;
+  unordered_set<int> seenEdges;
+  verifyConsistency(0, b, &seenNodes, &seenEdges);
 }

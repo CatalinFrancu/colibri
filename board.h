@@ -70,6 +70,12 @@ void getAlgebraicNotation(Board *b, Move *m, int numMoves, string *san);
    all the moves on board b, then all those moves' names. */
 string getMoveName(Board* b, Move m);
 
+/**
+ * Returns a move's long notation. This is useful when the board is
+ * unavailable.
+ */
+string getLongMoveName(Move m);
+
 /* Make move m on the board b, modifying b */
 void makeMove(Board *b, Move m);
 
