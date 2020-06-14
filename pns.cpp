@@ -37,9 +37,15 @@ void Pns::reset() {
   numEgtbLookups = 0;
 }
 
-int Pns::allocateLeaf() {
+bool Pns::isSolved(int t) {
+  return (node[t].proof == 0 || node[t].proof == INFTY64) &&
+    (node[t].disproof == 0 || node[t].disproof == INFTY64);
+}
+
+int Pns::allocateLeaf(u64 p, u64 d) {
   int t = nodeAllocator->alloc();
-  node[t].proof = node[t].disproof = 1;
+  node[t].proof = p;
+  node[t].disproof = d;
   node[t].zobrist = 0;
   node[t].child = node[t].parent = NIL;
   return t;
@@ -52,6 +58,15 @@ void Pns::addParent(int childIndex, int parentIndex) {
   node[childIndex].parent = e;
 }
 
+void Pns::addChild(int parentIndex, int childIndex, Move m) {
+  int e = edgeAllocator->alloc();
+  edge[e].node = childIndex;
+  edge[e].move = m;
+  edge[e].next = node[parentIndex].child;
+  node[parentIndex].child = e;
+  floatRight(e);
+}
+
 void Pns::printTree(int t, int level, int maxDepth) {
   if (level > maxDepth) {
     return;
@@ -61,10 +76,8 @@ void Pns::printTree(int t, int level, int maxDepth) {
     string s(4 * level, ' ');
     Move m = edge[e].move;
     int c = edge[e].node;
-    string from = SQUARE_NAME(m.from);
-    string to = SQUARE_NAME(m.to);
-    log(LOG_DEBUG, "%s%s%s %llu/%llu",
-        s.c_str(), from.c_str(), to.c_str(), node[c].proof, node[c].disproof);
+    log(LOG_DEBUG, "%s%s -> %d %llu/%llu",
+        s.c_str(), getLongMoveName(m).c_str(), c, node[c].proof, node[c].disproof);
     printTree(c, level + 1, maxDepth);
   }
 }
@@ -141,6 +154,38 @@ int Pns::copyMovesFromPn1() {
   return n;
 }
 
+int Pns::zobristLookup(u64 z, u64 proof, u64 disproof) {
+  auto got = trans.find(z);
+
+  if (got == trans.end()) {
+    // first time generating this position
+    int c = allocateLeaf(proof, disproof);
+    node[c].zobrist = z;
+    trans[z] = { c, NIL };
+    return c;
+  }
+
+  int orig = got->second.first;
+  int rep = got->second.second;
+
+  if (ancestors.find(orig) == ancestors.end()) {
+    // transposition
+    return orig;
+  }
+
+  // repetition of solved original
+  if (isSolved(orig)) {
+    return orig;
+  }
+
+  // repetition of unsolved original; create drawn node if needed
+  if (rep == NIL) {
+    rep = allocateLeaf(INFTY64, INFTY64);
+    got->second.second = rep;
+  }
+  return rep;
+}
+
 bool Pns::expand(int t, Board *b) {
   if (!pn1) {                     // no EGTB lookups in PN2
     int score = egtbLookup(b);
@@ -170,32 +215,12 @@ bool Pns::expand(int t, Board *b) {
   u64 z = getZobrist(b);
   // nodes are prepended, so copy moves from last to first
   while (nc--) {
-    // set the node values
     u64 z2 = updateZobrist(z, b, move[nc]);
-    int orig = trans[z2], c;
-    if (!orig) {                            // regular child
-      c = allocateLeaf();
-      node[c].zobrist = z2;
-      trans[z2] = c;
-      if (pn1) {
-        node[c].proof = proof[nc];
-        node[c].disproof = disproof[nc];
-      }
-    } else if (ancestors.find(orig) == ancestors.end()) { // transposition
-      c = orig;
-    } else {                                // repetition
-      c = allocateLeaf();
-      node[c].proof = node[c].disproof = INFTY64;
-    }
+    int childP = pn1 ? proof[nc]: 1;
+    int childD = pn1 ? disproof[nc]: 1;
+    int c = zobristLookup(z2, childP, childD);
     addParent(c, t);
-
-    // set the edge values and prepend it
-    int e = edgeAllocator->alloc();
-    edge[e].move = move[nc];
-    edge[e].node = c;
-    edge[e].next = node[t].child;
-    node[t].child = e;
-    floatRight(e);
+    addChild(t, c, move[nc]);
   }
 
   return true;
@@ -243,6 +268,7 @@ void Pns::reorder(int p, int c) {
 void Pns::update(int t, int c) {
   u64 origP = node[t].proof, origD = node[t].disproof;
   bool changed = true;
+  bool wasSolved = isSolved(t);
   if (node[t].child != NIL) {
     // with trimming enabled, we shouldn't be called again after winning
     assert(!trim || (origP > 0));
@@ -268,6 +294,9 @@ void Pns::update(int t, int c) {
   }
   trimNonWinning(t);
 
+  if (!wasSolved && isSolved(t)) {
+    solveRepetition(t);
+  }
   if (changed) {
     for (int e = node[t].parent; e != NIL; e = edge[e].next) {
       update(edge[e].node, t);
@@ -338,9 +367,25 @@ void Pns::deleteNode(int t) {
   }
 }
 
+void Pns::solveRepetition(int t) {
+  if (node[t].zobrist == 0) {
+    return; // t itself is a repetition
+  }
+
+  pair<int,int> p = trans[node[t].zobrist];
+  assert(p.first == t);
+
+  int rep = p.second;
+  if (rep != NIL) {
+    node[rep].proof = node[t].proof;
+    node[rep].disproof = node[t].disproof;
+    update(rep, NIL);
+  }
+}
+
 void Pns::analyzeBoard(Board *b) {
   reset();
-  allocateLeaf();
+  allocateLeaf(1, 1);
   bool full = false;
   while (!full &&
          node[0].proof && node[0].disproof &&
@@ -420,8 +465,8 @@ void Pns::loadTree(Board *b, string fileName) {
 
   } else if (errno == ENOENT) { // File does not exist
     log(LOG_INFO, "File %s does not exist, creating new tree.", fileName.c_str());
-    int t = allocateLeaf();
-    trans[getZobrist(b)] = t;
+    // int t = allocateLeaf(1, 1);
+    // trans[getZobrist(b)] = t;
 
   } else { // File exists, but cannot be read for other reasons
     die("Input file [%s] exists, but cannot be read.", fileName.c_str());

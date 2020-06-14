@@ -32,8 +32,17 @@ class Pns {
   Move move[MAX_MOVES];
   u64 proof[MAX_MOVES], disproof[MAX_MOVES];
 
-  /* Hash table of positions anywhere in the PNS tree. Maps Zobrist keys to indices in node. */
-  unordered_map<u64, int> trans;
+  /**
+   * Maps Zobrist keys to pairs of indices in node[]. Each position can occur
+   * twice in the DAG: once for transpositions, with (dis)proof numbers
+   * computed as usually, and once for repetitions, with (dis)proof numbers
+   * set to inf/inf initially. These are stored first and second in the pair,
+   * respectively. If the first node is eventually solved, we mark the second
+   * one as solved as well and run update() from it once.
+   *
+   * See Proof-Number Search and Transpositions, Schijf 1993, section 5.4.
+   */
+  unordered_map<u64, pair<int,int>> trans;
 
   /* Set of nodes on any path from the MPN to the root. Stores indices in node. */
   unordered_set<int> ancestors;
@@ -74,13 +83,23 @@ public:
 
 private:
 
+  /**
+   * @return True iff node t is solved as a win, loss or draw.
+   */
+  bool isSolved(int t);
+
   /* Creates a PNS tree node with no children and no parents and proof/disproof values of 1.
    * Returns its index in the preallocated array. */
-  int allocateLeaf();
+  int allocateLeaf(u64 p, u64 d);
 
   /* Adds a parent to a PNS node (presumably because we found a transposed path to it).
    * The new pointer is added at the front of the parent list. */
   void addParent(int childIndex, int parentIndex);
+
+  /**
+   * Prepends a node to a parent's child list.
+   */
+  void addChild(int parentIndex, int childIndex, Move m);
 
   /* Prints a PNS tree node recursively. */
   void printTree(int t, int level, int maxDepth);
@@ -118,11 +137,12 @@ private:
   int copyMovesFromPn1();
 
   /**
-   * Creates a new child list for t and populates it with the moves in move[]
-   * @param t The node being expanded.
-   * @param numMoves The number of moves in move[]
+   * Looks up a zobrist key in the transposition table. Depending on the
+   * presence of the key and on the contents of the ancestors hash map,
+   * returns one of the existing transposition/repetition nodes or creates a
+   * new one.
    */
-  void copyMovesToChildList(int t, int numMoves);
+  int zobristLookup(u64 z, u64 proof, u64 disproof);
 
   /* Expands the given leaf with 1/1 children. If there are no legal moves,
      sets the P/D numbers accordingly. If it runs out of tree space, returns
@@ -175,6 +195,12 @@ private:
    * reuse. t is assumed to have no parents.
    */
   void deleteNode(int t);
+
+  /**
+   * Marks t's repetition node as solved and updates that node's ancestors.
+   * Assumes t has just been solved.
+   */
+  void solveRepetition(int t);
 
   /**
    * Performs a recursive consistency check of the DAG.
