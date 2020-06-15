@@ -50,15 +50,18 @@ int main(int argc, char **argv) {
 
   Pns pn1(1000000, 10000000, NULL);
   Pns pn2(10000000, 100000000, &pn1);
+  QueryServer qs(&pn2);
   switch (command) {
     case CMD_ANALYZE:
       if (fileName.empty()) {
         die("Please specify and input/output file with -f.");
       }
+      qs.startAsync();
       pn2.analyzeString(position, fileName);
       break;
     case CMD_SERVER:
-      startServer(); break;
+      qs.startSync();
+      break;
     default:
       log(LOG_WARNING, "No command given. Resuming main() execution.");
   }

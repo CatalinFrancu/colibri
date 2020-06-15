@@ -718,7 +718,7 @@ int egtbLookupWithInfo(Board *b, const char *combo, PieceSet *ps, int nps) {
   return readFromCache(combo, index);
 }
 
-int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int *numMoves) {
+string batchEgtbLookup(Board *b, string *moveNames, string *fens, string *scores, int *numMoves) {
   Board bcopy = *b;
   int result = egtbLookup(&bcopy);
   if (result == INFTY) {
@@ -731,10 +731,10 @@ int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int 
       Board b2 = *b;
       makeMove(&b2, m[i]);
       fens[i] = boardToFen(&b2);
-      scores[i] = egtbLookup(&b2);
+      scores[i] = to_string(egtbLookup(&b2));
     }
   }
-  return result;
+  return to_string(result);
 }
 
 void matchOrDie(bool condition, Board *b, int score, int minNeg, int maxNeg,

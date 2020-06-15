@@ -36,13 +36,13 @@
       <th></th>
     </tr>
   </table>
-  
+
   <div>
     <div id="editLinkDiv"><a id="editLink" href="#">edit position</a></div>
     <div id="stmDiv" class="{if $stm == 'w'}stmReadWhite{else}stmReadBlack{/if}">to move</div>
     <div style="clear: both"></div>
   </div>
-  
+
   <div id="toolBox">
     Click on a piece, then click on a board square to place it.
     <table id="editBox">
@@ -69,7 +69,7 @@
         <td colspan="3"></td>
       </tr>
     </table>
-  
+
     Side to move:
     <div id="stmBox">
       <div class="stm stmWhite {if $stm == 'w'}stmSelected{/if}">white</div>
@@ -82,23 +82,27 @@
     </div>
   </div>
 </div>
-  
+
 <div id="rightColumn">
+  <h3>
+    {include file="score.tpl" score=$score scoreText=$scoreText}
+  </h3>
   <table id="moves">
-    {foreach from=$moves item=m}
+    {foreach $children as $c}
       <tr>
         <td>
-          <a href="?fen={$m.fen|escape:url}">{$m.move}</a>
+          <a href="?fen={$c.fen|escape:url}">{$c.move}</a>
         </td>
-        <td class="{include file="scoreClass.tpl" score=$m.score}">{include file="score.tpl" score=$m.score}</td>
+        <td class="{include file="scoreClass.tpl" score=$c.score scoreText=$c.scoreText}">
+          {include file="score.tpl" score=$c.score scoreText=$c.scoreText}
+        </td>
       </tr>
     {/foreach}
   </table>
 </div>
-  
+
 <div style="clear: both"></div>
 
 <script>
   currentStm = '{$stm}';
 </script>
-

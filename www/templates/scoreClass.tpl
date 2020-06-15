@@ -1,7 +1,8 @@
+{* from the parent's perspective *}
 {strip}
-  {if $score > 0}
+  {if is_numeric($score) && ($score < 0)}
     scoreWin
-  {elseif $score < 0}
+  {elseif is_numeric($score) && ($score > 0)}
     scoreLose
   {else}
     scoreDraw

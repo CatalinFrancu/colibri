@@ -81,12 +81,23 @@ public:
   /* Clears all the information from the tree, retaining one unexplored leaf. */
   void reset();
 
+  /**
+   * Returns all the children and their scores in human-readable format. To be
+   * used by the query server.
+   */
+  string batchLookup(Board *b, string *moveNames, string *fens, string *scores, int *numMoves);
+
 private:
 
   /**
    * @return True iff node t is solved as a win, loss or draw.
    */
   bool isSolved(int t);
+
+  /**
+   * @return The (dis)proof number if finite, "∞" otherwise.
+   */
+  string pnAsString(u64 number);
 
   /* Creates a PNS tree node with no children and no parents and proof/disproof values of 1.
    * Returns its index in the preallocated array. */

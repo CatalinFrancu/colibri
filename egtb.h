@@ -65,7 +65,7 @@ int egtbLookupWithInfo(Board *b, const char *combo, PieceSet *ps, int nps);
  * - the number of such moves
  * - the score of the board b itself.
  */
-int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int *numMoves);
+string batchEgtbLookup(Board *b, string *moveNames, string *fens, string *scores, int *numMoves);
 
 /* Verifies the correctness of an EGTB table:
  * - Generates all the possible positions, canonical and non-canonical

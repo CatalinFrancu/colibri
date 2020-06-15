@@ -42,6 +42,13 @@ bool Pns::isSolved(int t) {
     (node[t].disproof == 0 || node[t].disproof == INFTY64);
 }
 
+string Pns::pnAsString(u64 number) {
+  if (number == INFTY64) {
+    return "∞";
+  }
+  return to_string(number);
+}
+
 int Pns::allocateLeaf(u64 p, u64 d) {
   int t = nodeAllocator->alloc();
   node[t].proof = p;
@@ -103,12 +110,37 @@ int Pns::selectMpn(Board *b) {
   int t = 0; // Start at the root
   string s;
   while (node[t].child != NIL) {
-    int e = node[t].child; // first child
-    if (pn1) {
-      s += ' ' + getMoveName(b, edge[e].move);
+
+    int chosen = 0, e = node[t].child; // first edge
+    Move m;
+
+    // For nodes of the form ∞/*, choose one of the surviving children at random.
+    // For nodes of the form FIN/x, choose a child of the form x/FIN at random.
+    int rnd = rand();
+    int numChoices = 0;
+    bool viable = true;
+    while ((e != NIL) && viable) {
+      int c = edge[e].node;
+      if ((node[c].disproof == node[t].proof) &&
+          (node[c].proof > 0)) {
+        numChoices++;
+        if (rnd % numChoices == 0) {
+          chosen = c;
+          m = edge[e].move;
+        }
+      } else {
+        viable = false;
+      }
+      assert(numChoices);
+
+      e = edge[e].next;
     }
-    makeMove(b, edge[e].move);
-    t = edge[e].node;
+
+    if (pn1) {
+      s += ' ' + getMoveName(b, m);
+    }
+    makeMove(b, m);
+    t = chosen;
   }
 
   if (pn1) {
@@ -155,9 +187,9 @@ int Pns::copyMovesFromPn1() {
 }
 
 int Pns::zobristLookup(u64 z, u64 proof, u64 disproof) {
-  auto got = trans.find(z);
+  auto it = trans.find(z);
 
-  if (got == trans.end()) {
+  if (it == trans.end()) {
     // first time generating this position
     int c = allocateLeaf(proof, disproof);
     node[c].zobrist = z;
@@ -165,8 +197,8 @@ int Pns::zobristLookup(u64 z, u64 proof, u64 disproof) {
     return c;
   }
 
-  int orig = got->second.first;
-  int rep = got->second.second;
+  int orig = it->second.first;
+  int rep = it->second.second;
 
   if (ancestors.find(orig) == ancestors.end()) {
     // transposition
@@ -181,7 +213,7 @@ int Pns::zobristLookup(u64 z, u64 proof, u64 disproof) {
   // repetition of unsolved original; create drawn node if needed
   if (rep == NIL) {
     rep = allocateLeaf(INFTY64, INFTY64);
-    got->second.second = rep;
+    it->second.second = rep;
   }
   return rep;
 }
@@ -216,8 +248,8 @@ bool Pns::expand(int t, Board *b) {
   // nodes are prepended, so copy moves from last to first
   while (nc--) {
     u64 z2 = updateZobrist(z, b, move[nc]);
-    int childP = pn1 ? proof[nc]: 1;
-    int childD = pn1 ? disproof[nc]: 1;
+    u64 childP = pn1 ? proof[nc]: 1;
+    u64 childD = pn1 ? disproof[nc]: 1;
     int c = zobristLookup(z2, childP, childD);
     addParent(c, t);
     addChild(t, c, move[nc]);
@@ -282,9 +314,8 @@ void Pns::update(int t, int c) {
     for (int e = node[t].child; e != NIL; e = edge[e].next) {
       int c = edge[e].node;
       p = MIN(p, node[c].disproof);
-      d += node[c].proof;
+      d = MIN(d + node[c].proof, INFTY64);
     }
-    d = MIN(d, INFTY64);
     if (origP != p || origD != d) {
       node[t].proof = p;
       node[t].disproof = d;
@@ -386,6 +417,7 @@ void Pns::solveRepetition(int t) {
 void Pns::analyzeBoard(Board *b) {
   reset();
   allocateLeaf(1, 1);
+  trans[getZobrist(b)] = { 0, NIL };
   bool full = false;
   while (!full &&
          node[0].proof && node[0].disproof &&
@@ -471,6 +503,48 @@ void Pns::loadTree(Board *b, string fileName) {
   } else { // File exists, but cannot be read for other reasons
     die("Input file [%s] exists, but cannot be read.", fileName.c_str());
   }
+}
+
+string Pns::batchLookup(Board *b, string *moveNames, string *fens, string *scores, int *numMoves) {
+  *numMoves = 0;
+
+  u64 z = getZobrist(b);
+  auto it = trans.find(z);
+  if (it == trans.end()) {
+    return "unknown";
+  }
+  int t = it->second.first;
+
+  // Get the names of all legal moves on b. This may not be equal to the
+  // number of t's children, which may have beeen trimmed.
+  Move m[MAX_MOVES];
+  string names[MAX_MOVES];
+  int n = getAllMoves(b, m, FORWARD);
+  getAlgebraicNotation(b, m, n, names);
+
+  for (int e = node[t].child; e != NIL; e = edge[e].next) {
+    // look up this child's move
+    int i = 0;
+    while (!equalMove(m[i], edge[e].move)) {
+      i++;
+    }
+
+    moveNames[*numMoves] = names[i];
+
+    int c = edge[e].node;
+    Board b2 = *b;
+    makeMove(&b2, edge[e].move);
+    fens[*numMoves] = boardToFen(&b2);
+
+    stringstream ss;
+    ss << pnAsString(node[c].proof) << '/' << pnAsString(node[c].disproof);
+    scores[*numMoves] = ss.str();
+    (*numMoves)++;
+  }
+
+  stringstream ss;
+  ss << pnAsString(node[t].proof) << '/' << pnAsString(node[t].disproof);
+  return ss.str();
 }
 
 void Pns::verifyConsistency(int t, Board *b, unordered_set<int>* seenNodes,
