@@ -444,7 +444,8 @@ string getMoveName(Board* b, Move m) {
 string getLongMoveName(Move m) {
   string s(PIECE_INITIALS[m.piece] + SQUARE_NAME(m.from) + SQUARE_NAME(m.to));
   if (m.promotion) {
-    s += '=' + PIECE_INITIALS[m.promotion];
+    s += '=';
+    s += PIECE_INITIALS[m.promotion];
   }
   return s;
 }
