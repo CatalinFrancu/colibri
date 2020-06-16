@@ -111,30 +111,31 @@ int Pns::selectMpn(Board *b) {
   string s;
   while (node[t].child != NIL) {
 
-    int chosen = 0, e = node[t].child; // first edge
-    Move m;
+    int e = node[t].child; // first edge
+    int chosen = edge[e].node;
+    Move m = edge[e].move;
 
     // For nodes of the form ∞/*, choose one of the surviving children at random.
     // For nodes of the form FIN/x, choose a child of the form x/FIN at random.
     int rnd = rand();
-    int numChoices = 0;
+    int numChoices = 1;
     bool viable = true;
-    while ((e != NIL) && viable) {
-      int c = edge[e].node;
-      if ((node[c].disproof == node[t].proof) &&
-          (node[c].proof > 0)) {
-        numChoices++;
-        if (rnd % numChoices == 0) {
-          chosen = c;
-          m = edge[e].move;
-        }
-      } else {
-        viable = false;
-      }
-      assert(numChoices);
-
+    do {
       e = edge[e].next;
-    }
+      if (e != NIL) {
+        int c = edge[e].node;
+        if ((node[c].disproof == node[t].proof) &&
+            (node[c].proof > 0)) {
+          numChoices++;
+          if (rnd % numChoices == 0) {
+            chosen = c;
+            m = edge[e].move;
+          }
+        } else {
+          viable = false;
+        }
+      }
+    } while ((e != NIL) && viable);
 
     if (pn1) {
       s += ' ' + getMoveName(b, m);
