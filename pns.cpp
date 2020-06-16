@@ -55,6 +55,7 @@ int Pns::allocateLeaf(u64 p, u64 d) {
   node[t].disproof = d;
   node[t].zobrist = 0;
   node[t].child = node[t].parent = NIL;
+  node[t].depth = INFTY;
   return t;
 }
 
@@ -83,8 +84,8 @@ void Pns::printTree(int t, int level, int maxDepth) {
     string s(4 * level, ' ');
     Move m = edge[e].move;
     int c = edge[e].node;
-    log(LOG_DEBUG, "%s%s -> %d %llu/%llu",
-        s.c_str(), getLongMoveName(m).c_str(), c, node[c].proof, node[c].disproof);
+    log(LOG_DEBUG, "%s%s -> %llu/%llu",
+        s.c_str(), getLongMoveName(m).c_str(), node[c].proof, node[c].disproof);
     printTree(c, level + 1, maxDepth);
   }
 }
@@ -97,59 +98,33 @@ int Pns::nodeCmp(int u, int v) {
   return sgn(node[v].proof - node[u].proof);
 }
 
-void Pns::hashAncestors(int t) {
-  bool insertSuccess = ancestors.insert(t).second;
-  if (insertSuccess) { // new element
-    for (int e = node[t].parent; e != NIL; e = edge[e].next) {
-      hashAncestors(edge[e].node);
+void Pns::updateDepth(int t, int d) {
+  if (d < node[t].depth) {
+    node[t].depth = d;
+    for (int e = node[t].child; e != NIL; e = edge[e].next) {
+      updateDepth(edge[e].node, d + 1);
     }
   }
 }
 
 int Pns::selectMpn(Board *b) {
-  int t = 0; // Start at the root
+  int t = 0; // start at the root
   string s;
   while (node[t].child != NIL) {
 
-    int e = node[t].child; // first edge
-    int chosen = edge[e].node;
-    Move m = edge[e].move;
-
-    // For nodes of the form ∞/*, choose one of the surviving children at random.
-    // For nodes of the form FIN/x, choose a child of the form x/FIN at random.
-    int rnd = rand();
-    int numChoices = 1;
-    bool viable = true;
-    do {
-      e = edge[e].next;
-      if (e != NIL) {
-        int c = edge[e].node;
-        if ((node[c].disproof == node[t].proof) &&
-            (node[c].proof > 0)) {
-          numChoices++;
-          if (rnd % numChoices == 0) {
-            chosen = c;
-            m = edge[e].move;
-          }
-        } else {
-          viable = false;
-        }
-      }
-    } while ((e != NIL) && viable);
+    int e = node[t].child; // keep selecting the first child
 
     if (pn1) {
-      s += ' ' + getMoveName(b, m);
+      s += ' ' + getMoveName(b, edge[e].move);
     }
-    makeMove(b, m);
-    t = chosen;
+    makeMove(b, edge[e].move);
+    t = edge[e].node;
   }
 
   if (pn1) {
-    log(LOG_INFO, "Size %d, expanding MPN (%llu/%llu)%s",
-        nodeAllocator->used(), node[t].proof, node[t].disproof, s.c_str());
+    log(LOG_INFO, "Size %d, expanding MPN (%llu/%llu)%s (node %d, d=%d)",
+        nodeAllocator->used(), node[t].proof, node[t].disproof, s.c_str(), t, node[t].depth);
   }
-  ancestors.clear();
-  hashAncestors(t);
   return t;
 }
 
@@ -187,7 +162,7 @@ int Pns::copyMovesFromPn1() {
   return n;
 }
 
-int Pns::zobristLookup(u64 z, u64 proof, u64 disproof) {
+int Pns::zobristLookup(u64 z, int depth, u64 proof, u64 disproof) {
   auto it = trans.find(z);
 
   if (it == trans.end()) {
@@ -201,17 +176,12 @@ int Pns::zobristLookup(u64 z, u64 proof, u64 disproof) {
   int orig = it->second.first;
   int rep = it->second.second;
 
-  if (ancestors.find(orig) == ancestors.end()) {
-    // transposition
+  if (node[orig].depth >= depth) {
     return orig;
   }
 
-  // repetition of solved original
-  if (isSolved(orig)) {
-    return orig;
-  }
-
-  // repetition of unsolved original; create drawn node if needed
+  // Don't transpose to a node higher up the dag. This effectively prevents
+  // repetitions, but also discourages long convoluted paths.
   if (rep == NIL) {
     rep = allocateLeaf(INFTY64, INFTY64);
     it->second.second = rep;
@@ -251,9 +221,10 @@ bool Pns::expand(int t, Board *b) {
     u64 z2 = updateZobrist(z, b, move[nc]);
     u64 childP = pn1 ? proof[nc]: 1;
     u64 childD = pn1 ? disproof[nc]: 1;
-    int c = zobristLookup(z2, childP, childD);
+    int c = zobristLookup(z2, node[t].depth + 1, childP, childD);
     addParent(c, t);
     addChild(t, c, move[nc]);
+    updateDepth(c, node[t].depth + 1);
   }
 
   return true;
@@ -418,6 +389,7 @@ void Pns::solveRepetition(int t) {
 void Pns::analyzeBoard(Board *b) {
   reset();
   allocateLeaf(1, 1);
+  node[0].depth = 0;
   trans[getZobrist(b)] = { 0, NIL };
   bool full = false;
   while (!full &&
@@ -463,9 +435,9 @@ void Pns::analyzeString(string input, string fileName) {
     }
     b = makeMoveSequence(n, moves);
   }
-  loadTree(b, fileName);
+  // loadTree(b, fileName);
   analyzeBoard(b);
-  saveTree(b, fileName);
+  // saveTree(b, fileName);
   free(b);
 }
 
@@ -515,6 +487,7 @@ string Pns::batchLookup(Board *b, string *moveNames, string *fens, string *score
     return "unknown";
   }
   int t = it->second.first;
+  log(LOG_DEBUG, "query for nodes #%d & #%d, depth %d", t, it->second.second, node[t].depth);
 
   // Get the names of all legal moves on b. This may not be equal to the
   // number of t's children, which may have beeen trimmed.
@@ -540,6 +513,8 @@ string Pns::batchLookup(Board *b, string *moveNames, string *fens, string *score
     stringstream ss;
     ss << pnAsString(node[c].proof) << '/' << pnAsString(node[c].disproof);
     scores[*numMoves] = ss.str();
+    log(LOG_DEBUG, "  returning child #%d move %s score %s depth %d",
+        c, names[i].c_str(), ss.str().c_str(), node[c].depth);
     (*numMoves)++;
   }
 

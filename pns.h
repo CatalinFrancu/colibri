@@ -9,6 +9,7 @@ typedef struct {
   u64 disproof;
   u64 zobrist;       // zobrist key of the position (0 if the node is a repetition)
   int child, parent; // pointers to heads of child and parent lists
+  int depth;         // minimum depth from root on any path
 } PnsNode;
 
 /**
@@ -40,12 +41,11 @@ class Pns {
    * respectively. If the first node is eventually solved, we mark the second
    * one as solved as well and run update() from it once.
    *
-   * See Proof-Number Search and Transpositions, Schijf 1993, section 5.4.
+   * See Proof-Number Search and Transpositions, Schijf 1993, section
+   * 5.4. Unlike Schijf, we don't store an ancestor hash table. Instead we
+   * rely on node minimum depths.
    */
   unordered_map<u64, pair<int,int>> trans;
-
-  /* Set of nodes on any path from the MPN to the root. Stores indices in node. */
-  unordered_set<int> ancestors;
 
   /* Set of nodes visiting during a trim operation, for preventing reentry. */
   unordered_set<int> seen;
@@ -128,8 +128,10 @@ private:
    */
   int nodeCmp(int u, int v);
 
-  /* Adds a node's ancestors to the ancestor hash map. */
-  void hashAncestors(int t);
+  /**
+   * Recursively updates a node's depth if it is improved.
+   */
+  void updateDepth(int t, int d);
 
   /* Finds the most proving node in a PNS tree. Starting with the original board b, also makes the necessary moves
    * modifying b, returning the position corresponding to the MPN. */
@@ -149,11 +151,10 @@ private:
 
   /**
    * Looks up a zobrist key in the transposition table. Depending on the
-   * presence of the key and on the contents of the ancestors hash map,
-   * returns one of the existing transposition/repetition nodes or creates a
-   * new one.
+   * presence of the key and the node's depth, returns one of the existing
+   * transposition/repetition nodes or creates a new one.
    */
-  int zobristLookup(u64 z, u64 proof, u64 disproof);
+  int zobristLookup(u64 z, int depth, u64 proof, u64 disproof);
 
   /* Expands the given leaf with 1/1 children. If there are no legal moves,
      sets the P/D numbers accordingly. If it runs out of tree space, returns

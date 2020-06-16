@@ -71,4 +71,6 @@ int main(int argc, char **argv) {
   // verifyEgtb(table);
   // compressEgtb(table);
   // generateAllEgtb(2, 2);
+
+  log(LOG_DEBUG, "shutting down");
 }
