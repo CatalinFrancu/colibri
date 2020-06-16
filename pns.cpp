@@ -80,12 +80,16 @@ void Pns::printTree(int t, int level, int maxDepth) {
     return;
   }
 
+  string s(4 * level, ' ');
   for (int e = node[t].child; e != NIL; e = edge[e].next) {
-    string s(4 * level, ' ');
     Move m = edge[e].move;
     int c = edge[e].node;
-    log(LOG_DEBUG, "%s%s -> %llu/%llu",
-        s.c_str(), getLongMoveName(m).c_str(), node[c].proof, node[c].disproof);
+
+    stringstream ss;
+    ss << s << getLongMoveName(m) << " -> "
+       << pnAsString(node[c].proof) << '/' << pnAsString(node[c].disproof);
+
+    log(LOG_DEBUG, ss.str().c_str());
     printTree(c, level + 1, maxDepth);
   }
 }
@@ -122,8 +126,9 @@ int Pns::selectMpn(Board *b) {
   }
 
   if (pn1) {
-    log(LOG_INFO, "Size %d, expanding MPN (%llu/%llu)%s (node %d, d=%d)",
-        nodeAllocator->used(), node[t].proof, node[t].disproof, s.c_str(), t, node[t].depth);
+    log(LOG_INFO, "Root score %llu/%llu, size %d, expanding MPN (%llu/%llu)%s",
+        node[0].proof, node[0].disproof, nodeAllocator->used(),
+        node[t].proof, node[t].disproof, s.c_str());
   }
   return t;
 }
@@ -395,9 +400,6 @@ void Pns::analyzeBoard(Board *b) {
   while (!full &&
          node[0].proof && node[0].disproof &&
          (node[0].proof < INFTY64 || node[0].disproof < INFTY64)) {
-    if (pn1) {
-      log(LOG_INFO, "Root score %llu/%llu", node[0].proof, node[0].disproof);
-    }
     Board current = *b;
     int mpn = selectMpn(&current);
     assert(node[mpn].proof > 0);
@@ -410,9 +412,9 @@ void Pns::analyzeBoard(Board *b) {
   }
   // verifyConsistencyWrapper(b);
   if (!pn1) {
-    log(LOG_INFO, "PN1 complete, score %llu/%llu, %d nodes, %d edges, %d EGTB probes",
-        node[0].proof, node[0].disproof, nodeAllocator->used(), edgeAllocator->used(),
-        numEgtbLookups);
+    log(LOG_INFO, "PN1 complete, score %s/%s, %d nodes, %d edges, %d EGTB probes",
+        pnAsString(node[0].proof).c_str(), pnAsString(node[0].disproof).c_str(),
+        nodeAllocator->used(), edgeAllocator->used(), numEgtbLookups);
     printTree(0, 0, 0);
   }
 }
