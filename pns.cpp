@@ -527,7 +527,29 @@ void Pns::save(Board *b, string fileName) {
 
 void Pns::loadHelper(Board *b, FILE* f) {
   int t = allocateLeaf(INFTY64, 0);
-  node[t].zobrist = getZobrist(b); // TODO update incrementally from parent to child
+
+  // Generate the Zobrist key and hash it.
+  u64 z = getZobrist(b); // TODO update incrementally from parent to child
+  node[t].zobrist = z;
+
+  auto it = trans.find(z);
+
+  if (it == trans.end()) {
+    // first time loading this position
+    trans[z] = { t, NIL };
+  } else {
+    // other node was loaded; figure out if we are the clone
+    int other = it->second.first;
+    assert(other != t);
+    assert(it->second.second == NIL); // at most two nodes per Zobrist key
+
+    if (isSolved(other)) {          // either it is drawn, or both nodes are solved
+      it->second.first = t;
+      it->second.second = other;
+    } else {                        // open node always goes first
+      it->second.second = t;
+    }
+  }
 
   // Read the number of children and the depth.
   byte numChildren;
