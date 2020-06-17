@@ -8,9 +8,9 @@ extern string cfgEgtbPath;
 extern string cfgLogFile;
 extern int cfgLogLevel;
 extern int cfgQueryServerPort;
+extern string cfgBookFile;
 
 /* Loads options from an INI file. Exits on errors. */
 void loadConfigFile(const char *fileName);
 
 #endif
-

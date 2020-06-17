@@ -62,15 +62,38 @@ public:
   PnsNode *node;
   PnsNodeList *edge;
 
+  /**
+   * Board that this tree will analyze. Not passed to the constructor because
+   * the PN1 tree will be reused many times.
+   */
+  Board board;
+
   /* Creates a new Pns with the given size limits and one leaf. */
   Pns(int nodes, int edges, Pns* pn1);
 
-  /* Constructs a P/N tree until the position is proved or memory is exhausted. */
-  void analyzeBoard(Board *b);
+  /**
+   * Continues expanding the tree until the root is solved or memory is
+   * exhausted.
+   **/
+  void analyze();
+
+  /**
+   * Continues expanding the subtree rooted at startNode until the node is
+   * solved or memory is exhausted.
+   * @param b Board which must match startNode.
+   **/
+  void analyzeSubtree(int startNode, Board* b);
 
   /* Analyze a string, which can be a sequence of moves or a position in FEN.
    * Loads a previous PNS tree from fileName, if it exists. */
-  void analyzeString(string input, string fileName);
+  void analyzeString(string input);
+
+  /**
+   * Make several moves beginning at the starting position. Checks legality.
+   * Terminates on illegal moves or if we reach a position that's not in the
+   * tree. Returns the tree node corresponding to the final position.
+   */
+  int makeMoveSequence(Board* b, int numMoveStrings, string* moveStrings);
 
   /* Returns the root's proof number. */
   u64 getProof();
@@ -81,8 +104,21 @@ public:
   /* Clears all the information from the tree. */
   void reset();
 
-  /* Clears all the information from the tree, retaining one unexplored leaf. */
-  void collapse(Board* b);
+  /**
+   * Clears all the information from the tree, retaining one unexplored leaf
+   * corresponding to board.
+   */
+  void collapse();
+
+  /* Saves the PNS tree. */
+  void save(string fileName);
+
+  /**
+   * Loads a PN^2 tree from fileName and sets rootBoard to the board contained
+   * therein. If fileName does not exist, then creates a 1-node tree and sets
+   * rootBoard to the initial position.
+   */
+  void load(string fileName);
 
   /**
    * Returns all the children and their scores in human-readable format. To be
@@ -130,17 +166,10 @@ private:
    */
   void saveHelper(int t, FILE* f, unordered_map<int,int>* map, int* nextAvailable);
 
-  /* Saves the PNS tree. */
-  void save(Board *b, string fileName);
-
   /**
    * Loads a node in the PNS tree.
    */
   void loadHelper(Board *b, FILE* f);
-
-  /* Loads a PN^2 tree from fileName and checks that it applies to b.
-   * If fileName does not exist, then creates a 1-node tree. */
-  void load(Board *b, string fileName);
 
   /**
    * Returns -1 if u is less promising than v, 0 if they are equal or 1 if u
@@ -153,9 +182,15 @@ private:
    */
   void updateDepth(int t, int d);
 
-  /* Finds the most proving node in a PNS tree. Starting with the original board b, also makes the necessary moves
-   * modifying b, returning the position corresponding to the MPN. */
-  int selectMpn(Board *b);
+  /**
+   * Finds the most proving node in a PNS tree. Starting with the original
+   * board b, also makes the necessary moves modifying b, returning the
+   * position corresponding to the MPN.
+   * @param startNode Root of subtree to be explored (0 for the whole tree).
+   * @param b Board corresponding to startNode.
+   * @return The most proving node.
+   */
+  int selectMpn(int startNode, Board *b);
 
   /* Sets the proof and disproof numbers for a board with no legal moves. */
   void setScoreNoMoves(int t, Board *b);

@@ -40,23 +40,22 @@ void QueryServer::handleQuery(FILE* fin, FILE* fout) {
     fprintf(fout, "%d %d\n", INFTY, 0);
     return;
   }
-  Board* b = fenToBoard(s);
-  if (!b) {
+  Board b;
+  if (!fenToBoard(s, &b)) {
     fprintf(fout, "Please make sure your FEN string is correct.\n");
   } else {
     string moveNames[MAX_MOVES], fens[MAX_MOVES], scores[MAX_MOVES], score;
     int numMoves;
-    int numPieces = popCount(b->bb[BB_WALL] | b->bb[BB_BALL]);
+    int numPieces = popCount(b.bb[BB_WALL] | b.bb[BB_BALL]);
     if (pns && (numPieces > EGTB_MEN)) {
-      score = pns->batchLookup(b, moveNames, fens, scores, &numMoves);
+      score = pns->batchLookup(&b, moveNames, fens, scores, &numMoves);
     } else {
-      score = batchEgtbLookup(b, moveNames, fens, scores, &numMoves);
+      score = batchEgtbLookup(&b, moveNames, fens, scores, &numMoves);
     }
     fprintf(fout, "\n%s %d\n", score.c_str(), numMoves);
     for (int i = 0; i < numMoves; i++) {
       fprintf(fout, "%s %s %s\n", moveNames[i].c_str(), scores[i].c_str(), fens[i].c_str());
     }
-    free(b);
   }
 }
 

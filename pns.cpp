@@ -38,17 +38,18 @@ void Pns::reset() {
   numEgtbLookups = 0;
 }
 
-void Pns::collapse(Board* b) {
+void Pns::collapse() {
   reset();
   allocateLeaf(1, 1);
   node[0].depth = 0;
-  node[0].zobrist = getZobrist(b);
+  node[0].zobrist = getZobrist(&board);
   trans[node[0].zobrist] = { 0, NIL };
 }
 
 bool Pns::isSolved(int t) {
-  return (node[t].proof == 0 || node[t].proof == INFTY64) &&
-    (node[t].disproof == 0 || node[t].disproof == INFTY64);
+  return !node[t].proof ||
+    !node[t].disproof ||
+    (node[t].proof == INFTY64 && node[t].disproof == INFTY64);
 }
 
 string Pns::pnAsString(u64 number) {
@@ -133,8 +134,8 @@ void Pns::updateDepth(int t, int d) {
   }
 }
 
-int Pns::selectMpn(Board *b) {
-  int t = 0; // start at the root
+int Pns::selectMpn(int startNode, Board *b) {
+  int t = startNode;
   string s;
   while (node[t].child != NIL) {
 
@@ -148,8 +149,8 @@ int Pns::selectMpn(Board *b) {
   }
 
   if (pn1) {
-    log(LOG_INFO, "Root score %llu/%llu, size %d, expanding MPN (%llu/%llu)%s",
-        node[0].proof, node[0].disproof, nodeAllocator->used(),
+    log(LOG_INFO, "Score %llu/%llu, size %d, expanding MPN (%llu/%llu)%s",
+        node[startNode].proof, node[startNode].disproof, nodeAllocator->used(),
         node[t].proof, node[t].disproof, s.c_str());
   }
   return t;
@@ -231,9 +232,9 @@ bool Pns::expand(int t, Board *b) {
 
   int nc;
   if (pn1) {
-    Board bc = *b;
-    pn1->collapse(&bc);
-    pn1->analyzeBoard(&bc);
+    pn1->board = *b;
+    pn1->collapse();
+    pn1->analyze();
     nc = copyMovesFromPn1();
   } else {
     nc = getAllMoves(b, move, FORWARD);
@@ -420,14 +421,16 @@ void Pns::solveRepetition(int t) {
   }
 }
 
-void Pns::analyzeBoard(Board *b) {
+void Pns::analyze() {
+  analyzeSubtree(0, &board);
+}
+
+void Pns::analyzeSubtree(int startNode, Board* b) {
   bool full = false;
-  while (!full &&
-         node[0].proof && node[0].disproof &&
-         (node[0].proof < INFTY64 || node[0].disproof < INFTY64)) {
+  while (!full && !isSolved(startNode)) {
     Board current = *b;
-    int mpn = selectMpn(&current);
-    assert(node[mpn].proof > 0);
+    int mpn = selectMpn(startNode, &current);
+    assert(!isSolved(mpn));
     if (expand(mpn, &current)) {
       seen.clear();
       update(mpn, INFTY);
@@ -438,19 +441,35 @@ void Pns::analyzeBoard(Board *b) {
   // verifyConsistencyWrapper(b);
   if (!pn1) {
     log(LOG_INFO, "PN1 complete, score %s/%s, %d nodes, %d edges, %d EGTB probes",
-        pnAsString(node[0].proof).c_str(), pnAsString(node[0].disproof).c_str(),
+        pnAsString(node[startNode].proof).c_str(),
+        pnAsString(node[startNode].disproof).c_str(),
         nodeAllocator->used(), edgeAllocator->used(), numEgtbLookups);
-    printTree(0, 0, 0);
+    printTree(startNode, 0, 0);
   }
 }
 
-void Pns::analyzeString(string input, string fileName) {
-  Board *b;
+void Pns::analyzeString(string input) {
+  Board b;
+  int startNode;
+
   if (isFen(input)) {
-    // Input is a board in FEN notation
-    b = fenToBoard(input.c_str());
+
+    // Input is a board in FEN notation. Locate it in the tree.
+    if (!fenToBoard(input.c_str(), &b)) {
+      die("Incorrect FEN string given.");
+    }
+    u64 z = getZobrist(&b);
+    auto it = trans.find(z);
+
+    if (it == trans.end()) {
+      die("Position does not appear in tree.");
+    }
+
+    startNode = it->second.first;
+
   } else {
-    // Input is a sequence of moves. Tokenize it.
+
+    // Input is a (possibly empty) sequence of moves. Follow it in the tree.
     stringstream in(input);
     string moves[MAX_MOVES];
     int n = 0;
@@ -460,14 +479,45 @@ void Pns::analyzeString(string input, string fileName) {
     if (moves[n - 1].empty()) {
       n--;
     }
-    b = makeMoveSequence(n, moves);
+
+    startNode = makeMoveSequence(&b, n, moves);
   }
-  load(b, fileName);
-  analyzeBoard(b);
-  // log(LOG_DEBUG, "saving");
-  // printTree(0, 0, 100);
-  // save(b, fileName);
-  free(b);
+
+  analyzeSubtree(startNode, &b);
+}
+
+int Pns::makeMoveSequence(Board* b, int numMoveStrings, string* moveStrings) {
+  Move m[MAX_MOVES];
+  string san[MAX_MOVES];
+  int result = 0;
+
+  *b = board;
+  for (int i = 0; i < numMoveStrings; i++) {
+    int numLegalMoves = getAllMoves(b, m, FORWARD);
+    // Get the SAN for every legal move in this position
+    getAlgebraicNotation(b, m, numLegalMoves, san);
+
+    san[numLegalMoves] = moveStrings[i]; // sentinel
+    int j = 0;
+    while (san[j] != moveStrings[i]) {
+      j++;
+    }
+    if (j == numLegalMoves) {
+      printBoard(b);
+      die("Move [%s] is illegal on the above board.", moveStrings[i].c_str());
+    }
+
+    makeMove(b, m[j]);
+    u64 z = getZobrist(b);
+    auto it = trans.find(z);
+
+    if (it == trans.end()) {
+      die("The move [%s] takes us outside the tree.", san[j].c_str());
+    }
+    result = it->second.first;
+  }
+
+  return result;
 }
 
 void Pns::saveHelper(int t, FILE* f, unordered_map<int,int>* map, int* nextAvailable) {
@@ -508,9 +558,9 @@ void Pns::saveHelper(int t, FILE* f, unordered_map<int,int>* map, int* nextAvail
   }
 }
 
-void Pns::save(Board *b, string fileName) {
+void Pns::save(string fileName) {
   FILE *f = fopen(fileName.c_str(), "w");
-  fwrite(b, sizeof(Board), 1, f);
+  fwrite(&board, sizeof(Board), 1, f);
 
   // renumber nodes sequentially during the traversal
   unordered_map<int,int> map;
@@ -518,6 +568,7 @@ void Pns::save(Board *b, string fileName) {
   int nextAvailable = 1;
   saveHelper(0, f, &map, &nextAvailable);
   fclose(f);
+  log(LOG_INFO, "Saved tree to %s.", fileName.c_str());
 }
 
 void Pns::loadHelper(Board *b, FILE* f) {
@@ -580,27 +631,23 @@ void Pns::loadHelper(Board *b, FILE* f) {
   }
 }
 
-void Pns::load(Board *b, string fileName) {
+void Pns::load(string fileName) {
   FILE *f = fopen(fileName.c_str(), "r");
 
   if (!f) {
     log(LOG_WARNING, "Cannot read input file [%s]. Starting with an empty tree.",
         fileName.c_str());
-    collapse(b);
+    fenToBoard(NEW_BOARD, &board);
+    collapse();
     return;
   }
 
-  Board b2;
-  assert(fread(&b2, sizeof(Board), 1, f) == 1);
-  if (!equalBoard(b, &b2)) {
-    printBoard(&b2);
-    die("Input file stores a PN^2 tree for a different board (see above).");
-  }
-
-  loadHelper(b, f);
+  assert(fread(&board, sizeof(Board), 1, f) == 1);
+  loadHelper(&board, f);
 
   fclose(f);
-  log(LOG_INFO, "Loaded tree from %s.", fileName.c_str());
+  log(LOG_INFO, "Loaded tree from %s, %d nodes.",
+      fileName.c_str(), nodeAllocator->used());
 }
 
 string Pns::batchLookup(Board *b, string *moveNames, string *fens, string *scores, int *numMoves) {

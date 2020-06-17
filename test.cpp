@@ -747,10 +747,11 @@ BOOST_AUTO_TEST_CASE(testMakeBackwardMove) {
 
 BOOST_AUTO_TEST_CASE(testMakeMoveSequence) {
   string s1[4] = { "e3", "e6", "b4", "Bxb4"};
-  Board *b = makeMoveSequence(4, s1);
-  string fen = boardToFen(b);
+  Board b;
+  fenToBoard(NEW_BOARD, &b);
+  makeMoveSequence(&b, 4, s1);
+  string fen = boardToFen(&b);
   BOOST_CHECK_EQUAL(fen.compare("rnbqk1nr/pppp1ppp/4p3/8/1b6/4P3/P1PP1PPP/RNBQKBNR w - - 0 0"), 0);
-  free(b);
 }
 
 /************************* Tests for movegen.cpp *************************/

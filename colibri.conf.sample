@@ -24,3 +24,7 @@ logLevel = 4
 ; Port on which the query server is listening for connections.
 ; This is used in conjunction with the web-based query frontend.
 queryServerPort = 2359
+
+; File name from which we load / to which we save the PNS tree.
+; Can be overridden with the -f option
+bookFile = "book.in"

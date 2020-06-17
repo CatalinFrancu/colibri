@@ -205,11 +205,10 @@ int canonicalizeBoard(PieceSet *ps, int nps, Board *b, bool dryRun) {
   return tr;
 }
 
-Board* fenToBoard(const char *fen) {
+bool fenToBoard(const char* fen, Board* b) {
   // Use a static board, then allocate it on the heap and copy it if all goes well
   // This way we can return NULL on errors and not worry about deallocation.
-  Board b;
-  memset(&b, 0, sizeof(Board));
+  memset(b, 0, sizeof(Board));
 
   // Expect 64 squares' worth of pieces and empty spaces, with slashes every 8 squares
   int rank = 7, file = 0, bitboard;
@@ -222,7 +221,7 @@ Board* fenToBoard(const char *fen) {
           return NULL;
         }
         bitboard = isupper(*s) ? (BB_WALL + PIECE_BY_NAME[*s - 'A']) : (BB_BALL + PIECE_BY_NAME[*s - 'a']);
-        b.bb[bitboard] |= 1ull << (8 * rank + file);
+        b->bb[bitboard] |= 1ull << (8 * rank + file);
         file++;
         break;
       case '1': case '2': case '3': case '4':
@@ -252,9 +251,9 @@ Board* fenToBoard(const char *fen) {
 
   // Consume the stm
   if (*s == 'w') {
-    b.side = WHITE;
+    b->side = WHITE;
   } else if (*s == 'b') {
-    b.side = BLACK;
+    b->side = BLACK;
   } else {
     return NULL;
   }
@@ -269,7 +268,7 @@ Board* fenToBoard(const char *fen) {
   // Consume the en passant info (- or square)
   int epSquare;
   if (*s == '-') {
-    b.bb[BB_EP] = 0ull;
+    b->bb[BB_EP] = 0ull;
     s++;
   } else if (*s >= 'a' && *s <= 'h') {
     file = *s - 'a';
@@ -279,7 +278,7 @@ Board* fenToBoard(const char *fen) {
     }
     rank = *s - '1';
     epSquare = SQUARE(rank, file);
-    b.bb[BB_EP] = 1ull << epSquare;
+    b->bb[BB_EP] = 1ull << epSquare;
     s++;
   } else {
     return NULL;
@@ -294,32 +293,32 @@ Board* fenToBoard(const char *fen) {
   // Ignore the rest of the string (halfmove clock, space, fullmove number)
 
   // Construct the remaining fields
-  b.bb[BB_WALL] = b.bb[BB_WK] | b.bb[BB_WQ] | b.bb[BB_WR] | b.bb[BB_WB] | b.bb[BB_WN] | b.bb[BB_WP];
-  b.bb[BB_BALL] = b.bb[BB_BK] | b.bb[BB_BQ] | b.bb[BB_BR] | b.bb[BB_BB] | b.bb[BB_BN] | b.bb[BB_BP];
-  b.bb[BB_EMPTY] = ~(b.bb[BB_WALL] ^ b.bb[BB_BALL]);
+  b->bb[BB_WALL] = b->bb[BB_WK] | b->bb[BB_WQ] | b->bb[BB_WR] | b->bb[BB_WB] | b->bb[BB_WN] | b->bb[BB_WP];
+  b->bb[BB_BALL] = b->bb[BB_BK] | b->bb[BB_BQ] | b->bb[BB_BR] | b->bb[BB_BB] | b->bb[BB_BN] | b->bb[BB_BP];
+  b->bb[BB_EMPTY] = ~(b->bb[BB_WALL] ^ b->bb[BB_BALL]);
 
   // Integrity check: pawns on the 1st or 8th rank
-  if ((b.bb[BB_WP] ^ b.bb[BB_BP]) & (RANK_1 ^ RANK_8)) {
+  if ((b->bb[BB_WP] ^ b->bb[BB_BP]) & (RANK_1 ^ RANK_8)) {
     return NULL;
   }
 
-  if (b.bb[BB_EP]) {
-    u64 epRank = (b.side == WHITE) ? RANK_6 : RANK_3;
-    u64 behindEp = (b.side == WHITE) ? (b.bb[BB_EP] << 8) : (b.bb[BB_EP] >> 8);
-    u64 inFrontOfEp = (b.side == WHITE) ? (b.bb[BB_EP] >> 8) : (b.bb[BB_EP] << 8);
-    u64 pawnSet = (b.side == WHITE) ? b.bb[BB_BP] : b.bb[BB_WP]; // Piece that should be in front of the en passant square
+  if (b->bb[BB_EP]) {
+    u64 epRank = (b->side == WHITE) ? RANK_6 : RANK_3;
+    u64 behindEp = (b->side == WHITE) ? (b->bb[BB_EP] << 8) : (b->bb[BB_EP] >> 8);
+    u64 inFrontOfEp = (b->side == WHITE) ? (b->bb[BB_EP] >> 8) : (b->bb[BB_EP] << 8);
+    u64 pawnSet = (b->side == WHITE) ? b->bb[BB_BP] : b->bb[BB_WP]; // Piece that should be in front of the en passant square
     // Hee hee, I said pawn set
 
     // Integrity check: en passant square must be empty
-    if (b.bb[BB_EP] & ~b.bb[BB_EMPTY]) {
+    if (b->bb[BB_EP] & ~b->bb[BB_EMPTY]) {
       return NULL;
     }
     // Integrity check: en passant square must be on the 3rd or 6th rank
-    if (!(b.bb[BB_EP] & epRank)) {
+    if (!(b->bb[BB_EP] & epRank)) {
       return NULL;
     }
     // Integrity check: square behind ep square must be empty
-    if (!(behindEp & b.bb[BB_EMPTY])) {
+    if (!(behindEp & b->bb[BB_EMPTY])) {
       return NULL;
     }
     // Integrity check: square in front of ep square must be a pawn
@@ -435,7 +434,7 @@ string getMoveName(Board* b, Move m) {
 
   if (i == n) {
     printBoard(b);
-    die("Move [%s] is illegal on given board.", getLongMoveName(m).c_str());
+    die("Move [%s] is illegal on the above board.", getLongMoveName(m).c_str());
   }
 
   return names[i];
@@ -504,30 +503,6 @@ void makeBackwardMove(Board *b, Move m) {
   b->bb[BB_EMPTY] ^= mask;
   b->bb[BB_EP] = 0ull;
   b->side = 1 - b->side;
-}
-
-Board* makeMoveSequence(int numMoveStrings, string *moveStrings) {
-  Board *b = fenToBoard(NEW_BOARD);
-  Move m[MAX_MOVES];
-  string san[MAX_MOVES];
-  int numLegalMoves;
-  int i = 0;
-  while ((i < numMoveStrings) && b) {
-    numLegalMoves = getAllMoves(b, m, FORWARD);
-    // Get the SAN for every legal move in this position
-    getAlgebraicNotation(b, m, numLegalMoves, san);
-    int j = 0;
-    while ((j < numLegalMoves) && (san[j] != moveStrings[i])) {
-      j++;
-    }
-    if (j < numLegalMoves) {
-      makeMove(b, m[j]);
-    } else {
-      die("Bad move: %s", moveStrings[i].c_str());
-    }
-    i++;
-  }
-  return b;
 }
 
 u16 encodeMove(Move m) {

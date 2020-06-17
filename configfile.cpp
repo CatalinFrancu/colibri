@@ -10,6 +10,7 @@ string cfgEgtbPath;
 string cfgLogFile;
 int cfgLogLevel;
 int cfgQueryServerPort;
+string cfgBookFile;
 
 void loadConfigFile(const char *fileName) {
   char path[1000];
@@ -46,6 +47,8 @@ void loadConfigFile(const char *fileName) {
         cfgLogLevel = atoi(value);
       } else if (!strcmp(key, "queryServerPort")) {
         cfgQueryServerPort = atoi(value);
+      } else if (!strcmp(key, "bookFile")) {
+        cfgBookFile = string(value);
       }
     }
   }

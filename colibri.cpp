@@ -27,14 +27,14 @@ int main(int argc, char **argv) {
   initEgtb();
   zobristInit();
 
-  string fileName = "", position = "";
+  string bookFile = cfgBookFile, position = "";
   int command = 0;
   int opt;
   opterr = 0; // Suppresses error messages from getopt()
   while ((opt = getopt(argc, argv, "a:f:s")) != -1) {
     switch (opt) {
       case 'f':
-        fileName = optarg;
+        bookFile = optarg;
         break;
       case 'a':
         setCommand(&command, CMD_ANALYZE);
@@ -51,13 +51,13 @@ int main(int argc, char **argv) {
   Pns pn1(1000000, 10000000, NULL);
   Pns pn2(10000000, 100000000, &pn1);
   QueryServer qs(&pn2);
+  pn2.load(bookFile);
+
   switch (command) {
     case CMD_ANALYZE:
-      if (fileName.empty()) {
-        die("Please specify and input/output file with -f.");
-      }
       qs.startAsync();
-      pn2.analyzeString(position, fileName);
+      pn2.analyzeString(position);
+      pn2.save(bookFile);
       break;
     case CMD_SERVER:
       qs.startSync();

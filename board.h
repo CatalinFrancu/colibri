@@ -56,8 +56,11 @@ bool isCapture(Board *b, Move m);
 */
 int canonicalizeBoard(PieceSet *ps, int nps, Board *b, bool dryRun);
 
-/* Constructs a board from a FEN notation. Returns NULL on all errors. */
-Board* fenToBoard(const char *fen);
+/**
+ * Constructs a board from a FEN string.
+ * @return True on success, false on failure.
+ */
+bool fenToBoard(const char* fen, Board* b);
 
 /* Get the FEN notation for a board */
 string boardToFen(Board *b);
@@ -81,10 +84,6 @@ void makeMove(Board *b, Move m);
 
 /* Make backward move m on the board b, modifying b. See the remarks for getAllMoves() (no un-captures, no un-promotions etc.) */
 void makeBackwardMove(Board *b, Move m);
-
-/* Make several moves beginning at the starting position. Checks legality.
- *  Returns the resulting board or NULL on all errors. */
-Board* makeMoveSequence(int numMoveStrings, string *moveStrings);
 
 /**
  * Encodes a move on 16 bits.
