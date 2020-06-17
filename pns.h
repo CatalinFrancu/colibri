@@ -78,8 +78,11 @@ public:
   /* Returns the root's disproof number. */
   u64 getDisproof();
 
-  /* Clears all the information from the tree, retaining one unexplored leaf. */
+  /* Clears all the information from the tree. */
   void reset();
+
+  /* Clears all the information from the tree, retaining one unexplored leaf. */
+  void collapse(Board* b);
 
   /**
    * Returns all the children and their scores in human-readable format. To be

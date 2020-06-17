@@ -38,6 +38,14 @@ void Pns::reset() {
   numEgtbLookups = 0;
 }
 
+void Pns::collapse(Board* b) {
+  reset();
+  allocateLeaf(1, 1);
+  node[0].depth = 0;
+  node[0].zobrist = getZobrist(b);
+  trans[node[0].zobrist] = { 0, NIL };
+}
+
 bool Pns::isSolved(int t) {
   return (node[t].proof == 0 || node[t].proof == INFTY64) &&
     (node[t].disproof == 0 || node[t].disproof == INFTY64);
@@ -224,6 +232,7 @@ bool Pns::expand(int t, Board *b) {
   int nc;
   if (pn1) {
     Board bc = *b;
+    pn1->collapse(&bc);
     pn1->analyzeBoard(&bc);
     nc = copyMovesFromPn1();
   } else {
@@ -412,10 +421,6 @@ void Pns::solveRepetition(int t) {
 }
 
 void Pns::analyzeBoard(Board *b) {
-  reset();
-  allocateLeaf(1, 1);
-  node[0].depth = 0;
-  trans[getZobrist(b)] = { 0, NIL };
   bool full = false;
   while (!full &&
          node[0].proof && node[0].disproof &&
@@ -457,19 +462,15 @@ void Pns::analyzeString(string input, string fileName) {
     }
     b = makeMoveSequence(n, moves);
   }
-  //load(b, fileName);
-  //printTree(0, 0, 100);
-  //verifyConsistencyWrapper(b);
-  //getchar();
+  load(b, fileName);
   analyzeBoard(b);
   // log(LOG_DEBUG, "saving");
   // printTree(0, 0, 100);
-  save(b, fileName);
+  // save(b, fileName);
   free(b);
 }
 
 void Pns::saveHelper(int t, FILE* f, unordered_map<int,int>* map, int* nextAvailable) {
-  // log(LOG_INFO, "saving node %d", t);
   byte numChildren = 0;
   for (int e = node[t].child; e != NIL; e = edge[e].next) {
     numChildren++;
@@ -478,7 +479,6 @@ void Pns::saveHelper(int t, FILE* f, unordered_map<int,int>* map, int* nextAvail
   // Emit the number of children and the depth.
   fwrite(&numChildren, 1, 1, f);
   writeVlq(node[t].depth, f);
-  // log(LOG_INFO, "saved numChildren %d depth %d", numChildren, node[t].depth);
 
   // For leaves, emit the encoded proof / disproof numbers. Since ∞ is a
   // frequent value and would take 9 bytes in 7-bit VLQ encoding, rename it to
@@ -488,27 +488,22 @@ void Pns::saveHelper(int t, FILE* f, unordered_map<int,int>* map, int* nextAvail
     u64 d = (node[t].disproof == INFTY64) ? 0 : (node[t].disproof + 1);
     writeVlq(p, f);
     writeVlq(d, f);
-    // log(LOG_INFO, "saved p=%llu, d=%llu", p, d);
   }
 
   for (int e = node[t].child; e != NIL; e = edge[e].next) {
     // Emit the encoded move.
     u16 x = encodeMove(edge[e].move);
     fwrite(&x, 2, 1, f);
-    // log(LOG_INFO, "saved move %s encoded as %x", getLongMoveName(edge[e].move).c_str(), x);
 
     // If the child is new, give it a number and call it. Otherwise emit its number.
     int c = edge[e].node;
     auto it = map->find(c);
     if (it == map->end()) {
       writeVlq(*nextAvailable, f);
-      // log(LOG_INFO, "saved new child pointer %d", *nextAvailable);
       (*map)[c] = (*nextAvailable)++;
-      // log(LOG_INFO, "mapped node %d to %d", c, (*map)[c]);
       saveHelper(c, f, map, nextAvailable);
     } else {
       writeVlq(it->second, f);
-      // log(LOG_INFO, "saved old child pointer %d", it->second);
     }
   }
 }
@@ -533,7 +528,6 @@ void Pns::loadHelper(Board *b, FILE* f) {
   node[t].zobrist = z;
 
   auto it = trans.find(z);
-
   if (it == trans.end()) {
     // first time loading this position
     trans[z] = { t, NIL };
@@ -555,7 +549,6 @@ void Pns::loadHelper(Board *b, FILE* f) {
   byte numChildren;
   fread(&numChildren, 1, 1, f);
   node[t].depth = readVlq(f);
-  log(LOG_DEBUG, "On node %d read numChildren %d and depth %d", t, numChildren, node[t].depth);
 
   // For leaves, read and decode the proof / disproof numbers.
   if (!numChildren) {
@@ -572,7 +565,6 @@ void Pns::loadHelper(Board *b, FILE* f) {
     fread(&encodedMove, 2, 1, f);
     Move m = decodeMove(encodedMove);
     int c = readVlq(f);
-    log(LOG_DEBUG, "On node %d read child %d and move %s", t, c, getLongMoveName(m).c_str());
     assert(c <= nodeAllocator->used());
     if (c == nodeAllocator->used()) {
       b2 = *b;
@@ -592,7 +584,10 @@ void Pns::load(Board *b, string fileName) {
   FILE *f = fopen(fileName.c_str(), "r");
 
   if (!f) {
-    die("Cannot read input file [%s].", fileName.c_str());
+    log(LOG_WARNING, "Cannot read input file [%s]. Starting with an empty tree.",
+        fileName.c_str());
+    collapse(b);
+    return;
   }
 
   Board b2;
