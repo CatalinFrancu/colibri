@@ -293,8 +293,10 @@ void Pns::update(int t, int c) {
   bool changed = true;
   bool wasSolved = isSolved(t);
   if (node[t].child != NIL) {
-    // with trimming enabled, we shouldn't be called again after winning
-    assert(!trim || (origP > 0));
+    // Here we used to assert that, with trimming enabled, t shouldn't be
+    // called again if t is won. That is, assert(!trim || (origP >
+    // 0)). However, this does happen in practice when a descendant d is
+    // solved. Sometimes d and d's drawn clone both call the same ancestor.
 
     // If t has no children after expand(), then it's a stalemate or EGTB
     // position, so it already has correct P/D values.
