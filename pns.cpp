@@ -525,8 +525,9 @@ void Pns::save(Board *b, string fileName) {
   fclose(f);
 }
 
-void Pns::loadHelper(FILE* f) {
+void Pns::loadHelper(Board *b, FILE* f) {
   int t = allocateLeaf(INFTY64, 0);
+  node[t].zobrist = getZobrist(b); // TODO update incrementally from parent to child
 
   // Read the number of children and the depth.
   byte numChildren;
@@ -541,7 +542,9 @@ void Pns::loadHelper(FILE* f) {
     node[t].disproof = readVlq(f);
     node[t].disproof = (node[t].disproof == 0) ? INFTY64 : (node[t].disproof - 1);
   }
+
   int tail = NIL;
+  Board b2;
   while (numChildren--) {
     u16 encodedMove;
     fread(&encodedMove, 2, 1, f);
@@ -550,7 +553,9 @@ void Pns::loadHelper(FILE* f) {
     log(LOG_DEBUG, "On node %d read child %d and move %s", t, c, getLongMoveName(m).c_str());
     assert(c <= nodeAllocator->used());
     if (c == nodeAllocator->used()) {
-      loadHelper(f); // this will load node c
+      b2 = *b;
+      makeMove(&b2, m);
+      loadHelper(&b2, f); // this will load node c
     }
 
     tail = appendChild(t, c, m, tail);
@@ -575,7 +580,7 @@ void Pns::load(Board *b, string fileName) {
     die("Input file stores a PN^2 tree for a different board (see above).");
   }
 
-  loadHelper(f);
+  loadHelper(b, f);
 
   fclose(f);
   log(LOG_INFO, "Loaded tree from %s.", fileName.c_str());

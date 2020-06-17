@@ -133,7 +133,7 @@ private:
   /**
    * Loads a node in the PNS tree.
    */
-  void loadHelper(FILE* f);
+  void loadHelper(Board *b, FILE* f);
 
   /* Loads a PN^2 tree from fileName and checks that it applies to b.
    * If fileName does not exist, then creates a 1-node tree. */
