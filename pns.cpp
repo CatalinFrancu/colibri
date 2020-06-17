@@ -172,10 +172,14 @@ void Pns::setScoreEgtb(int t, int score) {
 }
 
 int Pns::copyMovesFromPn1() {
-  int n = 0;
-  for (int e = pn1->node[0].child; e != NIL; e = pn1->edge[e].next) {
+  // If the PN1 tree is winning, only copy the first child
+  int n = 0, skip = false;
+  for (int e = pn1->node[0].child;
+       (e != NIL) && !skip;
+       e = pn1->edge[e].next) {
     proof[n] = pn1->node[pn1->edge[e].node].proof;
     disproof[n] = pn1->node[pn1->edge[e].node].disproof;
+    skip = !disproof[n];
     move[n++] = pn1->edge[e].move;
   }
   return n;
@@ -453,19 +457,19 @@ void Pns::analyzeString(string input, string fileName) {
     }
     b = makeMoveSequence(n, moves);
   }
-  load(b, fileName);
-  printTree(0, 0, 100);
-  verifyConsistencyWrapper(b);
-  getchar();
+  //load(b, fileName);
+  //printTree(0, 0, 100);
+  //verifyConsistencyWrapper(b);
+  //getchar();
   analyzeBoard(b);
-  log(LOG_DEBUG, "saving");
-  printTree(0, 0, 100);
+  // log(LOG_DEBUG, "saving");
+  // printTree(0, 0, 100);
   save(b, fileName);
   free(b);
 }
 
 void Pns::saveHelper(int t, FILE* f, unordered_map<int,int>* map, int* nextAvailable) {
-  log(LOG_INFO, "saving node %d", t);
+  // log(LOG_INFO, "saving node %d", t);
   byte numChildren = 0;
   for (int e = node[t].child; e != NIL; e = edge[e].next) {
     numChildren++;
@@ -474,7 +478,7 @@ void Pns::saveHelper(int t, FILE* f, unordered_map<int,int>* map, int* nextAvail
   // Emit the number of children and the depth.
   fwrite(&numChildren, 1, 1, f);
   writeVlq(node[t].depth, f);
-  log(LOG_INFO, "saved numChildren %d depth %d", numChildren, node[t].depth);
+  // log(LOG_INFO, "saved numChildren %d depth %d", numChildren, node[t].depth);
 
   // For leaves, emit the encoded proof / disproof numbers. Since ∞ is a
   // frequent value and would take 9 bytes in 7-bit VLQ encoding, rename it to
@@ -484,27 +488,27 @@ void Pns::saveHelper(int t, FILE* f, unordered_map<int,int>* map, int* nextAvail
     u64 d = (node[t].disproof == INFTY64) ? 0 : (node[t].disproof + 1);
     writeVlq(p, f);
     writeVlq(d, f);
-    log(LOG_INFO, "saved p=%llu, d=%llu", p, d);
+    // log(LOG_INFO, "saved p=%llu, d=%llu", p, d);
   }
 
   for (int e = node[t].child; e != NIL; e = edge[e].next) {
     // Emit the encoded move.
     u16 x = encodeMove(edge[e].move);
     fwrite(&x, 2, 1, f);
-    log(LOG_INFO, "saved move %s encoded as %x", getLongMoveName(edge[e].move).c_str(), x);
+    // log(LOG_INFO, "saved move %s encoded as %x", getLongMoveName(edge[e].move).c_str(), x);
 
     // If the child is new, give it a number and call it. Otherwise emit its number.
     int c = edge[e].node;
     auto it = map->find(c);
     if (it == map->end()) {
       writeVlq(*nextAvailable, f);
-      log(LOG_INFO, "saved new child pointer %d", *nextAvailable);
+      // log(LOG_INFO, "saved new child pointer %d", *nextAvailable);
       (*map)[c] = (*nextAvailable)++;
-      log(LOG_INFO, "mapped node %d to %d", c, (*map)[c]);
+      // log(LOG_INFO, "mapped node %d to %d", c, (*map)[c]);
       saveHelper(c, f, map, nextAvailable);
     } else {
       writeVlq(it->second, f);
-      log(LOG_INFO, "saved old child pointer %d", it->second);
+      // log(LOG_INFO, "saved old child pointer %d", it->second);
     }
   }
 }
