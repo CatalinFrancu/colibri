@@ -529,3 +529,31 @@ Board* makeMoveSequence(int numMoveStrings, string *moveStrings) {
   }
   return b;
 }
+
+u16 encodeMove(Move m) {
+  u16 result = (m.from << 10) ^ (m.to << 4);
+  if (m.promotion) {
+    result ^= (m.promotion << 1) ^ 1;
+  } else {
+    result ^= (m.piece << 1) ^ 0; // for clarity
+  }
+  return result;
+}
+
+Move decodeMove(u16 x) {
+  Move m;
+  bool isPromotion = x & 1;
+  x >>= 1;
+  if (isPromotion) {
+    m.piece = PAWN;
+    m.promotion = x & 7;
+  } else {
+    m.piece = x & 7;
+    m.promotion = 0;
+  }
+  x >>= 3;
+  m.to = x & 63;
+  m.from = x >> 6;
+
+  return m;
+}

@@ -128,6 +128,7 @@ using namespace std;
 #define CMD_SERVER 2
 
 typedef unsigned long long u64;
+typedef unsigned short u16;
 typedef unsigned char byte;
 
 typedef struct {

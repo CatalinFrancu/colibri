@@ -86,4 +86,14 @@ void makeBackwardMove(Board *b, Move m);
  *  Returns the resulting board or NULL on all errors. */
 Board* makeMoveSequence(int numMoveStrings, string *moveStrings);
 
+/**
+ * Encodes a move on 16 bits.
+ */
+u16 encodeMove(Move m);
+
+/**
+ * Decodes a 16-bit number into a move.
+ */
+Move decodeMove(u16 x);
+
 #endif

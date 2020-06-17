@@ -4,6 +4,7 @@
 #include <sstream>
 #include "board.h"
 #include "egtb.h"
+#include "fileutil.h"
 #include "logging.h"
 #include "movegen.h"
 #include "pns.h"
@@ -66,13 +67,26 @@ void Pns::addParent(int childIndex, int parentIndex) {
   node[childIndex].parent = e;
 }
 
-void Pns::addChild(int parentIndex, int childIndex, Move m) {
+void Pns::prependChild(int parentIndex, int childIndex, Move m) {
   int e = edgeAllocator->alloc();
   edge[e].node = childIndex;
   edge[e].move = m;
   edge[e].next = node[parentIndex].child;
   node[parentIndex].child = e;
   floatRight(e);
+}
+
+int Pns::appendChild(int parentIndex, int childIndex, Move m, int tail) {
+  int e = edgeAllocator->alloc();
+  edge[e].node = childIndex;
+  edge[e].move = m;
+  edge[e].next = NIL;
+  if (tail == NIL) {
+    node[parentIndex].child = e;
+  } else {
+    edge[tail].next = e;
+  }
+  return e;
 }
 
 void Pns::printTree(int t, int level, int maxDepth) {
@@ -228,7 +242,7 @@ bool Pns::expand(int t, Board *b) {
     u64 childD = pn1 ? disproof[nc]: 1;
     int c = zobristLookup(z2, node[t].depth + 1, childP, childD);
     addParent(c, t);
-    addChild(t, c, move[nc]);
+    prependChild(t, c, move[nc]);
     updateDepth(c, node[t].depth + 1);
   }
 
@@ -299,8 +313,8 @@ void Pns::update(int t, int c) {
     } else {
       changed = false;
     }
+    trimNonWinning(t);
   }
-  trimNonWinning(t);
 
   if (!wasSolved && isSolved(t)) {
     solveRepetition(t);
@@ -318,7 +332,7 @@ void Pns::trimNonWinning(int t) {
       (node[t].child == NIL)) {         // nothing to trim
     return;
   }
-  // node is won; delete all children except the first one (which should be c)
+  // node is won; delete all children except the first one
   seen.insert(t);
   int e = edge[node[t].child].next; // start at 2nd child
   edge[node[t].child].next = NIL;
@@ -437,47 +451,128 @@ void Pns::analyzeString(string input, string fileName) {
     }
     b = makeMoveSequence(n, moves);
   }
-  // loadTree(b, fileName);
+  load(b, fileName);
+  printTree(0, 0, 100);
+  verifyConsistencyWrapper(b);
+  getchar();
   analyzeBoard(b);
-  // saveTree(b, fileName);
+  log(LOG_DEBUG, "saving");
+  printTree(0, 0, 100);
+  save(b, fileName);
   free(b);
 }
 
-void Pns::saveTree(Board *b, string fileName) {
+void Pns::saveHelper(int t, FILE* f, unordered_map<int,int>* map, int* nextAvailable) {
+  log(LOG_INFO, "saving node %d", t);
+  byte numChildren = 0;
+  for (int e = node[t].child; e != NIL; e = edge[e].next) {
+    numChildren++;
+  }
+
+  // Emit the number of children and the depth.
+  fwrite(&numChildren, 1, 1, f);
+  writeVlq(node[t].depth, f);
+  log(LOG_INFO, "saved numChildren %d depth %d", numChildren, node[t].depth);
+
+  // For leaves, emit the encoded proof / disproof numbers. Since ∞ is a
+  // frequent value and would take 9 bytes in 7-bit VLQ encoding, rename it to
+  // 0, pushing all other value upwards
+  if (!numChildren) {
+    u64 p = (node[t].proof == INFTY64) ? 0 : (node[t].proof + 1);
+    u64 d = (node[t].disproof == INFTY64) ? 0 : (node[t].disproof + 1);
+    writeVlq(p, f);
+    writeVlq(d, f);
+    log(LOG_INFO, "saved p=%llu, d=%llu", p, d);
+  }
+
+  for (int e = node[t].child; e != NIL; e = edge[e].next) {
+    // Emit the encoded move.
+    u16 x = encodeMove(edge[e].move);
+    fwrite(&x, 2, 1, f);
+    log(LOG_INFO, "saved move %s encoded as %x", getLongMoveName(edge[e].move).c_str(), x);
+
+    // If the child is new, give it a number and call it. Otherwise emit its number.
+    int c = edge[e].node;
+    auto it = map->find(c);
+    if (it == map->end()) {
+      writeVlq(*nextAvailable, f);
+      log(LOG_INFO, "saved new child pointer %d", *nextAvailable);
+      (*map)[c] = (*nextAvailable)++;
+      log(LOG_INFO, "mapped node %d to %d", c, (*map)[c]);
+      saveHelper(c, f, map, nextAvailable);
+    } else {
+      writeVlq(it->second, f);
+      log(LOG_INFO, "saved old child pointer %d", it->second);
+    }
+  }
+}
+
+void Pns::save(Board *b, string fileName) {
   FILE *f = fopen(fileName.c_str(), "w");
   fwrite(b, sizeof(Board), 1, f);
+
+  // renumber nodes sequentially during the traversal
+  unordered_map<int,int> map;
+  map[0] = 0;
+  int nextAvailable = 1;
+  saveHelper(0, f, &map, &nextAvailable);
   fclose(f);
 }
 
-void Pns::loadTree(Board *b, string fileName) {
-  FILE *f = fopen(fileName.c_str(), "r");
-  if (f) {
-    Board b2;
-    assert(fread(&b2, sizeof(Board), 1, f) == 1);
-    if (!equalBoard(b, &b2)) {
-      printBoard(&b2);
-      die("Input file stores a PN^2 tree for a different board (see above).");
-    }
-    // assert(fread(&moveSize, sizeof(moveSize), 1, f) == 1);
-    // assert(fread(&moveMax, sizeof(moveMax), 1, f) == 1);
-    // assert((int)fread(move, sizeof(Move), moveSize, f) == moveSize);
-    // assert(fread(&childSize, sizeof(childSize), 1, f) == 1);
-    // assert(fread(&childMax, sizeof(childMax), 1, f) == 1);
-    // assert((int)fread(child, sizeof(int), childSize, f) == childSize);
-    // assert(fread(&parentSize, sizeof(parentSize), 1, f) == 1);
-    // assert(fread(&parentMax, sizeof(parentMax), 1, f) == 1);
-    // assert((int)fread(parent, sizeof(PnsNodeList), parentSize, f) == parentSize);
-    fclose(f);
-    log(LOG_INFO, "Loaded tree from %s.", fileName.c_str());
+void Pns::loadHelper(FILE* f) {
+  int t = allocateLeaf(INFTY64, 0);
 
-  } else if (errno == ENOENT) { // File does not exist
-    log(LOG_INFO, "File %s does not exist, creating new tree.", fileName.c_str());
-    // int t = allocateLeaf(1, 1);
-    // trans[getZobrist(b)] = t;
+  // Read the number of children and the depth.
+  byte numChildren;
+  fread(&numChildren, 1, 1, f);
+  node[t].depth = readVlq(f);
+  log(LOG_DEBUG, "On node %d read numChildren %d and depth %d", t, numChildren, node[t].depth);
 
-  } else { // File exists, but cannot be read for other reasons
-    die("Input file [%s] exists, but cannot be read.", fileName.c_str());
+  // For leaves, read and decode the proof / disproof numbers.
+  if (!numChildren) {
+    node[t].proof = readVlq(f);
+    node[t].proof = (node[t].proof == 0) ? INFTY64 : (node[t].proof - 1);
+    node[t].disproof = readVlq(f);
+    node[t].disproof = (node[t].disproof == 0) ? INFTY64 : (node[t].disproof - 1);
   }
+  int tail = NIL;
+  while (numChildren--) {
+    u16 encodedMove;
+    fread(&encodedMove, 2, 1, f);
+    Move m = decodeMove(encodedMove);
+    int c = readVlq(f);
+    log(LOG_DEBUG, "On node %d read child %d and move %s", t, c, getLongMoveName(m).c_str());
+    assert(c <= nodeAllocator->used());
+    if (c == nodeAllocator->used()) {
+      loadHelper(f); // this will load node c
+    }
+
+    tail = appendChild(t, c, m, tail);
+    addParent(c, t);
+
+    node[t].proof = MIN(node[t].proof, node[c].disproof);
+    node[t].disproof = MIN(node[t].disproof + node[c].proof, INFTY64);
+  }
+}
+
+void Pns::load(Board *b, string fileName) {
+  FILE *f = fopen(fileName.c_str(), "r");
+
+  if (!f) {
+    die("Cannot read input file [%s].", fileName.c_str());
+  }
+
+  Board b2;
+  assert(fread(&b2, sizeof(Board), 1, f) == 1);
+  if (!equalBoard(b, &b2)) {
+    printBoard(&b2);
+    die("Input file stores a PN^2 tree for a different board (see above).");
+  }
+
+  loadHelper(f);
+
+  fclose(f);
+  log(LOG_INFO, "Loaded tree from %s.", fileName.c_str());
 }
 
 string Pns::batchLookup(Board *b, string *moveNames, string *fens, string *scores, int *numMoves) {

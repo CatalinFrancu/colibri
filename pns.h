@@ -108,19 +108,36 @@ private:
   void addParent(int childIndex, int parentIndex);
 
   /**
-   * Prepends a node to a parent's child list.
+   * Prepends a node to a parent's child list. Resorts the list.
    */
-  void addChild(int parentIndex, int childIndex, Move m);
+  void prependChild(int parentIndex, int childIndex, Move m);
+
+  /**
+   * Appends a node to a parent's child list.
+   * @param tail A pointer to the last element, or NIL if parentIndex has no children.
+   * @return The new tail element.
+   */
+  int appendChild(int parentIndex, int childIndex, Move m, int tail);
 
   /* Prints a PNS tree node recursively. */
   void printTree(int t, int level, int maxDepth);
 
+  /**
+   * Saves a node in the PNS tree.
+   */
+  void saveHelper(int t, FILE* f, unordered_map<int,int>* map, int* nextAvailable);
+
   /* Saves the PNS tree. */
-  void saveTree(Board *b, string fileName);
+  void save(Board *b, string fileName);
+
+  /**
+   * Loads a node in the PNS tree.
+   */
+  void loadHelper(FILE* f);
 
   /* Loads a PN^2 tree from fileName and checks that it applies to b.
    * If fileName does not exist, then creates a 1-node tree. */
-  void loadTree(Board *b, string fileName);
+  void load(Board *b, string fileName);
 
   /**
    * Returns -1 if u is less promising than v, 0 if they are equal or 1 if u

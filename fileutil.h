@@ -37,4 +37,14 @@ void compressFile(const char *name, const char *compressed, const char *index, i
  **/
 char* decompressBlock(const char *compressed, const char *index, int blockNum);
 
+/**
+ * Encodes x to a 7-bit variable-length quantity and writes it to f.
+ */
+void writeVlq(u64 x, FILE* f);
+
+/**
+ * Reads a 7-bit encoded variable-length quantity from f.
+ */
+u64 readVlq(FILE* f);
+
 #endif

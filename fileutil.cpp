@@ -159,3 +159,29 @@ char* decompressBlock(const char *compressed, const char *index, int blockNum) {
 	lzma_end(&strm);
   return result;
 }
+
+void writeVlq(u64 x, FILE* f) {
+  static byte b[10];
+  int size = 0;
+
+  while (x || (size == 0)) {
+    b[size++] = 128 ^ (x & 127); // number continues
+    x >>= 7;
+  }
+
+  b[0] ^= 128; // remove continuation bit from the least significant group
+
+  while (size--) {
+    fwrite(b + size, 1, 1, f);
+  }
+}
+
+u64 readVlq(FILE* f) {
+  u64 result = 0;
+  byte b;
+  do {
+    fread(&b, 1, 1, f);
+    result = (result << 7) ^ (b & 127);
+  } while (b & 128);
+  return result;
+}
