@@ -194,6 +194,21 @@ private:
   int nodeCmp(int u, int v);
 
   /**
+   * Replaces a child in a node's child list. The old and new values are clones.
+   * @param parent Node whose child list is to be searched.
+   * @param from Node to replace.
+   * @param to New node.
+   */
+  void replaceChild(int parent, int from, int to);
+
+  /**
+   * When a child node's depth decreases, it may violate the invariant that
+   * parents have to have smaller depths than children. To fix this, iterate
+   * through the parents and substitute drawn clones of c where necessary).
+   */
+  void substituteClones(int c);
+
+  /**
    * Recursively updates a node's depth if it is improved.
    */
   void updateDepth(int t, int d);

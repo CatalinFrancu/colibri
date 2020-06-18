@@ -128,9 +128,62 @@ int Pns::nodeCmp(int u, int v) {
   return sgn(node[v].proof - node[u].proof);
 }
 
+void Pns::replaceChild(int parent, int from, int to) {
+  int e = node[parent].child;
+  while (edge[e].node != from) {
+    e = edge[e].next;
+  }
+  edge[e].node = to;
+}
+
+void Pns::substituteClones(int c) {
+  if (isSolved(c)) {
+    return; // nothing to clone
+  }
+
+  auto it = trans.find(node[c].zobrist); // must exist in transposition table
+  int clone = it->second.second;         // if NIL, don't allocate it yet
+
+  // Sadly, we cannot call deleteParentLink() while iterating the parent list.
+  // So we need to repeatedly check and delete the *next* element.
+  // To avoid the corner case for the first element, we prepend a temporary one.
+  int tmpEdge = edgeAllocator->alloc();
+  edge[tmpEdge].next = node[c].parent;
+
+  int e = tmpEdge;
+  while (edge[e].next != NIL) {
+    int f = edge[e].next;
+    int p = edge[f].node;
+
+    if ((node[p].depth >= node[c].depth) && !isSolved(p)) {
+      // delete f; don't advance e
+      edge[e].next = edge[f].next;
+      edgeAllocator->free(f);
+
+      // lazy clone creation
+      if (clone == NIL) {
+        clone = allocateLeaf(INFTY64, INFTY64);
+        it->second.second = clone;
+      }
+
+      // fix the parent
+      replaceChild(p, c, clone);
+      update(p, clone);    // starts by reordering the clone in p's child list
+    } else {
+      e = edge[e].next;
+    }
+  }
+
+  // update the head of the list in case we deleted the first element
+  node[c].parent = edge[tmpEdge].next;
+  edgeAllocator->free(tmpEdge);
+}
+
 void Pns::updateDepth(int t, int d) {
   if (d < node[t].depth) {
     node[t].depth = d;
+    substituteClones(t); // in case the new child violates some depth differentials
+
     for (int e = node[t].child; e != NIL; e = edge[e].next) {
       updateDepth(edge[e].node, d + 1);
     }
@@ -213,6 +266,10 @@ int Pns::zobristLookup(u64 z, int depth, u64 proof, u64 disproof) {
 
   if (node[orig].depth >= depth) {
     return orig;
+  }
+
+  if (isSolved(orig)) {
+    return orig; // don't bother cloning solved nodes
   }
 
   // Don't transpose to a node higher up the dag. This effectively prevents
@@ -420,7 +477,7 @@ void Pns::solveRepetition(int t) {
   if (rep != NIL) {
     node[rep].proof = node[t].proof;
     node[rep].disproof = node[t].disproof;
-    update(rep, NIL);
+    update(rep, INFTY);
   }
 }
 
