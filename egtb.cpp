@@ -623,7 +623,7 @@ bool generateEgtb(const char *combo) {
     log(LOG_INFO, "Table %s already exists, skipping", combo);
     return false;
   }
-  u64 timer = timerGet();
+  Timer timer;
   log(LOG_INFO, "Generating table %s into file %s", combo, destName.c_str());
   PieceSet ps[EGTB_MEN];
   int numPieceSets = comboToPieceSets((char*)combo, ps);
@@ -670,7 +670,7 @@ bool generateEgtb(const char *combo) {
   free(memScore);
   free(memOpen);
   delete retro;
-  u64 delta = timerGet() - timer;
+  u64 delta = timer.get();
   log(LOG_INFO, "Generation time: %.3f s (%.3f positions/s)", delta / 1000.0, size / (delta / 1000.0));
   logCacheStats(LOG_INFO, &egtbCache, "EGTB");
   return true;
@@ -930,7 +930,7 @@ void egtbVerifyHelper(const char *combo, int side, int level, int maxLevel, int 
 }
 
 void verifyEgtb(const char *combo) {
-  u64 timer = timerGet();
+  Timer timer;
   log(LOG_INFO, "Verifying table %s", combo);
   Board b;
   emptyBoard(&b);
@@ -939,7 +939,7 @@ void verifyEgtb(const char *combo) {
   int nps = comboToPieceSets(combo, ps);
   int size = getComboSize(combo);
   egtbVerifyHelper(combo, WHITE, 0, strlen(combo), 0, &b, m, ps, nps);
-  u64 delta = timerGet() - timer;
+  u64 delta = timer.get();
   log(LOG_INFO, "Verification time: %.3f s (%.3f positions/s)", delta / 1000.0, size / (delta / 1000.0));
 }
 
@@ -968,14 +968,15 @@ void compressEgtb(const char *combo) {
   if (fileExists(compressedName.c_str()) && fileExists(idxName.c_str())) {
     return;
   }
-  u64 timer = timerGet();
+  Timer timer;
   int size = getComboSize(combo);
   compressFile(name.c_str(), compressedName.c_str(), idxName.c_str(), EGTB_CHUNK_SIZE, true);
-  u64 delta = timerGet() - timer;
+  u64 delta = timer.get();
   log(LOG_INFO, "Compression time: %.3f s (%.3f positions/s)", delta / 1000.0, size / (delta / 1000.0));
 }
 
 void generateAllEgtb(int wc, int bc) {
+  Timer timer;
   for (int i = 0; i < choose[wc + 5][wc]; i++) {
     string ws = comboEnumerate(i, wc);
     for (int j = 0; j < choose[bc + 5][bc]; j++) {
@@ -983,12 +984,12 @@ void generateAllEgtb(int wc, int bc) {
       if ((wc > bc) || (i <= j)) {
         string combo = ws + "v" + bs;
         int size = getComboSize(combo.c_str());
-        u64 timer = timerGet(), delta;
+        timer.reset();
         if (generateEgtb(combo.c_str())) {
           verifyEgtb(combo.c_str());
         }
         compressEgtb(combo.c_str());
-        delta = timerGet() - timer;
+        u64 delta = timer.get();
         log(LOG_INFO, "Total G + V + C time: %.3f s (%.3f positions/s)", delta / 1000.0, size / (delta / 1000.0));
       }
     }

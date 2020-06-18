@@ -1,12 +1,40 @@
 #ifndef __TIMER_H__
 #define __TIMER_H__
+
 #include "defines.h"
 
-/* Resets the millisecond timer to 0 */
-void timerReset();
+/**
+ * A millisecond timer.
+ */
 
-/* Gets the number of milliseconds elapsed since the last timerReset() */
-u64 timerGet();
+class Timer {
+
+  u64 startTime;
+
+public:
+
+  /**
+   * Instantiates and starts the timer.
+   */
+  Timer();
+
+  /**
+   * Resets the timer to 0.
+   */
+  void reset();
+
+  /**
+   * @return The number of milliseconds elapsed since the last reset.
+   */
+  u64 get();
+
+private:
+
+  /**
+   * @return the UNIX timestamp in milliseconds.
+   */
+  u64 getTimestamp();
+
+};
 
 #endif
-

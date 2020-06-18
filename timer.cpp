@@ -1,17 +1,20 @@
 #include <sys/time.h>
 #include "timer.h"
 
-u64 timerMillisec;
-
-void timerReset() {
-  timeval tv;
-  gettimeofday(&tv, NULL);
-  timerMillisec = 1000ull * tv.tv_sec + tv.tv_usec / 1000;
+Timer::Timer() {
+  reset();
 }
 
-u64 timerGet() {
+void Timer::reset() {
+  startTime = getTimestamp();
+}
+
+u64 Timer::get() {
+  return getTimestamp() - startTime;
+}
+
+u64 Timer::getTimestamp() {
   timeval tv;
   gettimeofday(&tv, NULL);
-  u64 now = 1000ull * tv.tv_sec+ tv.tv_usec / 1000;
-  return now - timerMillisec;
+  return 1000ull * tv.tv_sec + tv.tv_usec / 1000;
 }

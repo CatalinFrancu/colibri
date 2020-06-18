@@ -8,6 +8,7 @@
 
 static const char *LOG_LEVEL_NAMES[] = { "", "ERROR", "WARNING", "INFO", "DEBUG" };
 static FILE *logFile;
+Timer logTimer;
 
 void logInit(const char *fileName) {
   if (!strcmp(fileName, "stdout")) {
@@ -18,12 +19,12 @@ void logInit(const char *fileName) {
     logFile = fopen(fileName, "at");
   }
   assert(logFile);
-  timerReset();
+  logTimer.reset();
 }
 
 void vlog(int level, const char *format, va_list vl) {
-  u64 millis = timerGet();
   if (level <= cfgLogLevel) {
+    u64 millis = logTimer.get();
     fprintf(logFile, "[%7llu.%03llu] [%s] ",
             millis / 1000, millis % 1000, LOG_LEVEL_NAMES[level]);
     vfprintf(logFile, format, vl);
