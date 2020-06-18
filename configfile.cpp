@@ -11,6 +11,7 @@ string cfgLogFile;
 int cfgLogLevel;
 int cfgQueryServerPort;
 string cfgBookFile;
+int cfgSaveEvery;
 
 void loadConfigFile(const char *fileName) {
   char path[1000];
@@ -49,6 +50,8 @@ void loadConfigFile(const char *fileName) {
         cfgQueryServerPort = atoi(value);
       } else if (!strcmp(key, "bookFile")) {
         cfgBookFile = string(value);
+      } else if (!strcmp(key, "saveEvery")) {
+        cfgSaveEvery = atoi(value);
       }
     }
   }

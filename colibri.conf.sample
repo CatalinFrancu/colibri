@@ -28,3 +28,6 @@ queryServerPort = 2359
 ; File name from which we load / to which we save the PNS tree.
 ; Can be overridden with the -f option
 bookFile = "book.in"
+
+; How frequently to checkpoint the book analysis, in seconds.
+saveEvery = 600

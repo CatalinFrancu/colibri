@@ -3,16 +3,19 @@
 #include <string.h>
 #include <sstream>
 #include "board.h"
+#include "configfile.h"
 #include "egtb.h"
 #include "fileutil.h"
 #include "logging.h"
 #include "movegen.h"
 #include "pns.h"
 #include "stringutil.h"
+#include "timer.h"
 #include "zobrist.h"
 
-Pns::Pns(int nodes, int edges, Pns* pn1) {
+Pns::Pns(int nodes, int edges, Pns* pn1, string bookFileName) {
   this->pn1 = pn1;
+  this->bookFileName = bookFileName;
   trim = (pn1 != NULL); // trim non-winning nodes in PN2, but not in PN1
 
   node = (PnsNode*)malloc(nodes * sizeof(PnsNode));
@@ -427,6 +430,7 @@ void Pns::analyze() {
 
 void Pns::analyzeSubtree(int startNode, Board* b) {
   bool full = false;
+  Timer timer(cfgSaveEvery * 1000); // convert seconds to milliseconds
   while (!full && !isSolved(startNode)) {
     Board current = *b;
     int mpn = selectMpn(startNode, &current);
@@ -434,6 +438,9 @@ void Pns::analyzeSubtree(int startNode, Board* b) {
     if (expand(mpn, &current)) {
       seen.clear();
       update(mpn, INFTY);
+      if (pn1 && timer.ticked()) {
+        save();
+      }
     } else {
       full = true;
     }
@@ -558,8 +565,8 @@ void Pns::saveHelper(int t, FILE* f, unordered_map<int,int>* map, int* nextAvail
   }
 }
 
-void Pns::save(string fileName) {
-  FILE *f = fopen(fileName.c_str(), "w");
+void Pns::save() {
+  FILE *f = fopen(bookFileName.c_str(), "w");
   fwrite(&board, sizeof(Board), 1, f);
 
   // renumber nodes sequentially during the traversal
@@ -568,7 +575,7 @@ void Pns::save(string fileName) {
   int nextAvailable = 1;
   saveHelper(0, f, &map, &nextAvailable);
   fclose(f);
-  log(LOG_INFO, "Saved tree to %s.", fileName.c_str());
+  log(LOG_INFO, "Saved tree to %s.", bookFileName.c_str());
 }
 
 void Pns::loadHelper(Board *b, FILE* f) {
@@ -631,12 +638,12 @@ void Pns::loadHelper(Board *b, FILE* f) {
   }
 }
 
-void Pns::load(string fileName) {
-  FILE *f = fopen(fileName.c_str(), "r");
+void Pns::load() {
+  FILE *f = fopen(bookFileName.c_str(), "r");
 
   if (!f) {
     log(LOG_WARNING, "Cannot read input file [%s]. Starting with an empty tree.",
-        fileName.c_str());
+        bookFileName.c_str());
     fenToBoard(NEW_BOARD, &board);
     collapse();
     return;
@@ -647,7 +654,7 @@ void Pns::load(string fileName) {
 
   fclose(f);
   log(LOG_INFO, "Loaded tree from %s, %d nodes.",
-      fileName.c_str(), nodeAllocator->used());
+      bookFileName.c_str(), nodeAllocator->used());
 }
 
 string Pns::batchLookup(Board *b, string *moveNames, string *fens, string *scores, int *numMoves) {

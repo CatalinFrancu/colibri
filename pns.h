@@ -56,6 +56,11 @@ class Pns {
   int numEgtbLookups;
   bool trim; // whether or not non-winning edges should be trimmed
 
+  /**
+   * Book file name. Empty means no saving/loading.
+   */
+  string bookFileName;
+
 public:
 
   /* Preallocated arrays of nodes and edges. */
@@ -68,8 +73,19 @@ public:
    */
   Board board;
 
-  /* Creates a new Pns with the given size limits and one leaf. */
-  Pns(int nodes, int edges, Pns* pn1);
+  /**
+   * Creates a level-1 PNS DAG with the given size limits.
+   */
+  Pns(int nodes, int edges) : Pns(nodes, edges, NULL, "") { }
+
+  /**
+   * Creates a level-2 PNS DAG with the given size limits.
+   * @param nodes Maximum number of nodes.
+   * @param edges Maximum number of edges.
+   * @param pn1 Pointer to the level-1 analyzer.
+   * @param bookFileName File to  save/load from.
+   */
+  Pns(int nodes, int edges, Pns* pn1, string bookFileName);
 
   /**
    * Continues expanding the tree until the root is solved or memory is
@@ -111,14 +127,14 @@ public:
   void collapse();
 
   /* Saves the PNS tree. */
-  void save(string fileName);
+  void save();
 
   /**
-   * Loads a PN^2 tree from fileName and sets rootBoard to the board contained
-   * therein. If fileName does not exist, then creates a 1-node tree and sets
+   * Loads a PN^2 tree from the file and sets rootBoard to the board contained
+   * therein. If the file does not exist, then creates a 1-node tree and sets
    * rootBoard to the initial position.
    */
-  void load(string fileName);
+  void load();
 
   /**
    * Returns all the children and their scores in human-readable format. To be

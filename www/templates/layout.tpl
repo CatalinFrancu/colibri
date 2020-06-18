@@ -23,7 +23,7 @@
     {include file=$template}
 
     <div id="footer">
-      Copyright 2013 <a href="http://catalin.francu.com">Catalin Francu</a><br/>
+      Copyright 2013-2020 <a href="http://catalin.francu.com">Catalin Francu</a><br/>
 
       Colibri's source code is released under the <a href="http://www.gnu.org/licenses/agpl-3.0.html">GNU Affero General Public License</a>.<br/>
 

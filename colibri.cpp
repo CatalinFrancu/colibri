@@ -48,16 +48,16 @@ int main(int argc, char **argv) {
      }
   }
 
-  Pns pn1(1000000, 10000000, NULL);
-  Pns pn2(10000000, 100000000, &pn1);
+  Pns pn1(1000000, 10000000);
+  Pns pn2(10000000, 100000000, &pn1, bookFile);
   QueryServer qs(&pn2);
-  pn2.load(bookFile);
+  pn2.load();
 
   switch (command) {
     case CMD_ANALYZE:
       qs.startAsync();
       pn2.analyzeString(position);
-      pn2.save(bookFile);
+      pn2.save();
       break;
     case CMD_SERVER:
       qs.startSync();
