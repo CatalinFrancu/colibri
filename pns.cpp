@@ -167,6 +167,7 @@ void Pns::substituteClones(int c) {
       }
 
       // fix the parent
+      addParent(clone, p);
       replaceChild(p, c, clone);
       update(p, clone);    // starts by reordering the clone in p's child list
     } else {
@@ -303,8 +304,11 @@ bool Pns::expand(int t, Board *b) {
     setScoreNoMoves(t, b);
     return true;
   }
-  if (nodeAllocator->available() < nc ||
-      edgeAllocator->available() < 2 * nc) {  // not enough room left to expand
+
+  // Ensure a copious amount of resources left. They are necessary sometimes
+  // for cascading depth updates.
+  if (nodeAllocator->available() < 10000 ||
+      edgeAllocator->available() < 10000) {
     return false;
   }
 
