@@ -142,6 +142,7 @@ void Pns::substituteClones(int c) {
   }
 
   auto it = trans.find(node[c].zobrist); // must exist in transposition table
+  assert(it != trans.end());
   int clone = it->second.second;         // if NIL, don't allocate it yet
 
   // Sadly, we cannot call deleteParentLink() while iterating the parent list.
@@ -457,8 +458,17 @@ void Pns::deleteNode(int t) {
   // notify t's children to sever their links to t; delete t's edge list
   int e = node[t].child;
 
-  // this also covers the case when the zobrist value is 0 (for repetitions)
-  trans.erase(node[t].zobrist);
+  auto it = trans.find(node[t].zobrist);
+  if (it != trans.end()) {
+    if (it->second.second == t) {
+      // we are a clone; keep the original in the map
+      it->second.second = NIL;
+    } else {
+      // we are the original; if no other node links to us any longer, then
+      // it is safe to delete the clone as well
+      trans.erase(it);
+    }
+  }
 
   nodeAllocator->free(t);
   while (e != NIL) {
@@ -506,7 +516,7 @@ void Pns::analyzeSubtree(int startNode, Board* b) {
       full = true;
     }
   }
-  // verifyConsistencyWrapper(b);
+  // verifyConsistencyWrapper();
   if (!pn1) {
     log(LOG_INFO, "PN1 complete, score %s/%s, %d nodes, %d edges, %d EGTB probes",
         pnAsString(node[startNode].proof).c_str(),
@@ -642,6 +652,11 @@ void Pns::save() {
 void Pns::loadHelper(Board *b, FILE* f) {
   int t = allocateLeaf(INFTY64, 0);
 
+  // Read the number of children and the depth.
+  byte numChildren;
+  fread(&numChildren, 1, 1, f);
+  node[t].depth = readVlq(f);
+
   // Generate the Zobrist key and hash it.
   u64 z = getZobrist(b); // TODO update incrementally from parent to child
   node[t].zobrist = z;
@@ -655,19 +670,17 @@ void Pns::loadHelper(Board *b, FILE* f) {
     int other = it->second.first;
     assert(other != t);
     assert(it->second.second == NIL); // at most two nodes per Zobrist key
+    assert(node[other].depth != node[t].depth); // otherwise they would be one and the same
 
-    if (isSolved(other)) {          // either it is drawn, or both nodes are solved
+    if (node[other].depth < node[t].depth) {
+      // lower-depth node always goes first
+      it->second.second = t;
+    } else {
       it->second.first = t;
       it->second.second = other;
-    } else {                        // open node always goes first
-      it->second.second = t;
     }
+    assert(it->second.first != it->second.second);
   }
-
-  // Read the number of children and the depth.
-  byte numChildren;
-  fread(&numChildren, 1, 1, f);
-  node[t].depth = readVlq(f);
 
   // For leaves, read and decode the proof / disproof numbers.
   if (!numChildren) {
@@ -716,6 +729,7 @@ void Pns::load() {
   fclose(f);
   log(LOG_INFO, "Loaded tree from %s, %d nodes.",
       bookFileName.c_str(), nodeAllocator->used());
+  verifyConsistencyWrapper();
 }
 
 string Pns::batchLookup(Board *b, string *moveNames, string *fens, string *scores, int *numMoves) {
@@ -858,10 +872,12 @@ void Pns::verifyConsistency(int t, Board *b, unordered_set<int>* seenNodes,
              (node[t].proof > 0));
     }
   }
+
+  assert(trans.find(node[t].zobrist) != trans.end());
 }
 
-void Pns::verifyConsistencyWrapper(Board* b) {
+void Pns::verifyConsistencyWrapper() {
   unordered_set<int> seenNodes;
   unordered_set<int> seenEdges;
-  verifyConsistency(0, b, &seenNodes, &seenEdges);
+  verifyConsistency(0, &board, &seenNodes, &seenEdges);
 }

@@ -311,10 +311,9 @@ private:
                          unordered_set<int>* seenEdges);
 
   /**
-   * Performs some additional checks on top of verifyConsistency().
-   * @param b Board corresponding to the root node.
+   * Convenience entry point into verifyConsistency().
    */
-  void verifyConsistencyWrapper(Board *b);
+  void verifyConsistencyWrapper();
 
 };
 
