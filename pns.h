@@ -149,6 +149,8 @@ private:
    */
   bool isSolved(int t);
 
+  bool isDrawn(int t);
+
   /**
    * @return The (dis)proof number if finite, "∞" otherwise.
    */

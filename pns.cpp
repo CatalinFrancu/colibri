@@ -50,9 +50,11 @@ void Pns::collapse() {
 }
 
 bool Pns::isSolved(int t) {
-  return !node[t].proof ||
-    !node[t].disproof ||
-    (node[t].proof == INFTY64 && node[t].disproof == INFTY64);
+  return !node[t].proof || !node[t].disproof;
+}
+
+bool Pns::isDrawn(int t) {
+  return (node[t].proof == INFTY64) && (node[t].disproof == INFTY64);
 }
 
 string Pns::pnAsString(u64 number) {
@@ -182,6 +184,10 @@ void Pns::substituteClones(int c) {
 }
 
 void Pns::updateDepth(int t, int d) {
+  if (node[t].zobrist == 0) {
+    // leave clones at infinite depth, even when solved
+    return;
+  }
   if (d < node[t].depth) {
     node[t].depth = d;
     substituteClones(t); // in case the new child violates some depth differentials
@@ -502,7 +508,7 @@ void Pns::analyze() {
 void Pns::analyzeSubtree(int startNode, Board* b) {
   bool full = false;
   Timer timer(cfgSaveEvery * 1000); // convert seconds to milliseconds
-  while (!full && !isSolved(startNode)) {
+  while (!full && !isSolved(startNode) && !isDrawn(startNode)) {
     Board current = *b;
     int mpn = selectMpn(startNode, &current);
     assert(!isSolved(mpn));
@@ -816,6 +822,7 @@ void Pns::verifyConsistency(int t, Board *b, unordered_set<int>* seenNodes,
 
   for (int e = node[t].child; e != NIL; e = edge[e].next) {
     int c = edge[e].node, i = 0;
+    assert(isSolved(t) || isSolved(c) || (node[c].depth > node[t].depth));
 
     // find this move in the legal move list and delete it
     m[nc] = edge[e].move;
