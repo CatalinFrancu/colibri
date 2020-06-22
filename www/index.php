@@ -1,7 +1,8 @@
 <?php
 
 require_once 'smarty3/Smarty.class.php';
-define('BACKEND_PORT', 2359);
+
+$config = parse_ini_file(__DIR__ . '/../colibri.conf');
 
 $fen = isset($_GET['fen']) ? $_GET['fen'] : null;
 
@@ -12,7 +13,7 @@ if ($fen) {
   $fen = boardToFen($board, $stm);
 }
 colorBoard($board);
-list($score, $scoreText, $children, $error) = serverQuery($fen);
+list($score, $scoreText, $children, $error) = serverQuery($config, $fen);
 
 $smarty = new Smarty();
 $smarty->template_dir = 'templates';
@@ -117,8 +118,8 @@ function colorBoard(&$board) {
   }
 }
 
-function serverQuery($fen) {
-  $sock = @fsockopen('localhost', BACKEND_PORT);
+function serverQuery($config, $fen) {
+  $sock = @fsockopen('localhost', $config['queryServerPort']);
   if (!$sock) {
     die('Backend server not responding');
   }
