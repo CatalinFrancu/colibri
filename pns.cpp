@@ -655,6 +655,8 @@ void Pns::saveHelper(int t, FILE* f, unordered_map<int,int>* map, int* nextAvail
 }
 
 void Pns::save() {
+  verifyConsistencyWrapper();
+
   FILE *f = fopen(bookFileName.c_str(), "w");
   fwrite(&board, sizeof(Board), 1, f);
 
