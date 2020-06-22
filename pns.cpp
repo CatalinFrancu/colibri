@@ -312,6 +312,18 @@ bool Pns::expand(int t, Board *b) {
     return true;
   }
 
+  // Handle the following rare scenario in PN2: t has a losing child c. We
+  // have c in the hash but it is unproven. The correct solution would be to
+  // collapse c and mark it as lost (also c's clone if there is one). But this
+  // involves calling update() during expand(). That way madness lies. Rather,
+  // we mark t as won and leave it childless. This means that we will at some
+  // point have to rediscover the proof for c, but that seems acceptable.
+  if (pn1 && (nc == 1) && !disproof[0]) {
+    node[t].proof = 0;
+    node[t].disproof = INFTY64;
+    return true;
+  }
+
   // Ensure a copious amount of resources left. They are necessary sometimes
   // for cascading depth updates.
   if (nodeAllocator->available() < 10000 ||
@@ -383,8 +395,8 @@ void Pns::update(int t, int c) {
     // 0)). However, this does happen in practice when a descendant d is
     // solved. Sometimes d and d's drawn clone both call the same ancestor.
 
-    // If t has no children after expand(), then it's a stalemate or EGTB
-    // position, so it already has correct P/D values.
+    // If t has no children after expand(), then it's proven, so it already
+    // has correct P/D values.
     if (c != INFTY) {
       reorder(t, c);
     }
