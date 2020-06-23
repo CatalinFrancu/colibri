@@ -1,6 +1,6 @@
 ### DAG Invariants
 
-Let *u* and *v* be any nodes. Let *i* be an internal node (non-leaf).
+Let *u* and *v* be any nodes. Let *i* be an internal node (non-leaf). The following invariants hold at the end of each select-expand-update loop.
 
 #### Proof numbers and disproof numbers.
 
@@ -20,3 +20,5 @@ Let *u* and *v* be any nodes. Let *i* be an internal node (non-leaf).
 * If *u* has an original node *v* among its children, then depth(*v*) = 1 + depth(*u*).
   * In particular, if *u* is expanded and one of its children, *v*, is already a known position with depth(*v) ≤ depth(*u*), then *u* is instead linked to *v*'s clone.
   * This ensures that there are no back edges in the DAG.
+  * This restriction does not apply if *v* is solved.
+* Clones are always leaves.
