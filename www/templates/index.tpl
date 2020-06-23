@@ -1,108 +1,109 @@
-{if $error}
-  <div class="errorNotice">{$error}</div>
-{/if}
-
-<div id="leftColumn">
-  <div id="fen">
-    <form action="index.php">
-      <label for="fenDirectEdit">FEN:</label>
-      <input id="fenDirectEdit" type="text" name="fen" value="{$fen}"/>
-      <input type="button" value="Go!"/>
-    </form>
+{if isset($error)}
+  <div class="alert alert-danger">
+    {$error}
   </div>
-
-  <table id="board">
-    <tr>
-      <th class="lr tb"></th>
-      {foreach from=$board[8] item=square key=fileName}
-      <th class="tb">{$fileName}</th>
-      {/foreach}
-      <th></th>
-    </tr>
-    {foreach from=$board item=rank key=rankNumber}
-      <tr>
-        <th class="lr">{$rankNumber}</th>
-          {foreach from=$rank item=square key=fileLetter}
-            <td class="square anvil {$square.color}"><div id="{$fileLetter}{$rankNumber}" class="{$square.piece}"></div></td>
+{else}
+  <div class="row">
+    <div class="col-lg">
+      <table id="board">
+        <tbody>
+          <tr>
+            <th class="lr tb"></th>
+            {foreach from=$board[8] item=square key=fileName}
+              <th class="tb">{$fileName}</th>
+            {/foreach}
+            <th></th>
+          </tr>
+          {foreach from=$board item=rank key=rankNumber}
+            <tr>
+              <th class="lr">{$rankNumber}</th>
+              {foreach from=$rank item=square key=fileLetter}
+                <td class="square anvil {$square.color}"><div id="{$fileLetter}{$rankNumber}" class="{$square.piece}"></div></td>
+              {/foreach}
+              <th class="lr">{$rankNumber}</th>
+            </tr>
           {/foreach}
-        <th class="lr">{$rankNumber}</th>
-      </tr>
-    {/foreach}
-    <tr>
-      <th class="lr tb"></th>
-      {foreach from=$board[8] item=square key=fileName}
-      <th class="tb">{$fileName}</th>
-      {/foreach}
-      <th></th>
-    </tr>
-  </table>
+          <tr>
+            <th class="lr tb"></th>
+            {foreach from=$board[8] item=square key=fileName}
+              <th class="tb">{$fileName}</th>
+            {/foreach}
+            <th></th>
+          </tr>
+        </tbody>
+      </table>
 
-  <div>
-    <div id="editLinkDiv"><a id="editLink" href="#">edit position</a></div>
-    <div id="stmDiv" class="{if $stm == 'w'}stmReadWhite{else}stmReadBlack{/if}">to move</div>
-    <div style="clear: both"></div>
-  </div>
+      <div class="row">
+        <div id="stm" class="col {if $stm == 'w'}stmWhite{else}stmBlack{/if}">
+          to move
+        </div>
+        <div class="col">
+          <a id="editLink" href="#">edit position</a>
+        </div>
+      </div>
 
-  <div id="toolBox">
-    Click on a piece, then click on a board square to place it.
-    <table id="editBox">
-      <tr>
-        <td class="square hammer"><div class="wk"></div></td>
-        <td class="square hammer"><div class="wq"></div></td>
-        <td class="square hammer"><div class="wr"></div></td>
-        <td class="square hammer"><div class="wb"></div></td>
-        <td class="square hammer"><div class="wn"></div></td>
-        <td class="square hammer"><div class="wp"></div></td>
-      </tr>
-      <tr>
-        <td class="square hammer"><div class="bk"></div></td>
-        <td class="square hammer"><div class="bq"></div></td>
-        <td class="square hammer"><div class="br"></div></td>
-        <td class="square hammer"><div class="bb"></div></td>
-        <td class="square hammer"><div class="bn"></div></td>
-        <td class="square hammer"><div class="bp"></div></td>
-      </tr>
-      <tr>
-        <td class="square hammer" title="En passant target square"><div class="epSquare"></div></td>
-        <td class="square hammer" title="Erase one piece"><div class="eraseOne"></div></td>
-        <td class="square eraseAll" title="Erase the entire board"><div></div></td>
-        <td colspan="3"></td>
-      </tr>
-    </table>
+      <div id="toolBox">
+        Click on a piece, then click on a board square to place it.
+        <table id="editBox">
+          <tr>
+            <td class="square hammer"><div class="wk"></div></td>
+            <td class="square hammer"><div class="wq"></div></td>
+            <td class="square hammer"><div class="wr"></div></td>
+            <td class="square hammer"><div class="wb"></div></td>
+            <td class="square hammer"><div class="wn"></div></td>
+            <td class="square hammer"><div class="wp"></div></td>
+          </tr>
+          <tr>
+            <td class="square hammer"><div class="bk"></div></td>
+            <td class="square hammer"><div class="bq"></div></td>
+            <td class="square hammer"><div class="br"></div></td>
+            <td class="square hammer"><div class="bb"></div></td>
+            <td class="square hammer"><div class="bn"></div></td>
+            <td class="square hammer"><div class="bp"></div></td>
+          </tr>
+          <tr>
+            <td class="square hammer" title="En passant target square"><div class="epSquare"></div></td>
+            <td class="square hammer" title="Erase one piece"><div class="eraseOne"></div></td>
+            <td class="square eraseAll" title="Erase the entire board"><div></div></td>
+            <td colspan="3"></td>
+          </tr>
+        </table>
 
-    Side to move:
-    <div id="stmBox">
-      <div class="stm stmWhite {if $stm == 'w'}stmSelected{/if}">white</div>
-      <div class="stm stmBlack {if $stm == 'b'}stmSelected{/if}">black</div>
-      <form id="editForm" action="index.php">
-        <input id="fenField" type="hidden" name="fen" value=""/>
-        <input id="goButton" type="button" value="Go!"/>
-      </form>
-      <div style="clear: both"></div>
+        Side to move:
+        <div id="stmBox">
+          <div class="row">
+            <div class="col stm {if $stm == 'w'}stmSelected{/if}">
+              <img src="img/pieces/wk.png">
+            </div>
+            <div class="col stm {if $stm == 'b'}stmSelected{/if}">
+              <img src="img/pieces/bk.png">
+            </div>
+          </div>
+          <form id="editForm" action="index.php">
+            <input id="fenField" type="hidden" name="fen" value=""/>
+            <input id="goButton" type="button" value="Go!"/>
+          </form>
+          <div style="clear: both"></div>
+        </div>
+      </div>
+
+      <div id="fen">
+        <form action="index.php">
+          <label for="fenDirectEdit">FEN:</label>
+          <input id="fenDirectEdit" type="text" name="fen" value="{$fen}"/>
+          <input type="button" value="Go!"/>
+        </form>
+      </div>
     </div>
+
+    <div class="col-lg">
+      {if $response.type == 'egtb'}
+        {include "egtbTable.tpl"}
+      {/if}
+    </div>
+
+    <script>
+      currentStm = '{$stm}';
+    </script>
   </div>
-</div>
-
-<div id="rightColumn">
-  <h3>
-    {include file="score.tpl" score=$score scoreText=$scoreText}
-  </h3>
-  <table id="moves">
-    {foreach $children as $c}
-      <tr>
-        <td>
-          <a href="?fen={$c.fen|escape:url}">{$c.move}</a>
-        </td>
-        <td class="{include file="scoreClass.tpl" score=$c.score scoreText=$c.scoreText}">
-          {include file="score.tpl" score=$c.score scoreText=$c.scoreText}
-        </td>
-      </tr>
-    {/foreach}
-  </table>
-</div>
-
-<div style="clear: both"></div>
-
-<script>
-  currentStm = '{$stm}';
-</script>
+{/if}

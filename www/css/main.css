@@ -1,13 +1,3 @@
-body {
-  font-family: arial;
-  margin: 0px auto;
-  width: 700px;
-}
-
-h1 {
-  font-size: 16px;
-}
-
 table {
   border-collapse: collapse;
 }
@@ -46,39 +36,6 @@ div.menu a {
   font-size: 90%;
 }
 
-div.errorNotice {
-  background: #fdd;
-  border: 1px solid red;
-  color: red;
-  margin: 10px auto;
-  padding: 5px;
-  text-align: center;
-  width: 400px;
-}
-
-#leftColumn {
-  float: left;
-  width: 425px;
-}
-
-#rightColumn {
-  float: left;
-  padding-left: 20px;
-  width: 150px;
-}
-
-#footer {
-  border-top: 1px solid #bbb;
-  color: #777;
-  font-size: 80%;
-  margin-top: 20px;
-  padding-top: 5px;
-}
-
-#footer a {
-  color: #444;
-}
-
 #fen {
   margin-bottom: 5px;
   text-align: center;
@@ -99,14 +56,16 @@ div.errorNotice {
 }
 
 #board .lr {
+  text-align: center;
   width: 20px;
 }
 
 #board .tb {
+  text-align: center;
   height: 20px;
 }
 
-.square { 
+.square {
   background-repeat: no-repeat;
   cursor: crosshair;
   height: 45px;
@@ -121,26 +80,15 @@ div.errorNotice {
   background-color: #b8b8b8;
 }
 
-#editLinkDiv {
-  float: left;
-  padding-top: 3px;
+#stm {
+  padding-left: 30px;
 }
 
-#editLink {
-  color: #444;
-}
-
-#stmDiv {
-  float: right;
-  padding-top: 3px;
-  padding-left: 26px;
-}
-
-.stmReadWhite {
+.stmWhite {
   background: url('../img/pieces/wk24.png') no-repeat;
 }
 
-.stmReadBlack {
+.stmBlack {
   background: url('../img/pieces/bk24.png') no-repeat;
 }
 
@@ -149,7 +97,7 @@ div.errorNotice {
   border: 1px solid black;
   margin-top: 5px;
   padding: 5px;
-  display: none;
+  /*  display: none; */
 }
 
 #editBox {
@@ -173,7 +121,6 @@ div.errorNotice {
 
 .stm {
   cursor: pointer;
-  float: left;
   margin-right: 10px;
   padding: 2px 5px;
 }
@@ -194,23 +141,6 @@ div.errorNotice {
 
 #editForm {
   float: right;
-}
-
-#moves {
-  margin-top: 30px;
-}
-
-#moves td {
-  padding-right: 10px;
-  padding-top: 2px;
-}
-
-.scoreWin {
-  color: #0c0;
-}
-
-.scoreLose {
-  color: #c00;
 }
 
 .epSquare {

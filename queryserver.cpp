@@ -28,34 +28,56 @@ QueryServer::QueryServer(Pns* pns) {
   this->pns = pns;
 }
 
-/**
- * Reads a board in FEN notation. Outputs an error message on one line and
- * returns on all input errors. Otherwise, queries the EGTB or the PNS tree
- * depending on the number of pieces. Outputs a blank first line, then the
- * score / number of moves / details for each move.
- */
+void QueryServer::handleEgtbQuery(FILE* fin, FILE* fout, Board* b) {
+  string cMoves[MAX_MOVES], cFens[MAX_MOVES];
+  int numMoves, score, scores[MAX_MOVES];
+  score = batchEgtbLookup(b, cMoves, cFens, scores, &numMoves);
+  fprintf(fout, "egtb\n%d\n%d\n", score, numMoves);
+    for (int i = 0; i < numMoves; i++) {
+      fprintf(fout, "%s %d %s\n", cMoves[i].c_str(), scores[i], cFens[i].c_str());
+    }
+}
+
+void QueryServer::handlePnsQuery(FILE* fin, FILE* fout, Board* b) {
+  string cMoves[MAX_MOVES], cFens[MAX_MOVES];
+  int numMoves;
+  u64 proof, disproof, cProofs[MAX_MOVES], cDisproofs[MAX_MOVES];
+
+  bool found = false;
+  if (pns) {
+    found = pns->batchLookup(b, &proof, &disproof, cMoves,
+                             cFens, cProofs, cDisproofs, &numMoves);
+  }
+
+  if (found) {
+    fprintf(fout, "pns\n%llu %llu\n%d\n", proof, disproof, numMoves);
+    for (int i = 0; i < numMoves; i++) {
+      fprintf(fout, "%s %llu %llu %s\n",
+              cMoves[i].c_str(), cProofs[i], cDisproofs[i], cFens[i].c_str());
+    }
+  } else {
+    fprintf(fout, "unknown\n");
+  }
+}
+
 void QueryServer::handleQuery(FILE* fin, FILE* fout) {
   char s[200];
   if (!fgets(s, 200, fin)) {
-    fprintf(fout, "%d %d\n", INFTY, 0);
+    fprintf(fout, "error\nCould not read FEN string.\n");
     return;
   }
+
   Board b;
   if (!fenToBoard(s, &b)) {
-    fprintf(fout, "Please make sure your FEN string is correct.\n");
+    fprintf(fout, "error\nIncorrect FEN string.\n");
+    return;
+  }
+
+  int numPieces = popCount(b.bb[BB_WALL] | b.bb[BB_BALL]);
+  if (numPieces <= EGTB_MEN) {
+    handleEgtbQuery(fin, fout, &b);
   } else {
-    string moveNames[MAX_MOVES], fens[MAX_MOVES], scores[MAX_MOVES], score;
-    int numMoves;
-    int numPieces = popCount(b.bb[BB_WALL] | b.bb[BB_BALL]);
-    if (pns && (numPieces > EGTB_MEN)) {
-      score = pns->batchLookup(&b, moveNames, fens, scores, &numMoves);
-    } else {
-      score = batchEgtbLookup(&b, moveNames, fens, scores, &numMoves);
-    }
-    fprintf(fout, "\n%s %d\n", score.c_str(), numMoves);
-    for (int i = 0; i < numMoves; i++) {
-      fprintf(fout, "%s %s %s\n", moveNames[i].c_str(), scores[i].c_str(), fens[i].c_str());
-    }
+    handlePnsQuery(fin, fout, &b);
   }
 }
 

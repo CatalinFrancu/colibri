@@ -1,35 +1,53 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
   <head>
     <title>Colibri Suicide Chess Browser</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link href="css/third-party/bootstrap-4.3.1.min.css" rel="stylesheet" type="text/css">
     <link href="css/main.css?v=1" rel="stylesheet" type="text/css"/>
     <script src="js/jquery-1.8.3.min.js"></script>
     <script src="js/main.js?v=1"></script>
   </head>
 
   <body>
-    <div class="title">
-      Suicide chess browser by <span class="plug">Colibri</span>
-    </div>
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
+      <span class="navbar-brand">
+        Antichess browser by <span class="plug">Colibri</span>
+      </span>
 
-    <div class="menu">
-      <ul>
-        <li><a href="../www/">home</a></li>
-        <li><a href="about.php">about</a></li>
-      </ul>
-    </div>
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-toggle="collapse"
+        data-target="#navbarMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
 
-    {include file=$template}
+      <div class="collapse navbar-collapse" id="navbarMenu">
+        <ul class="navbar-nav ml-3">
+          <li class="nav-item">
+            <a class="nav-link" href="../www/">home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="about.php">about</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
 
-    <div id="footer">
-      Copyright 2013-2020 <a href="http://catalin.francu.com">Catalin Francu</a><br/>
+    <main class="container-fluid">
+      <div class="container mt-4">
+        {include file=$template}
+      </div>
+    </main>
 
-      Colibri's source code is released under the <a href="http://www.gnu.org/licenses/agpl-3.0.html">GNU Affero General Public License</a>.<br/>
+    <footer class="py-3 border-top text-center">
+      Copyright 2013-2020 <a href="http://catalin.francu.com">Catalin Francu</a>
 
-      Colibri's data is released under the
-      <a href="http://creativecommons.org/licenses/by-sa/3.0/">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>.
-    </div>
+      <span class="text-muted px-3">•</span>
+
+      <a href="https://github.com/CatalinFrancu/colibri/">source code</a>
+    </footer>
 
   </body>
 </html>

@@ -757,13 +757,15 @@ void Pns::load() {
   verifyConsistencyWrapper();
 }
 
-string Pns::batchLookup(Board *b, string *moveNames, string *fens, string *scores, int *numMoves) {
+bool Pns::batchLookup(Board* b, u64* proof, u64* disproof,
+                      string* cMoves, string* cFens, u64* cProofs, u64* cDisproofs,
+                      int* numMoves) {
   *numMoves = 0;
 
   u64 z = getZobrist(b);
   auto it = trans.find(z);
   if (it == trans.end()) {
-    return "unknown";
+    return false;
   }
   int t = it->second.first;
   log(LOG_DEBUG, "query for nodes #%d & #%d, depth %d", t, it->second.second, node[t].depth);
@@ -782,24 +784,25 @@ string Pns::batchLookup(Board *b, string *moveNames, string *fens, string *score
       i++;
     }
 
-    moveNames[*numMoves] = names[i];
+    cMoves[*numMoves] = names[i];
 
     int c = edge[e].node;
     Board b2 = *b;
     makeMove(&b2, edge[e].move);
-    fens[*numMoves] = boardToFen(&b2);
+    cFens[*numMoves] = boardToFen(&b2);
 
-    stringstream ss;
-    ss << pnAsString(node[c].proof) << '/' << pnAsString(node[c].disproof);
-    scores[*numMoves] = ss.str();
+    cProofs[*numMoves] = node[c].proof;
+    cDisproofs[*numMoves] = node[c].disproof;
     log(LOG_DEBUG, "  returning child #%d move %s score %s depth %d",
-        c, names[i].c_str(), ss.str().c_str(), node[c].depth);
+        c, names[i].c_str(),
+        pnAsString(node[c].proof).c_str(),
+        pnAsString(node[c].disproof).c_str());
     (*numMoves)++;
   }
 
-  stringstream ss;
-  ss << pnAsString(node[t].proof) << '/' << pnAsString(node[t].disproof);
-  return ss.str();
+  *proof = node[t].proof;
+  *disproof = node[t].disproof;
+  return true;
 }
 
 void Pns::verifyConsistency(int t, Board *b, unordered_set<int>* seenNodes,

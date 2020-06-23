@@ -1,4 +1,4 @@
-<h1>About Colibri</h1>
+<h3>About Colibri</h3>
 
 <p>Colibri is a <a href="http://en.wikipedia.org/wiki/Antichess">suicide chess</a> engine. It plays according to FICS rules (stalemate is a win for the
 player with the fewer pieces remaining -- variant 5 on Wikipedia).</p>
@@ -11,7 +11,7 @@ solvable by average players. Other lines, like <b>1. e3 b5</b> took years of com
 for White. I may end up connecting this program to FICS so it can play humans or other computers, but that is not my short-term goal. For example, I
 probably won't implement an alpha-beta algorithm.</p>
 
-<h1>Features</h1>
+<h3>Features</h3>
 
 <ul>
   <li>5-men <a href="http://en.wikipedia.org/wiki/Endgame_tablebase">endgame tablebases</a> (EGTB) with en passant support (52 GB);</li>
@@ -24,13 +24,13 @@ probably won't implement an alpha-beta algorithm.</p>
   <li>Board representation using <a href="http://en.wikipedia.org/wiki/Bitboard">bitboards</a>.</li>
 </ul>
 
-<h1>TODO list</h1>
+<h3>TODO list</h3>
 
 <ul>
   <li><a href="http://en.wikipedia.org/wiki/Proof-number_search">Proof number search</a> so I can start solving openings.</li>
 </ul>
 
-<h1>Nilatac</h1>
+<h3>Nilatac</h3>
 
 <p>My previous suicide chess engine was <a href="http://catalin.francu.com/nilatac/book.php">Nilatac</a>, written mostly between 2001-2003. I decided
 to give it up and rewrite Colibri from scratch because Nilatac had several shortcomings:</p>
@@ -44,7 +44,7 @@ to give it up and rewrite Colibri from scratch because Nilatac had several short
   <li>no unit tests.</li>
 </ul>
 
-<h1>Downloads</h1>
+<h3>Downloads</h3>
 
 <p>Colibri is free software. You can <a href="http://voronet.francu.com/repos/colibri">browse the source code</a> or download a copy with Subversion:</p>
 
@@ -54,7 +54,7 @@ to give it up and rewrite Colibri from scratch because Nilatac had several short
 
 <p>I will seed the EGTB files on torrents once anybody asks. :-)</p>
 
-<h1>License</h1>
+<h3>License</h3>
 
 <p>Copyright 2013 <a href="http://catalin.francu.com">Catalin Francu</a></p>
 

@@ -58,14 +58,15 @@ int egtbLookup(Board *b);
  * Clobbers b. */
 int egtbLookupWithInfo(Board *b, const char *combo, PieceSet *ps, int nps);
 
-/* Takes a board and sets/returns four values:
+/**
+ * Takes a board and sets/returns five values:
  * - an array of move names listing all the legal moves
  * - an array of FEN-encoded boards listing the corresponding resulting positions
  * - an array of scores for the boards resulting after each of the above moves
  * - the number of such moves
  * - the score of the board b itself.
  */
-string batchEgtbLookup(Board *b, string *moveNames, string *fens, string *scores, int *numMoves);
+int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int *numMoves);
 
 /* Verifies the correctness of an EGTB table:
  * - Generates all the possible positions, canonical and non-canonical

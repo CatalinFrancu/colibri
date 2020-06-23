@@ -718,23 +718,21 @@ int egtbLookupWithInfo(Board *b, const char *combo, PieceSet *ps, int nps) {
   return readFromCache(combo, index);
 }
 
-string batchEgtbLookup(Board *b, string *moveNames, string *fens, string *scores, int *numMoves) {
+int batchEgtbLookup(Board *b, string *moveNames, string *fens, int *scores, int *numMoves) {
   Board bcopy = *b;
   int result = egtbLookup(&bcopy);
-  if (result == INFTY) {
-    *numMoves = 0;
-  } else {
-    Move m[MAX_MOVES];
-    *numMoves = getAllMoves(b, m, FORWARD);
-    getAlgebraicNotation(b, m, *numMoves, moveNames);
-    for (int i = 0; i < *numMoves; i++) {
-      Board b2 = *b;
-      makeMove(&b2, m[i]);
-      fens[i] = boardToFen(&b2);
-      scores[i] = to_string(egtbLookup(&b2));
-    }
+  assert(result != EGTB_UNKNOWN);
+
+  Move m[MAX_MOVES];
+  *numMoves = getAllMoves(b, m, FORWARD);
+  getAlgebraicNotation(b, m, *numMoves, moveNames);
+  for (int i = 0; i < *numMoves; i++) {
+    Board b2 = *b;
+    makeMove(&b2, m[i]);
+    fens[i] = boardToFen(&b2);
+    scores[i] = egtbLookup(&b2);
   }
-  return to_string(result);
+  return result;
 }
 
 void matchOrDie(bool condition, Board *b, int score, int minNeg, int maxNeg,

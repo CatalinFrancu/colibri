@@ -137,10 +137,12 @@ public:
   void load();
 
   /**
-   * Returns all the children and their scores in human-readable format. To be
-   * used by the query server.
+   * Fills the arrays with information about the node and its children.
+   * Returns true iff the position is known. To be used by the query server.
    */
-  string batchLookup(Board *b, string *moveNames, string *fens, string *scores, int *numMoves);
+  bool batchLookup(Board* b, u64* proof, u64* disproof,
+                   string* cMoves, string* cFens, u64* cProofs, u64* cDisproofs,
+                   int* numMoves);
 
 private:
 

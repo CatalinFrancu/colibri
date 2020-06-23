@@ -13,19 +13,23 @@ if ($fen) {
   $fen = boardToFen($board, $stm);
 }
 colorBoard($board);
-list($score, $scoreText, $children, $error) = serverQuery($config, $fen);
 
 $smarty = new Smarty();
 $smarty->template_dir = 'templates';
 $smarty->compile_dir = 'templates_c';
-$smarty->assign('fen', $fen);
-$smarty->assign('board', $board);
-$smarty->assign('stm', $stm);
-$smarty->assign('score', $score);
-$smarty->assign('scoreText', $scoreText);
-$smarty->assign('children', $children);
-$smarty->assign('error', $error);
-$smarty->assign('template', 'index.tpl');
+try {
+  $response = serverQuery($config, $fen);
+  $smarty->assign('response', $response);
+} catch (Exception $e) {
+  $smarty->assign('error', $e->getMessage());
+}
+
+$smarty->assign([
+  'fen' => $fen,
+  'board' => $board,
+  'stm' => $stm,
+  'template' => 'index.tpl',
+]);
 $smarty->display('layout.tpl');
 
 /***************************************************************************/
@@ -118,28 +122,61 @@ function colorBoard(&$board) {
   }
 }
 
+// Sort the children. Note that child scores are reversed from the parent's
+// point of view.
+function egtbCmp($a, $b) {
+  $as = $a['score'];
+  $bs = $b['score'];
+  if ($as == $bs) {
+    return strcasecmp($a['move'], $b['move']);
+  }
+
+  if ((($as > 0) && ($bs > 0)) ||     // both winning? prefer the faster win
+      ((($as < 0) && ($bs < 0))))  {  // both losing? prefer the slower loss
+    return ($bs - $as);
+  }
+  return $as - $bs;
+}
+
+function readEgtbResponse(&$sock) {
+  $r = [
+    'type' => 'egtb',
+    'score' => fscanf($sock, '%d ')[0],
+    'numChildren' => fscanf($sock, '%d ')[0],
+    'children' => [],
+  ];
+  for ($i = 0; $i < $r['numChildren']; $i++) {
+    $line = trim(fgets($sock));
+    $parts = explode(' ', $line, 3);
+    $r['children'][] = [
+      'move' => $parts[0],
+      'score' => $parts[1],
+      'fen' => $parts[2],
+    ];
+  }
+
+  usort($r['children'], 'egtbCmp');
+  return $r;
+}
+
 function serverQuery($config, $fen) {
   $sock = @fsockopen('localhost', $config['queryServerPort']);
   if (!$sock) {
-    die('Backend server not responding');
+    throw new Exception('Backend server not responding.');
   }
+
   fprintf($sock, "query $fen\n");
-  $error = trim(fgets($sock));
-  if ($error) {
-    return [ null, null, null, $error ];
+  $type = trim(fgets($sock));
+
+  switch ($type) {
+    case 'error':
+      throw new Exception(trim(fgets($sock)));
+
+    case 'egtb':
+      return readEgtbResponse($sock);
   }
-  list($score, $numMoves) = fscanf($sock, '%s %d');
-  $children = [];
-  for ($i = 0; $i < $numMoves; $i++) {
-    $line = fgets($sock);
-    list($move, $childScore, $childFen) = explode(' ', $line, 3);
-    $children[] = [
-      'move' => $move,
-      'score' => is_numeric($childScore) ? (int)$childScore : '',
-      'scoreText' => $childScore,
-      'fen' => $childFen,
-    ];
-  }
+  return null;
+
   fclose($sock);
 
   if (count($children) && is_numeric($children[0]['score'])) {
