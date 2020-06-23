@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
      }
   }
 
-  Pns pn1(50000, 10000000);
+  Pns pn1(60000, 10000000);
   Pns pn2(10000000, 100000000, &pn1, bookFile);
   QueryServer qs(&pn2);
   pn2.load();
