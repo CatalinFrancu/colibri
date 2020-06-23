@@ -156,9 +156,11 @@ private:
    */
   string pnAsString(u64 number);
 
-  /* Creates a PNS tree node with no children and no parents and proof/disproof values of 1.
-   * Returns its index in the preallocated array. */
-  int allocateLeaf(u64 p, u64 d);
+  /**
+   * Creates a PNS tree node with no children or parents and given (dis)proof
+   * numbers. Returns its index in the preallocated array.
+   */
+  int allocateLeaf(u64 p, u64 d, u64 zobrist);
 
   /* Adds a parent to a PNS node (presumably because we found a transposed path to it).
    * The new pointer is added at the front of the parent list. */
@@ -177,7 +179,7 @@ private:
   int appendChild(int parentIndex, int childIndex, Move m, int tail);
 
   /* Prints a PNS tree node recursively. */
-  void printTree(int t, int level, int maxDepth);
+  void printTree(int t, int level, int maxLevels);
 
   /**
    * Saves a node in the PNS tree.

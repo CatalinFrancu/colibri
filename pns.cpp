@@ -43,10 +43,10 @@ void Pns::reset() {
 
 void Pns::collapse() {
   reset();
-  allocateLeaf(1, 1);
+  u64 z = getZobrist(&board);
+  allocateLeaf(1, 1, z);
   node[0].depth = 0;
-  node[0].zobrist = getZobrist(&board);
-  trans[node[0].zobrist] = { 0, NIL };
+  trans[z] = { 0, NIL };
 }
 
 bool Pns::isSolved(int t) {
@@ -64,11 +64,11 @@ string Pns::pnAsString(u64 number) {
   return to_string(number);
 }
 
-int Pns::allocateLeaf(u64 p, u64 d) {
+int Pns::allocateLeaf(u64 p, u64 d, u64 zobrist) {
   int t = nodeAllocator->alloc();
   node[t].proof = p;
   node[t].disproof = d;
-  node[t].zobrist = 0;
+  node[t].zobrist = zobrist;
   node[t].child = node[t].parent = NIL;
   node[t].depth = INFTY;
   return t;
@@ -103,8 +103,8 @@ int Pns::appendChild(int parentIndex, int childIndex, Move m, int tail) {
   return e;
 }
 
-void Pns::printTree(int t, int level, int maxDepth) {
-  if (level > maxDepth) {
+void Pns::printTree(int t, int level, int maxLevels) {
+  if (level > maxLevels) {
     return;
   }
 
@@ -118,7 +118,7 @@ void Pns::printTree(int t, int level, int maxDepth) {
        << pnAsString(node[c].proof) << '/' << pnAsString(node[c].disproof);
 
     log(LOG_DEBUG, ss.str().c_str());
-    printTree(c, level + 1, maxDepth);
+    printTree(c, level + 1, maxLevels);
   }
 }
 
@@ -165,7 +165,7 @@ void Pns::substituteClones(int c) {
 
       // lazy clone creation
       if (clone == NIL) {
-        clone = allocateLeaf(INFTY64, INFTY64);
+        clone = allocateLeaf(INFTY64, INFTY64, node[c].zobrist);
         it->second.second = clone;
       }
 
@@ -184,7 +184,7 @@ void Pns::substituteClones(int c) {
 }
 
 void Pns::updateDepth(int t, int d) {
-  if (node[t].zobrist == 0) {
+  if (node[t].depth == INFTY) {
     // leave clones at infinite depth, even when solved
     return;
   }
@@ -263,8 +263,7 @@ int Pns::zobristLookup(u64 z, int depth, u64 proof, u64 disproof) {
 
   if (it == trans.end()) {
     // first time generating this position
-    int c = allocateLeaf(proof, disproof);
-    node[c].zobrist = z;
+    int c = allocateLeaf(proof, disproof, z);
     trans[z] = { c, NIL };
     return c;
   }
@@ -283,7 +282,7 @@ int Pns::zobristLookup(u64 z, int depth, u64 proof, u64 disproof) {
   // Don't transpose to a node higher up the dag. This effectively prevents
   // repetitions, but also discourages long convoluted paths.
   if (rep == NIL) {
-    rep = allocateLeaf(INFTY64, INFTY64);
+    rep = allocateLeaf(INFTY64, INFTY64, z);
     it->second.second = rep;
   }
   return rep;
@@ -498,7 +497,7 @@ void Pns::deleteNode(int t) {
 }
 
 void Pns::solveRepetition(int t) {
-  if (node[t].zobrist == 0) {
+  if (node[t].depth == INFTY) {
     return; // t itself is a repetition
   }
 
@@ -670,16 +669,13 @@ void Pns::save() {
 }
 
 void Pns::loadHelper(Board *b, FILE* f) {
-  int t = allocateLeaf(INFTY64, 0);
+  u64 z = getZobrist(b); // TODO update incrementally from parent to child
+  int t = allocateLeaf(INFTY64, 0, z);
 
   // Read the number of children and the depth.
   byte numChildren;
   fread(&numChildren, 1, 1, f);
   node[t].depth = readVlq(f);
-
-  // Generate the Zobrist key and hash it.
-  u64 z = getZobrist(b); // TODO update incrementally from parent to child
-  node[t].zobrist = z;
 
   auto it = trans.find(z);
   if (it == trans.end()) {
