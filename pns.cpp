@@ -44,8 +44,7 @@ void Pns::reset() {
 void Pns::collapse() {
   reset();
   u64 z = getZobrist(&board);
-  allocateLeaf(1, 1, z);
-  node[0].depth = 0;
+  allocateLeaf(1, 1, 0, z);
   trans[z] = { 0, NIL };
 }
 
@@ -64,13 +63,13 @@ string Pns::pnAsString(u64 number) {
   return to_string(number);
 }
 
-int Pns::allocateLeaf(u64 p, u64 d, u64 zobrist) {
+int Pns::allocateLeaf(u64 p, u64 d, int depth, u64 zobrist) {
   int t = nodeAllocator->alloc();
   node[t].proof = p;
   node[t].disproof = d;
   node[t].zobrist = zobrist;
   node[t].child = node[t].parent = NIL;
-  node[t].depth = INFTY;
+  node[t].depth = depth;
   return t;
 }
 
@@ -165,7 +164,7 @@ void Pns::substituteClones(int c) {
 
       // lazy clone creation
       if (clone == NIL) {
-        clone = allocateLeaf(INFTY64, INFTY64, node[c].zobrist);
+        clone = allocateLeaf(INFTY64, INFTY64, INFTY, node[c].zobrist);
         it->second.second = clone;
       }
 
@@ -184,8 +183,9 @@ void Pns::substituteClones(int c) {
 }
 
 void Pns::updateDepth(int t, int d) {
-  if (node[t].depth == INFTY) {
-    // leave clones at infinite depth, even when solved
+  if ((node[t].depth == INFTY) || isSolved(t)) {
+    // Clones always remain at infinite depth, even when solved.
+    // Depth is irrelevant for solved nodes.
     return;
   }
   if (d < node[t].depth) {
@@ -195,6 +195,20 @@ void Pns::updateDepth(int t, int d) {
     for (int e = node[t].child; e != NIL; e = edge[e].next) {
       updateDepth(edge[e].node, d + 1);
     }
+  }
+}
+
+void Pns::updateChildDepths(int t) {
+  int target = 1 + node[t].depth;
+  for (int e = node[t].child; e != NIL; e = edge[e].next) {
+    int c = edge[e].node;
+    if (node[c].depth > target) {
+      updateDepth(c, 1 + target);
+    }
+    // Otherwise:
+    // - node has the proper depth already (for a freshly created child), or
+    // - node is a transposition, but at the same depth, or
+    // - node is solved or is a clone (these will be caught in updateDepth().
   }
 }
 
@@ -245,14 +259,10 @@ void Pns::setScoreEgtb(int t, int score) {
 }
 
 int Pns::copyMovesFromPn1() {
-  // If the PN1 tree is winning, only copy the first child
-  int n = 0, skip = false;
-  for (int e = pn1->node[0].child;
-       (e != NIL) && !skip;
-       e = pn1->edge[e].next) {
+  int n = 0;
+  for (int e = pn1->node[0].child; e != NIL; e = pn1->edge[e].next) {
     proof[n] = pn1->node[pn1->edge[e].node].proof;
     disproof[n] = pn1->node[pn1->edge[e].node].disproof;
-    skip = !disproof[n];
     move[n++] = pn1->edge[e].move;
   }
   return n;
@@ -263,7 +273,7 @@ int Pns::zobristLookup(u64 z, int depth, u64 proof, u64 disproof) {
 
   if (it == trans.end()) {
     // first time generating this position
-    int c = allocateLeaf(proof, disproof, z);
+    int c = allocateLeaf(proof, disproof, depth, z);
     trans[z] = { c, NIL };
     return c;
   }
@@ -282,7 +292,7 @@ int Pns::zobristLookup(u64 z, int depth, u64 proof, u64 disproof) {
   // Don't transpose to a node higher up the dag. This effectively prevents
   // repetitions, but also discourages long convoluted paths.
   if (rep == NIL) {
-    rep = allocateLeaf(INFTY64, INFTY64, z);
+    rep = allocateLeaf(INFTY64, INFTY64, INFTY, z);
     it->second.second = rep;
   }
   return rep;
@@ -302,24 +312,23 @@ bool Pns::expand(int t, Board *b) {
     pn1->board = *b;
     pn1->collapse();
     pn1->analyze();
+    if (!pn1->getProof()) {
+      // Handle the following rare scenario in PN2: t has a losing child c. We
+      // have c in the hash but it is unproven. The correct solution would be to
+      // collapse c and mark it as lost (also c's clone if there is one). But this
+      // involves calling update() during expand(). That way madness lies. Rather,
+      // we mark t as won and leave it childless. This means that we will at some
+      // point have to rediscover the proof for c, but that seems acceptable.
+      node[t].proof = 0;
+      node[t].disproof = INFTY64;
+      return true;
+    }
     nc = copyMovesFromPn1();
   } else {
     nc = getAllMoves(b, move, FORWARD);
   }
   if (!nc) {                                  // no legal moves
     setScoreNoMoves(t, b);
-    return true;
-  }
-
-  // Handle the following rare scenario in PN2: t has a losing child c. We
-  // have c in the hash but it is unproven. The correct solution would be to
-  // collapse c and mark it as lost (also c's clone if there is one). But this
-  // involves calling update() during expand(). That way madness lies. Rather,
-  // we mark t as won and leave it childless. This means that we will at some
-  // point have to rediscover the proof for c, but that seems acceptable.
-  if (pn1 && (nc == 1) && !disproof[0]) {
-    node[t].proof = 0;
-    node[t].disproof = INFTY64;
     return true;
   }
 
@@ -339,7 +348,6 @@ bool Pns::expand(int t, Board *b) {
     int c = zobristLookup(z2, node[t].depth + 1, childP, childD);
     addParent(c, t);
     prependChild(t, c, move[nc]);
-    updateDepth(c, node[t].depth + 1);
   }
 
   return true;
@@ -526,6 +534,7 @@ void Pns::analyzeSubtree(int startNode, Board* b) {
     if (expand(mpn, &current)) {
       seen.clear();
       update(mpn, INFTY);
+      updateChildDepths(mpn);
       if (pn1 && timer.ticked()) {
         save();
       }
@@ -670,7 +679,7 @@ void Pns::save() {
 
 void Pns::loadHelper(Board *b, FILE* f) {
   u64 z = getZobrist(b); // TODO update incrementally from parent to child
-  int t = allocateLeaf(INFTY64, 0, z);
+  int t = allocateLeaf(INFTY64, 0, 0, z);
 
   // Read the number of children and the depth.
   byte numChildren;

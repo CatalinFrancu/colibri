@@ -160,7 +160,7 @@ private:
    * Creates a PNS tree node with no children or parents and given (dis)proof
    * numbers. Returns its index in the preallocated array.
    */
-  int allocateLeaf(u64 p, u64 d, u64 zobrist);
+  int allocateLeaf(u64 p, u64 d, int depth, u64 zobrist);
 
   /* Adds a parent to a PNS node (presumably because we found a transposed path to it).
    * The new pointer is added at the front of the parent list. */
@@ -216,6 +216,11 @@ private:
    * Recursively updates a node's depth if it is improved.
    */
   void updateDepth(int t, int d);
+
+  /**
+   * Wrapper around updateDepth() for the children of a freshly expanded node.
+   */
+  void updateChildDepths(int t);
 
   /**
    * Finds the most proving node in a PNS tree. Starting with the original
