@@ -51,7 +51,7 @@ $(function() {
 
   function stmChange() {
     stm = $('#stm').val();
-    updateFenField;
+    updateFenField();
   }
 
   function squareClick() {

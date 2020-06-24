@@ -58,6 +58,10 @@
     <div class="col-lg">
       {if $response.type == 'egtb'}
         {include "egtbTable.tpl"}
+      {elseif $response.type == 'pns'}
+        {include "pnsTable.tpl"}
+      {elseif $response.type == 'unknown'}
+        {include "unknownTable.tpl"}
       {/if}
     </div>
   </div>

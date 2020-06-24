@@ -50,7 +50,7 @@ void QueryServer::handlePnsQuery(FILE* fin, FILE* fout, Board* b) {
   }
 
   if (found) {
-    fprintf(fout, "pns\n%llu %llu\n%d\n", proof, disproof, numMoves);
+    fprintf(fout, "pns\n%llu\n%llu\n%d\n", proof, disproof, numMoves);
     for (int i = 0; i < numMoves; i++) {
       fprintf(fout, "%s %llu %llu %s\n",
               cMoves[i].c_str(), cProofs[i], cDisproofs[i], cFens[i].c_str());

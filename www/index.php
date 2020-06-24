@@ -157,6 +157,28 @@ function readEgtbResponse(&$sock) {
   return $r;
 }
 
+function readPnsResponse(&$sock) {
+  $r = [
+    'type' => 'pns',
+    'proof' => fscanf($sock, '%d')[0],
+    'disproof' => fscanf($sock, "%d")[0],
+    'numChildren' => fscanf($sock, "%d")[0],
+    'children' => [],
+  ];
+  for ($i = 0; $i < $r['numChildren']; $i++) {
+    $line = trim(fgets($sock));
+    $parts = explode(' ', $line, 4);
+    $r['children'][] = [
+      'move' => $parts[0],
+      'proof' => $parts[1],
+      'disproof' => $parts[2],
+      'fen' => $parts[3],
+    ];
+  }
+
+  return $r;
+}
+
 function serverQuery($config, $fen) {
   $sock = @fsockopen('localhost', $config['queryServerPort']);
   if (!$sock) {
@@ -172,45 +194,11 @@ function serverQuery($config, $fen) {
 
     case 'egtb':
       return readEgtbResponse($sock);
-  }
-  return null;
 
-  fclose($sock);
+    case 'pns':
+      return readPnsResponse($sock);
 
-  if (count($children) && is_numeric($children[0]['score'])) {
-    usort($children, 'cmpChildren');
-  }
-  return [
-    is_integer($score) ? $score : '',
-    $score,
-    $children,
-    null,
-  ];
-}
-
-function cmpChildren($a, $b) {
-  $sa = sign($a['score']);
-  $sb = sign($b['score']);
-  if ($sa != $sb) {
-    return ($sa < $sb) ? -1 : 1;
-  }
-  if ($a['score'] != $b['score']) {
-    return ($a['score'] < $b['score']) ? 1 : -1;
-  }
-  return ($a['move'] < $b['move']) ? -1 : 1;
-}
-
-/* Returns -1 / 0 / 1 for an integer argument */
-function sign($int) {
-  return min(1, max(-1, $int));
-}
-
-function interpretScore($text) {
-  if (is_numeric($text)) {
-    return [ 'dtc' => $text, 'text' => '' ];
-  } else {
-    return [ 'dtc' => '', 'text' => $text ];
+    case 'unknown':
+      return [ 'type' => 'unknown' ];
   }
 }
-
-?>
