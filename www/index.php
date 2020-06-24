@@ -4,15 +4,14 @@ require_once __DIR__ . '/../resources/Core.php';
 
 $config = parse_ini_file(__DIR__ . '/../colibri.conf');
 
-$fen = isset($_GET['fen']) ? $_GET['fen'] : null;
+$fen = $_GET['fen'] ?? null;
 
 if ($fen) {
-  list($board, $stm) = fenToBoard($fen);
+  $stm = explode(' ', $fen)[1];
 } else {
   list($board, $stm) = randomBoard(5);
   $fen = boardToFen($board, $stm);
 }
-colorBoard($board);
 
 $smarty = Core::getSmarty();
 try {
@@ -24,7 +23,6 @@ try {
 
 $smarty->assign([
   'fen' => $fen,
-  'board' => $board,
   'stm' => $stm,
   'template' => 'index.tpl',
 ]);
@@ -80,44 +78,6 @@ function boardToFen($board, $stm) {
   }
   $fen .= " $stm - - 0 0";
   return $fen;
-}
-
-function fenToBoard($fen) {
-  $board = [];
-  list($pos, $stm, $ignored1, $epSquare, $ignored2, $ignored3) = explode(' ', $fen);
-  $rows = explode('/', $pos);
-  $rankNumber = 8;
-
-  foreach ($rows as $row) {
-    $fileName = 'a';
-    $v = [];
-    for ($i = 0; $i < strlen($row); $i++) {
-      if (ctype_digit($row[$i])) {
-        for ($j = 0; $j < $row[$i]; $j++) {
-          $v[$fileName] = [ 'piece' => '' ];
-          $fileName++;
-        }
-      } else {
-        $side = ctype_upper($row[$i]) ? 'w' : 'b';
-        $piece = strtolower($row[$i]);
-        $v[$fileName] = [ 'piece' => $side . $piece ];
-        $fileName++;
-      }
-    }
-    $board[$rankNumber--] = $v;
-  }
-  if ($epSquare != '-') {
-    $board[$epSquare[1]][$epSquare[0]]['piece'] = 'epSquare';
-  }
-  return [ $board, $stm ];
-}
-
-function colorBoard(&$board) {
-  foreach ($board as $i => $row) {
-    foreach ($row as $j => $square) {
-      $board[$i][$j]['color'] = (($i + ord($j)) % 2) ? 'whiteBg' : 'blackBg';
-    }
-  }
 }
 
 // Sort the children. Note that child scores are reversed from the parent's
