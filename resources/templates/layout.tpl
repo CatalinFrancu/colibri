@@ -5,7 +5,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <link href="css/third-party/bootstrap-4.3.1.min.css" rel="stylesheet" type="text/css">
     <link href="css/main.css?v=1" rel="stylesheet" type="text/css"/>
-    <script src="js/jquery-1.8.3.min.js"></script>
+    <script src="js/third-party/jquery-3.5.1.min.js"></script>
     <script src="js/main.js?v=1"></script>
   </head>
 
