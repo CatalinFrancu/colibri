@@ -1,122 +1,106 @@
-currentHammer = null;
-
 $(function() {
-  $('#editLink').click(editLinkClick);
-  $('.hammer').click(hammerClick);
-  $('.eraseAll').click(eraseAllClick);
-  $('.anvil').click(anvilClick);
-  $('.stm').click(stmClick);
-  $('#goButton').click(goButtonClick);
+
+  var fen; // board only (first field of the FEN notation)
+  var stm;
+  var epSquare = '-';
+
+  init();
+
+  function init() {
+    if (!$('#board').length) {
+      return;
+    }
+
+    var config = {
+      draggable: true,
+      dropOffBoard: 'trash',
+      sparePieces: true,
+      onChange: boardChange,
+      pieceTheme: pieceTheme,
+      position: $('#fen').val(),
+    }
+    var board = Chessboard('board', config);
+
+    fen = board.fen();
+    stm = $('#stm').val();
+    epSquare = $('#fen').val().split(' ')[3];
+
+    if (epSquare != '-') {
+      $(`#board .square-${epSquare}`).addClass('en-passant');
+    }
+
+    $('#startBtn').click(board.start);
+    $('#clearBtn').click(board.clear);
+    $('#stm').change(stmChange);
+    $('#board div[data-square]').click(squareClick);
+    $('#goButton').click(goButtonClick);
+  }
+
+  function pieceTheme(piece) {
+    return 'img/pieces/' + piece + '.svg';
+  }
+
+  function boardChange(oldPos, newPos) {
+    fen = Chessboard.objToFen(newPos);
+    updateFenField();
+  }
+
+  function updateFenField() {
+    $('#fen').val(`${fen} ${stm} - ${epSquare} 0 1`);
+  }
+
+  function stmChange() {
+    stm = $('#stm').val();
+    updateFenField;
+  }
+
+  function squareClick() {
+    if ($(this).hasClass('en-passant')) {
+      $(this).removeClass('en-passant');
+      epSquare = '-';
+      updateFenField();
+      return;
+    }
+
+    var square = $(this).data('square');
+    var file = square[0];
+    var rank = Number(square[1]);
+
+    // Skip the empty square check. It should be empty because the draggable
+    // property eats all clicks on occupied squares.
+
+    // Check that there is a pawn in front and an empty square behind.
+    if (((rank == 3) &&
+         ($('#board .square-' + file + '4 img[data-piece="wP"]').length == 1) &&
+         ($('#board .square-' + file + '2 img').length == 0) &&
+         (stm == 'b')) ||
+        ((rank == 6) &&
+         ($('#board .square-' + file + '5 img[data-piece="bP"]').length == 1) &&
+         ($('#board .square-' + file + '7 img').length == 0) &&
+         (stm == 'w'))) {
+      epSquare = square;
+      $('.en-passant').removeClass('en-passant');
+      $(`#board .square-${square}`).addClass('en-passant');
+      updateFenField();
+    }
+  }
+
+  function goButtonClick() {
+    // check that there are some pieces
+    var numPieces = $('#board div[data-square] img[data-piece]').length;
+    if (!numPieces) {
+      alert('Please place some pieces on the board.');
+      return false;
+    }
+
+    // check that there are no pawns on rows 1 and 8
+    var numPawnsFirst = $('#board div[data-square$="1"] img[data-piece$="P"]').length;
+    var numPawnsEighth = $('#board div[data-square$="8"] img[data-piece$="P"]').length;
+    if (numPawnsFirst || numPawnsEighth) {
+      alert('Pawns are not allowed on the first or eighth rank.');
+      return false;
+    }
+
+    return true;
+  }
 });
-
-function editLinkClick() {
-  $('#toolBox').slideToggle('fast');
-  return false;
-}
-
-function hammerClick() {
-  if (currentHammer) {
-    currentHammer.removeClass('currentHammer');
-  }
-  $(this).addClass('currentHammer');
-  currentHammer = $(this);
-}
-
-function eraseAllClick() {
-  $('.anvil').children('div').attr('class', '');
-}
-
-function anvilClick() {
-  if (!currentHammer) {
-    return;
-  }
-  var hammerClass = currentHammer.children('div').attr('class');
-  if (hammerClass == 'eraseOne') {
-    $(this).children('div').attr('class', '');
-  } else {
-    $(this).children('div').attr('class', hammerClass);
-  }
-}
-
-function stmClick() {
-  $('.stm').removeClass('stmSelected');
-  $(this).addClass('stmSelected');
-  currentStm = ($(this).html() == 'white') ? 'w' : 'b';
-}
-
-function goButtonClick() {
-  var fen = '';
-  var epSquare = '';
-  var numPieces = 0;
-  var numEmpty = 0;
-  $('#board').find('div').each(function(i) {
-    // End previous rank: add empty squares, add a slash
-    if (i && (i % 8 == 0)) {
-      if (numEmpty) {
-        fen += numEmpty;
-        numEmpty = 0;
-      }
-      fen += '/';
-    }
-    var cl = $(this).attr('class');
-    if (!cl) {
-      numEmpty++;
-    } else if (cl == 'epSquare') {
-      epSquare += $(this).attr('id');
-      numEmpty++;
-    } else {
-      if (numEmpty) {
-        fen += numEmpty;
-        numEmpty = 0;
-      }
-      // First character is w/b, second character is the piece name
-      fen += (cl[0] == 'w') ? cl[1].toUpperCase() : cl[1];
-      numPieces++;
-    }
-  });
-  if (numEmpty) {
-    fen += numEmpty;
-  }
-
-  var errorMsg = '';
-  if (!numPieces) {
-    errorMsg = 'Please place some pieces on the board.';
-  } else if (epSquare.length > 2) {
-    errorMsg = 'There can be at most one en passant square.';
-  }
-
-  if (!errorMsg && epSquare) {
-    var epRank = parseInt(epSquare[1]);
-    var epFile = epSquare[0];
-    var pawnRank = (currentStm == 'w') ? (epRank - 1) : (epRank + 1);
-    var emptyRank = (currentStm == 'w') ? (epRank + 1) : (epRank - 1);
-    var expectedPawn = (currentStm == 'w') ? 'bp' : 'wp';
-    var expectedColor = (currentStm == 'w') ? 'Black' : 'White';
-    if ((currentStm == 'w') && (epRank != 6)) {
-      errorMsg = 'When White is to move, the en passant square (if any) must be on the 6th rank.';
-    } else if ((currentStm == 'b') && (epRank != 3)) {
-      errorMsg = 'When Black is to move, the en passant square (if any) must be on the 3rd rank.';
-    } else if (expectedPawn != $('#' + epFile + pawnRank).attr('class')) {
-      errorMsg = 'Expecting a ' + expectedColor + ' pawn at ' + epFile + pawnRank;
-    } else if ($('#' + epFile + emptyRank).attr('class')) {
-      errorMsg = 'Expecting an empty square at ' + epFile + emptyRank;
-    }
-  }
-
-  // Make sure all the pawns are on ranks 2-7
-  $('#board .wp, #board .bp').each(function() {
-    var square = $(this).attr('id');
-    var rank = parseInt(square[1]);
-    if (rank < 2 || rank > 7) {
-      errorMsg = 'Pawns can only sit on ranks 2-7.';
-    }
-  });
-
-  if (errorMsg) {
-    alert(errorMsg);
-  } else {
-    fen += ' ' + currentStm + ' - ' + (epSquare ? epSquare : '-') + ' 0 0';
-    $('#fenField').val(fen);
-    $('#editForm').submit();
-  }
-}

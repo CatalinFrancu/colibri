@@ -5,95 +5,54 @@
 {else}
   <div class="row">
     <div class="col-lg">
-      <table id="board">
-        <tbody>
-          <tr>
-            <th class="lr tb"></th>
-            {foreach from=$board[8] item=square key=fileName}
-              <th class="tb">{$fileName}</th>
-            {/foreach}
-            <th></th>
-          </tr>
-          {foreach from=$board item=rank key=rankNumber}
-            <tr>
-              <th class="lr">{$rankNumber}</th>
-              {foreach from=$rank item=square key=fileLetter}
-                <td class="square anvil {$square.color}"><div id="{$fileLetter}{$rankNumber}" class="{$square.piece}"></div></td>
-              {/foreach}
-              <th class="lr">{$rankNumber}</th>
-            </tr>
-          {/foreach}
-          <tr>
-            <th class="lr tb"></th>
-            {foreach from=$board[8] item=square key=fileName}
-              <th class="tb">{$fileName}</th>
-            {/foreach}
-            <th></th>
-          </tr>
-        </tbody>
-      </table>
+      <div id="board"></div>
 
-      <div class="row">
-        <div id="stm" class="col {if $stm == 'w'}stmWhite{else}stmBlack{/if}">
-          to move
-        </div>
-        <div class="col">
-          <a id="editLink" href="#">edit position</a>
-        </div>
-      </div>
-
-      <div id="toolBox">
-        Click on a piece, then click on a board square to place it.
-        <table id="editBox">
-          <tr>
-            <td class="square hammer"><div class="wk"></div></td>
-            <td class="square hammer"><div class="wq"></div></td>
-            <td class="square hammer"><div class="wr"></div></td>
-            <td class="square hammer"><div class="wb"></div></td>
-            <td class="square hammer"><div class="wn"></div></td>
-            <td class="square hammer"><div class="wp"></div></td>
-          </tr>
-          <tr>
-            <td class="square hammer"><div class="bk"></div></td>
-            <td class="square hammer"><div class="bq"></div></td>
-            <td class="square hammer"><div class="br"></div></td>
-            <td class="square hammer"><div class="bb"></div></td>
-            <td class="square hammer"><div class="bn"></div></td>
-            <td class="square hammer"><div class="bp"></div></td>
-          </tr>
-          <tr>
-            <td class="square hammer" title="En passant target square"><div class="epSquare"></div></td>
-            <td class="square hammer" title="Erase one piece"><div class="eraseOne"></div></td>
-            <td class="square eraseAll" title="Erase the entire board"><div></div></td>
-            <td colspan="3"></td>
-          </tr>
-        </table>
-
-        Side to move:
-        <div id="stmBox">
-          <div class="row">
-            <div class="col stm {if $stm == 'w'}stmSelected{/if}">
-              <img src="img/pieces/wk.png">
-            </div>
-            <div class="col stm {if $stm == 'b'}stmSelected{/if}">
-              <img src="img/pieces/bk.png">
-            </div>
+      <form class="mt-3">
+        <div class="form-group row">
+          <div class="col-md-6">
+            <button id="startBtn" type="button" class="btn btn-sm btn-secondary">
+              start position
+            </button>
+            <button id="clearBtn" type="button" class="btn btn-sm btn-secondary">
+              clear board
+            </button>
           </div>
-          <form id="editForm" action="index.php">
-            <input id="fenField" type="hidden" name="fen" value=""/>
-            <input id="goButton" type="button" value="Go!"/>
-          </form>
-          <div style="clear: both"></div>
-        </div>
-      </div>
 
-      <div id="fen">
-        <form action="index.php">
-          <label for="fenDirectEdit">FEN:</label>
-          <input id="fenDirectEdit" type="text" name="fen" value="{$fen}"/>
-          <input type="button" value="Go!"/>
-        </form>
-      </div>
+          <div class="col-md-6">
+            <select id="stm" class="form-control form-control-sm">
+              <option value="w"">white to move</option>
+              <option value="b" {if $stm = 'b'}selected{/if}>black to move</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <small class="col form-text text-muted">
+            Click on an empty square on the third or sixth rank to set the en
+            passant target square.
+          </small>
+        </div>
+
+        <div class="d-flex">
+          <div class="mr-1">
+            <label for="fen" class="col-form-label form-control-sm pl-0">FEN:</label>
+          </div>
+          <div class="flex-grow-1">
+            <input
+              id="fen"
+              type="text"
+              class="form-control form-control-sm"
+              name="fen"
+              value="{$fen}"/>
+          </div>
+          <div class="ml-1">
+            <button
+              type="submit"
+              id="goButton"
+              class="btn btn-sm btn-primary">go</button>
+          </div>
+        </div>
+      </form>
     </div>
 
     <div class="col-lg">
@@ -101,9 +60,5 @@
         {include "egtbTable.tpl"}
       {/if}
     </div>
-
-    <script>
-      currentStm = '{$stm}';
-    </script>
   </div>
 {/if}
