@@ -2,5 +2,5 @@ bin/
 colibri.conf
 egtb
 obj/
-www/templates_c/*
+resources/templates_c/*
 *~

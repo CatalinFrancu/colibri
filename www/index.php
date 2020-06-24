@@ -1,6 +1,6 @@
 <?php
 
-require_once 'smarty3/Smarty.class.php';
+require_once __DIR__ . '/../resources/Core.php';
 
 $config = parse_ini_file(__DIR__ . '/../colibri.conf');
 
@@ -14,9 +14,7 @@ if ($fen) {
 }
 colorBoard($board);
 
-$smarty = new Smarty();
-$smarty->template_dir = 'templates';
-$smarty->compile_dir = 'templates_c';
+$smarty = Core::getSmarty();
 try {
   $response = serverQuery($config, $fen);
   $smarty->assign('response', $response);
