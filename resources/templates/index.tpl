@@ -4,7 +4,7 @@
   </div>
 {else}
   <div class="row">
-    <div class="col-lg">
+    <div class="col-lg mb-4">
       <div id="board"></div>
 
       <form class="mt-3">
@@ -28,8 +28,8 @@
 
         <div class="form-group row">
           <small class="col form-text text-muted">
-            Click on an empty square on the third or sixth rank to set the en
-            passant target square.
+            Click on the third or sixth rank to set the en passant target
+            square.
           </small>
         </div>
 

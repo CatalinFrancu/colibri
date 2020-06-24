@@ -4,13 +4,14 @@ require_once __DIR__ . '/../resources/Core.php';
 
 $config = parse_ini_file(__DIR__ . '/../colibri.conf');
 
-$fen = $_GET['fen'] ?? null;
+$egtb = isset($_GET['egtb']); // request a random EGTB board
+$fen = $_GET['fen'] ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1';
 
-if ($fen) {
-  $stm = explode(' ', $fen)[1];
-} else {
+if ($egtb) {
   list($board, $stm) = randomBoard(5);
   $fen = boardToFen($board, $stm);
+} else {
+  $stm = explode(' ', $fen)[1];
 }
 
 $smarty = Core::getSmarty();
