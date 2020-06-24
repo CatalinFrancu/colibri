@@ -21,7 +21,7 @@
           <div class="col-md-6">
             <select id="stm" class="form-control form-control-sm">
               <option value="w"">white to move</option>
-              <option value="b" {if $stm = 'b'}selected{/if}>black to move</option>
+              <option value="b" {if $stm == 'b'}selected{/if}>black to move</option>
             </select>
           </div>
         </div>

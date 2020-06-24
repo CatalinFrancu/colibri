@@ -43,7 +43,7 @@
       </div>
     </main>
 
-    <footer class="py-3 border-top text-center">
+    <footer class="mt-3 pt-2 border-top text-center">
       Copyright 2013-2020 <a href="http://catalin.francu.com">Catalin Francu</a>
 
       <span class="text-muted px-3">•</span>

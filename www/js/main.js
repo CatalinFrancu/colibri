@@ -1,5 +1,6 @@
 $(function() {
 
+  var board;
   var fen; // board only (first field of the FEN notation)
   var stm;
   var epSquare = '-';
@@ -19,17 +20,18 @@ $(function() {
       pieceTheme: pieceTheme,
       position: $('#fen').val(),
     }
-    var board = Chessboard('board', config);
+    board = Chessboard('board', config);
 
     fen = board.fen();
     stm = $('#stm').val();
+    console.log('stm init ' + stm);
     epSquare = $('#fen').val().split(' ')[3];
 
     if (epSquare != '-') {
       $(`#board .square-${epSquare}`).addClass('en-passant');
     }
 
-    $('#startBtn').click(board.start);
+    $('#startBtn').click(startBtnClick);
     $('#clearBtn').click(board.clear);
     $('#stm').change(stmChange);
     $('#board div[data-square]').click(squareClick);
@@ -46,7 +48,14 @@ $(function() {
   }
 
   function updateFenField() {
+    console.log(stm);
     $('#fen').val(`${fen} ${stm} - ${epSquare} 0 1`);
+  }
+
+  function startBtnClick() {
+    $('#stm').val('w');
+    stm = 'w';
+    board.start();
   }
 
   function stmChange() {
