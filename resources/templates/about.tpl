@@ -27,7 +27,7 @@ probably won't implement an alpha-beta algorithm.</p>
 <h3>TODO list</h3>
 
 <ul>
-  <li><a href="http://en.wikipedia.org/wiki/Proof-number_search">Proof number search</a> so I can start solving openings.</li>
+  <li>Fix some bugs in <a href="http://en.wikipedia.org/wiki/Proof-number_search">proof number search</a> so I can start solving openings.</li>
 </ul>
 
 <h3>Nilatac</h3>
@@ -46,17 +46,13 @@ to give it up and rewrite Colibri from scratch because Nilatac had several short
 
 <h3>Downloads</h3>
 
-<p>Colibri is free software. You can <a href="http://voronet.francu.com/repos/colibri">browse the source code</a> or download a copy with Subversion:</p>
-
-<pre>
-  svn checkout http://voronet.francu.com/repos/colibri
-</pre>
+<p>Colibri is free software. You can <a href="https://github.com/CatalinFrancu/colibri/">browse the source code</a>.
 
 <p>I will seed the EGTB files on torrents once anybody asks. :-)</p>
 
 <h3>License</h3>
 
-<p>Copyright 2013 <a href="http://catalin.francu.com">Catalin Francu</a></p>
+<p>Copyright 2013-2020 <a href="http://catalin.francu.com">Catalin Francu</a></p>
 
 <p>Colibri's source code is released under the <a href="http://www.gnu.org/licenses/agpl-3.0.html">GNU Affero General Public License</a>.</p>
 
