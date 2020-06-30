@@ -793,10 +793,11 @@ bool Pns::batchLookup(Board* b, u64* proof, u64* disproof,
 
     cProofs[*numMoves] = node[c].proof;
     cDisproofs[*numMoves] = node[c].disproof;
-    log(LOG_DEBUG, "  returning child #%d move %s score %s depth %d",
+    log(LOG_DEBUG, "  returning child #%d move %s score %s/%s depth %d",
         c, names[i].c_str(),
         pnAsString(node[c].proof).c_str(),
-        pnAsString(node[c].disproof).c_str());
+        pnAsString(node[c].disproof).c_str(),
+        node[c].depth);
     (*numMoves)++;
   }
 
