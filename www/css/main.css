@@ -24,3 +24,7 @@ span.plug {
 .en-passant:before {
   content: 'ep';
 }
+
+.score-table a:visited {
+  color: #551A8B !important;
+}

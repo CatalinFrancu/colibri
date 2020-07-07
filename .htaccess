@@ -1,7 +1,1 @@
-Order Deny,Allow
 Deny from all
-
-<Files "www">
-  Order Allow,Deny
-  Allow from all
-</Files>

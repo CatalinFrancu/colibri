@@ -1,15 +1,27 @@
 <h3>About Colibri</h3>
 
-<p>Colibri is a <a href="http://en.wikipedia.org/wiki/Antichess">suicide chess</a> engine. It plays according to FICS rules (stalemate is a win for the
-player with the fewer pieces remaining -- variant 5 on Wikipedia).</p>
+<p>
+  Colibri is a <a href="http://en.wikipedia.org/wiki/Antichess">suicide chess</a> engine. It
+  plays according to
+  <a href="https://en.wikipedia.org/wiki/Losing_chess#Variations_regarding_stalemate">joint rules</a>
+  for stalemate.
+</p>
 
-<p>The fun thing about suicide chess, from a software engineer's point of view, is that it appears to be solvable, which means a computer could
-produce a game tree ("proof") in which White wins regardless of Black's defense. Some lines, such as <b>1. e3 d5</b> or <b>1. e3 e5</b>, are trivially
-solvable by average players. Other lines, like <b>1. e3 b5</b> took years of computing time from several different chess programs.</p>
+<p>
+  Suicide chess was weakly solved. Specifically, White wins after <b>1.</b> e3. Some
+  lines, such as <b>1.</b> e3 d5 or <b>1.</b> e3 e5, are trivially solvable by
+  average players. Other lines, like <b>1.</b> e3 b5 took years of computing
+  time from several different chess programs. The bulk of the work was done my
+  <a href="http://magma.maths.usyd.edu.au/~watkins/LOSING_CHESS/">Mark Watkins</a>.
+</p>
 
-<p>My aim in writing Colibri (aside from having fun and polishing my programming skills) is to tackle the remaining defenses for Black and find wins
-for White. I may end up connecting this program to FICS so it can play humans or other computers, but that is not my short-term goal. For example, I
-probably won't implement an alpha-beta algorithm.</p>
+<p>
+  My aim in writing Colibri (aside from having fun and polishing my
+  programming skills) is to tackle some defenses for Black and find wins for
+  White. I may end up connecting this program to lichess so it can play humans
+  or other computers, but that is not my short-term goal. For example, I
+  probably won't implement an alpha-beta algorithm.
+</p>
 
 <h3>Features</h3>
 

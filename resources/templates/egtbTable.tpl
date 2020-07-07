@@ -2,7 +2,7 @@
   EGTB: {include "egtbScore.tpl" score=$response.score}
 </h3>
 
-<table class="table table-sm">
+<table class="table table-sm score-table">
   <thead>
     <tr>
       <th scope="col">#</th>

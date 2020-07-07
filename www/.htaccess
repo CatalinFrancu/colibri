@@ -1,14 +1,1 @@
-<Files "*">
-  Order Allow,Deny
-  Allow from all
-</Files>
-
-<Files "templates">
-  Order Deny,Allow
-  Deny from all
-</Files>
-
-<Files "templates_c">
-  Order Deny,Allow
-  Deny from all
-</Files>
+Allow from all

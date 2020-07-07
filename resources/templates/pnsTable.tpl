@@ -6,7 +6,7 @@
 </h3>
 
 {if $response.numChildren}
-  <table class="table table-sm">
+  <table class="table table-sm score-table">
     <thead>
       <tr>
         <th scope="col">#</th>
