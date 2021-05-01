@@ -11,7 +11,7 @@
   Suicide chess was weakly solved. Specifically, White wins after <b>1.</b> e3. Some
   lines, such as <b>1.</b> e3 d5 or <b>1.</b> e3 e5, are trivially solvable by
   average players. Other lines, like <b>1.</b> e3 b5 took years of computing
-  time from several different chess programs. The bulk of the work was done my
+  time from several different chess programs. The bulk of the work was done by
   <a href="http://magma.maths.usyd.edu.au/~watkins/LOSING_CHESS/">Mark Watkins</a>.
 </p>
 
