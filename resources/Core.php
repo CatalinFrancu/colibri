@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/smarty3/Smarty.class.php';
+require_once __DIR__ . '/smarty-4.3.0/Smarty.class.php';
 
 class Core {
 
